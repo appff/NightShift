@@ -20,18 +20,26 @@ Night Shift는 로컬에 설치된 `claude` CLI 도구를 제어합니다. `clau
 
 `night_shift.py` 파일과 `mission.yaml` 파일이 있는 디렉토리에서 다음 명령어를 실행하십시오.
 
+기본적으로 `mission.yaml` 파일을 읽어서 작업을 수행합니다.
+
 ```bash
 # Night Shift 스크립트에 실행 권한 부여 (한 번만 필요)
 chmod +x night_shift.py
 
-# Night Shift 시작
+# Night Shift 시작 (기본 mission.yaml 실행)
 ./night_shift.py
 ```
 
-또는 Python 인터프리터를 직접 사용하여 실행할 수도 있습니다:
+**다른 미션 파일 실행하기:**
+
+여러 개의 미션 파일을 만들어두고, 실행 시 원하는 파일을 지정할 수 있습니다.
 
 ```bash
-python3 night_shift.py
+# 특정 미션 파일 실행 (예: mission_fix_bug.yaml)
+./night_shift.py mission_fix_bug.yaml
+
+# 또는 Python으로 실행
+python3 night_shift.py my_custom_mission.yaml
 ```
 
 **주의:**

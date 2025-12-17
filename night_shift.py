@@ -19,6 +19,7 @@ import re
 import subprocess
 import os
 import glob
+import argparse
 from datetime import datetime
 
 # --- Configuration & Constants ---
@@ -346,9 +347,13 @@ class NightShiftAgent:
             self.logfile.close()
 
 if __name__ == "__main__":
-    if not os.path.exists("mission.yaml"):
-        print("❌ mission.yaml not found!")
+    parser = argparse.ArgumentParser(description="Night Shift: Autonomous Claude Code Wrapper")
+    parser.add_argument("mission_file", nargs="?", default="mission.yaml", help="Path to the mission YAML file")
+    args = parser.parse_args()
+
+    if not os.path.exists(args.mission_file):
+        print(f"❌ Mission file not found: {args.mission_file}")
         sys.exit(1)
         
-    agent = NightShiftAgent()
+    agent = NightShiftAgent(config_path=args.mission_file)
     agent.start()
