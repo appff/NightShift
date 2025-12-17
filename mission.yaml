@@ -1,0 +1,6 @@
+name: "Readme Correction Mission"
+project_path: "/Users/jeongminkim/Downloads/NightShift" # Target project directory
+tasks:
+  - "현재 폴더의 README.md 내용을 읽어줘."
+  - "내용 중에서 오타나 문법적으로 어색한 부분을 3군데 찾아서 알려줘."
+  - "찾은 오타를 수정해서 README.md 파일에 덮어써줘."
