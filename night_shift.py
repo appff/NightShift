@@ -186,6 +186,7 @@ class NightShiftAgent:
         # Regex to detect when Claude Code is waiting for input
         # Matches standard prompts (>, ❯, ?) at end of line, or cost confirmations
         self.WAIT_PATTERNS = [
+            r"(?:>|❯|\?)\s+Try\s.*",       # Claude Code specific prompt with hint
             r"(?:>|❯|\?)\s*$",            # Standard CLI prompt
             r"(?i)run this command\?",     # Explicit confirmation
             r"(?i)cost:.*continue\?",      # Cost check
