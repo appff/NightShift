@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
 """
-Night Shift: Autonomous AI Agent Wrapper
+Night Shift: Autonomous AI Agent Wrapper (v3.0 - Stateless CLI Wrapper)
 Target: macOS M3 (Apple Silicon)
-Version: 2.1.0 (Brain Edition - Debug Enhanced)
+Version: 3.0.0
 
 Core Features:
 1. Brain Module (LLM) for autonomous decision making.
 2. OODA Loop (Observe-Orient-Decide-Act) architecture.
-3. Multi-LLM Support (Gemini, Claude, GPT)
+3. Multi-LLM Support (Gemini, Claude, GPT).
+4. Robust communication with Claude Code using non-interactive mode (`claude -p`).
 """
 
-import pexpect
+import subprocess
 import sys
 import time
 import yaml
@@ -18,6 +19,7 @@ import re
 import os
 import argparse
 from datetime import datetime
+import json # For parsing Claude's JSON output if applicable
 
 # --- Third-party LLM SDKs ---
 try:
@@ -38,26 +40,6 @@ LOG_FILE_TEMPLATE = os.path.join(LOG_DIR, "night_shift_log_{timestamp}.txt")
 REPORT_FILE = "morning_report.md"
 SETTINGS_FILE = "settings.yaml"
 
-class Tee:
-    """Helper to write to multiple files (stdout and log file) simultaneously."""
-    def __init__(self, *files):
-        self.files = files
-    
-    def write(self, obj):
-        for f in self.files:
-            try:
-                f.write(obj)
-                f.flush() # Ensure real-time output
-            except Exception:
-                pass # Ignore write errors to avoid crashing
-
-    def flush(self):
-        for f in self.files:
-            try:
-                f.flush()
-            except Exception:
-                pass
-
 class Brain:
     """The Intelligence Unit. Decides what to do based on the mission and current context."""
     
@@ -65,9 +47,10 @@ class Brain:
         self.settings = self._load_settings(settings_path)
         self.model_type = self.settings.get('brain', {}).get('active_model', 'gemini')
         self.client = None
+        self.model_name = ""
         self._setup_client()
         
-        print(f"🧠 Brain Initialized: [{self.model_type.upper()}] Mode")
+        print(f"🧠 Brain Initialized: [{self.model_type.upper()}] Mode with model: {self.model_name}")
 
     def _load_settings(self, path):
         if not os.path.exists(path):
@@ -106,15 +89,16 @@ class Brain:
     def clean_ansi(self, text):
         return ANSI_ESCAPE_PATTERN.sub('', text)
 
-    def think(self, mission_goal, constraints, history_text, current_screen):
+    def think(self, mission_goal, constraints, conversation_history, last_claude_output):
         """
-        Analyzes the situation and returns the next command or response.
+        Analyzes the situation and returns the next command for Claude Code.
         """
-        clean_screen = self.clean_ansi(current_screen)[-3000:] # Increased context context
+        clean_output = self.clean_ansi(last_claude_output)[-3000:] # Last 3000 chars context
         
         prompt = f"""
 You are the "Director" of an autonomous coding session. 
-Your "Actor" is a CLI tool (Claude Code) that executes commands and asks questions.
+Your "Actor" is a non-interactive CLI tool (Claude Code) which you invoke with `claude -p "YOUR_COMMAND_HERE" -c`.
+Your goal is to guide the Actor to achieve the [MISSION GOAL].
 
 [MISSION GOAL]
 {mission_goal}
@@ -122,27 +106,32 @@ Your "Actor" is a CLI tool (Claude Code) that executes commands and asks questio
 [CONSTRAINTS]
 {constraints}
 
-[CURRENT SCREEN STATE (Actor's Output)]
-{clean_screen}
+[CONVERSATION HISTORY]
+{conversation_history[-4000:]}
 
-[HISTORY (Previous Actions)]
-{history_text[-1000:]}
+[LAST ACTOR'S OUTPUT]
+{clean_output}
 
 [INSTRUCTIONS]
-1. Analyze the 'CURRENT SCREEN STATE'. The Actor is waiting for input.
-2. Determine the next best action to move closer to the [MISSION GOAL].
-3. If the Actor is asking a question (e.g., "Run this command?"), decide Y/N or provide the requested input based on Constraints.
-4. If the Actor is idle (command finished or just started), provide the NEXT natural language instruction or shell command to proceed.
-5. If the Mission is FULLY COMPLETED, reply with exactly: "MISSION_COMPLETED"
+1. Analyze the [MISSION GOAL], [CONSTRAINTS], [CONVERSATION HISTORY], and [LAST ACTOR'S OUTPUT].
+2. Determine the NEXT single, specific, and actionable command/query to send to Claude Code via the `-p` flag to move closer to the [MISSION GOAL].
+3. If the Actor (Claude Code) requires a specific input (e.g., confirmation "y/n", a filename), provide that direct input.
+4. If the Actor's output indicates the mission is complete, or you believe no further action is needed, reply with exactly: "MISSION_COMPLETED".
+5. The command you output will be executed as `claude -p "YOUR_OUTPUT_HERE" -c`. Ensure it's a valid query for Claude Code.
 
 [CRITICAL RULE]
-- Do NOT repeat the exact same command if it was just executed and failed or did nothing.
-- If you see "Try", it's a hint. You can ignore it if you have a better plan.
-- Only return the COMMAND string. No markdown, no explanations in the output.
+- Your response MUST be ONLY the command/query string. No markdown, no explanations, no wrapping in quotes unless the command itself requires it.
+- Do NOT repeat the exact same command if it was just executed and yielded no progress.
+- Be concise and direct.
 """
         
         response_text = ""
-try:
+        try:
+            # For debugging, printing the prompt to console. For production, log to file.
+            print("\n--- 🧠 PROMPT TO BRAIN ---")
+            print(prompt)
+            print("--- END PROMPT ---")
+
             if self.model_type == 'gemini':
                 model = genai.GenerativeModel(self.model_name)
                 resp = model.generate_content(prompt)
@@ -166,7 +155,7 @@ try:
                 
         except Exception as e:
             print(f"🧠 Brain Freeze (Error): {e}")
-            return "n" 
+            return "MISSION_FAILED: LLM call failed."
 
         return response_text
 
@@ -186,88 +175,123 @@ class NightShiftAgent:
             timestamp=datetime.now().strftime("%Y%m%d_%H%M%S")
         )
         self.brain = Brain()
-        self.child = None
-        self.last_action = None
+        self.conversation_history = ""
+        self.last_claude_query = ""
+        self.last_claude_output = ""
+
+    def _run_claude_command(self, query):
+        if not query or query.strip() == "":
+            # If Brain sends empty query, consider it mission failed or done.
+            return "ERROR: Brain sent an empty query to Claude Code. Assuming mission failure."
+
+        # Base command for Claude Code
+        command = ["claude"]
+
+        # Always include the system prompt for context
+        if self.mission_config.get('goal'):
+            command.extend(["--system-prompt", self.mission_config['goal']])
+
+        # Add the actual query via -p
+        command.extend(["-p", query])
+
+        # Continue the most recent conversation
+        command.append("-c")
         
-        self.WAIT_PATTERNS = [
-            r"\? for shortcuts",           # Reliable prompt indicator in the footer
-            r"Try\s+\"",                   # Matches 'Try "' 
-            r">",                          # Simplest prompt matcher (Catch-all)
-            r"(?:>|❯|\?)\s*$",             # Standard CLI prompt
-            r"(?i)run this command\?",     # Explicit confirmation
-            r"(?i)cost:.*continue\?",      # Cost check
-            r"\[y/n\]",                    # Generic yes/no
-            pexpect.EOF,
-            pexpect.TIMEOUT
-        ]
+        # Enable automated file modification
+        command.append("--dangerously-skip-permissions")
+        # Explicitly allow Write tool
+        command.extend(["--allowedTools", "Write"])
+
+        print(f"\n--- 🚀 Running Claude Code ---")
+        print(f"Full Command: {' '.join(command)}")
+        print(f"Query: {query}")
+        print("---")
+
+        try:
+            result = subprocess.run(
+                command,
+                capture_output=True,
+                text=True,
+                check=False,
+                cwd=self.mission_config.get('project_path', os.getcwd())
+            )
+            
+            output = result.stdout.strip()
+            error = result.stderr.strip()
+
+            print(f"--- Claude Code Output ---")
+            print(output)
+            if error:
+                print(f"--- Claude Code Error ---")
+                print(error)
+            print("---")
+
+            if result.returncode != 0:
+                # Claude Code can return non-zero for warnings, but we should capture if it's an actual error
+                # For now, treat any non-zero as an error from the perspective of NightShift.
+                return f"Claude Code exited with error code {result.returncode}:\n{output}\n{error}"
+            
+            return output
+
+        except FileNotFoundError:
+            return "ERROR: 'claude' command not found. Is Claude Code CLI installed and in PATH?"
+        except Exception as e:
+            return f"ERROR running Claude Code: {e}"
 
     def start(self):
-        print("🌙 Night Shift (Autonomous) Starting...")
+        print("🌙 Night Shift (v3.0) Starting...")
         
         project_path = self.mission_config.get('project_path', os.getcwd())
         goal = self.mission_config.get('goal', 'No goal specified')
         constraints = self.mission_config.get('constraints', [])
         
-        os.chdir(project_path)
-        print(f"📂 Working Directory: {project_path}")
-        
-        cmd = "claude"
-        print(f"🚀 Spawning Actor: {cmd}")
-        
-        # Increased timeout slightly to avoid false positives on slow network
-        self.child = pexpect.spawn(cmd, encoding='utf-8', timeout=20) 
-        self.child.setwinsize(40, 120)
-        
-        self.logfile = open(self.log_file_path, 'w', encoding='utf-8')
-        self.child.logfile_read = Tee(sys.stdout, self.logfile)
-        
-        try:
-            print("⏳ Waiting for Actor to initialize...")
-            
-            history = "" 
-            
-            while True:
-                index = self.child.expect(self.WAIT_PATTERNS)
-                
-                current_screen = self.child.before 
-                prompt_trigger = self.child.after if isinstance(self.child.after, str) else "EOF/TIMEOUT"
-                
-                if index == 7: # EOF
-                    print("🏁 Actor exited. Mission End.")
-                    break
-                
-                if index == 8: # TIMEOUT
-                    print("⏳ Actor is silent (Timeout). Asking Brain if we should poke it...")
-                    current_screen += "\n[System Notice: The Actor has been silent for a while.]"
-                
-                print(f"\n--- 👁️ OBSERVED (Trigger: {repr(prompt_trigger)}) ---")
-                
-                print("🤔 Brain is thinking...")
-                action = self.brain.think(goal, constraints, history, current_screen + prompt_trigger)
-                
-                # Simple loop prevention
-                if action == self.last_action:
-                    print(f"⚠️ Loop detected. Brain suggested '{action}' again.")
-                    # We might want to force a wait or a different prompt, but for now just warn.
-                
-                self.last_action = action
-                print(f"💡 Brain decided: '{action}'")
-                
-                if action == "MISSION_COMPLETED":
-                    print("🎉 Mission Accomplished. Exiting.")
-                    self.child.sendline("/exit")
-                    break
-                
-                self.child.sendline(action)
-                
-                history += f"\n[Actor Output]: ...\n[Brain Action]: {action}\n"
+        # Initial kickstart
+        # Pass the main goal as --system-prompt once, then a generic start command
+        # The _run_claude_command now always includes --system-prompt from mission_config['goal']
+        initial_query = "Begin the mission. Analyze the current project based on the system prompt."
+        claude_output = self._run_claude_command(initial_query)
+        self.conversation_history += f"Director initial instruction: {initial_query}\nActor Output:\n{claude_output}\n"
+        self.last_claude_query = initial_query
+        self.last_claude_output = claude_output
 
-        except Exception as e:
-            print(f"💥 Critical Error: {e}")
-        finally:
-            self.child.close()
-            self.logfile.close()
-            print(f"📝 Log saved to: {self.log_file_path}")
+        # while True:
+        #     print("\n🤔 Brain is thinking...")
+        #     next_action = self.brain.think(
+        #         goal,
+        #         constraints,
+        #         self.conversation_history,
+        #         self.last_claude_output
+        #     )
+        #
+        #     print(f"💡 Brain decided: '{next_action}'")
+        #
+        #     if next_action == "MISSION_COMPLETED":
+        #         print("🎉 Mission Accomplished. Exiting.")
+        #         break
+        #     
+        #     if next_action.startswith("MISSION_FAILED"):
+        #         print(f"❌ {next_action}. Exiting.")
+        #         break
+        #
+        #     if next_action == self.last_claude_query:
+        #         print(f"⚠️ Loop detected: Brain suggested '{next_action}' again without new output. Forcing break.")
+        #         break
+        #
+        #     claude_output = self._run_claude_command(next_action)
+        #     
+        #     self.conversation_history += f"Director: {next_action}\nActor Output:\n{claude_output}\n"
+        #     self.last_claude_query = next_action
+        #     self.last_claude_output = claude_output
+        #     
+        #     # Simple rate limiting to avoid hammering LLM/Claude
+        #     time.sleep(2) 
+
+        print("\n👋 Night Shift Ended.")
+        # Optionally, save final report or full history to log file.
+        with open(self.log_file_path, "w", encoding="utf-8") as f:
+            f.write(self.conversation_history)
+        print(f"📝 Full conversation log saved to: {self.log_file_path}")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Night Shift: Brain-Powered Agent")
