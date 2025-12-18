@@ -2,12 +2,12 @@
 """
 Night Shift: Autonomous AI Agent Wrapper
 Target: macOS M3 (Apple Silicon)
-Version: 2.0.0 (Brain Edition)
+Version: 2.1.0 (Brain Edition - Debug Enhanced)
 
 Core Features:
 1. Brain Module (LLM) for autonomous decision making.
 2. OODA Loop (Observe-Orient-Decide-Act) architecture.
-3. Multi-LLM Support (Gemini, Claude, GPT).
+3. Multi-LLM Support (Gemini, Claude, GPT)
 """
 
 import pexpect
@@ -110,7 +110,7 @@ class Brain:
         """
         Analyzes the situation and returns the next command or response.
         """
-        clean_screen = self.clean_ansi(current_screen)[-2000:] # Last 2000 chars context
+        clean_screen = self.clean_ansi(current_screen)[-3000:] # Increased context context
         
         prompt = f"""
 You are the "Director" of an autonomous coding session. 
@@ -125,19 +125,24 @@ Your "Actor" is a CLI tool (Claude Code) that executes commands and asks questio
 [CURRENT SCREEN STATE (Actor's Output)]
 {clean_screen}
 
+[HISTORY (Previous Actions)]
+{history_text[-1000:]}
+
 [INSTRUCTIONS]
 1. Analyze the 'CURRENT SCREEN STATE'. The Actor is waiting for input.
 2. Determine the next best action to move closer to the [MISSION GOAL].
 3. If the Actor is asking a question (e.g., "Run this command?"), decide Y/N or provide the requested input based on Constraints.
-4. If the Actor is idle (command finished), provide the NEXT natural language instruction or shell command to proceed.
+4. If the Actor is idle (command finished or just started), provide the NEXT natural language instruction or shell command to proceed.
 5. If the Mission is FULLY COMPLETED, reply with exactly: "MISSION_COMPLETED"
 
-[OUTPUT FORMAT]
-Return ONLY the text to type into the terminal. Do not wrap in markdown or quotes unless necessary for the command itself.
+[CRITICAL RULE]
+- Do NOT repeat the exact same command if it was just executed and failed or did nothing.
+- If you see "Try", it's a hint. You can ignore it if you have a better plan.
+- Only return the COMMAND string. No markdown, no explanations in the output.
 """
         
         response_text = ""
-        try:
+try:
             if self.model_type == 'gemini':
                 model = genai.GenerativeModel(self.model_name)
                 resp = model.generate_content(prompt)
@@ -146,7 +151,7 @@ Return ONLY the text to type into the terminal. Do not wrap in markdown or quote
             elif self.model_type == 'gpt':
                 resp = self.client.chat.completions.create(
                     model=self.model_name,
-                    messages=[{"role": "system", "content": "You are a helpful AI Director."},
+                    messages=[{"role": "system", "content": "You are a helpful AI Director. Respond ONLY with the command to execute."}, 
                               {"role": "user", "content": prompt}]
                 )
                 response_text = resp.choices[0].message.content.strip()
@@ -161,7 +166,7 @@ Return ONLY the text to type into the terminal. Do not wrap in markdown or quote
                 
         except Exception as e:
             print(f"🧠 Brain Freeze (Error): {e}")
-            return "n" # Default safety fallback: reject/no
+            return "n" 
 
         return response_text
 
@@ -182,10 +187,8 @@ class NightShiftAgent:
         )
         self.brain = Brain()
         self.child = None
+        self.last_action = None
         
-        # Regex to detect when Claude Code is waiting for input
-        # Matches standard prompts (>, ❯, ?) at end of line, or cost confirmations
-        # Note: We use \x1b\[.*?m to match optional ANSI codes within the prompt
         self.WAIT_PATTERNS = [
             r"\? for shortcuts",           # Reliable prompt indicator in the footer
             r"Try\s+\"",                   # Matches 'Try "' 
@@ -208,66 +211,55 @@ class NightShiftAgent:
         os.chdir(project_path)
         print(f"📂 Working Directory: {project_path}")
         
-        # Start Claude Code
-        # We use a wrapper command or just 'claude'
         cmd = "claude"
         print(f"🚀 Spawning Actor: {cmd}")
         
-        # Reduced default timeout to 10s for debugging hang issues
-        self.child = pexpect.spawn(cmd, encoding='utf-8', timeout=10) 
+        # Increased timeout slightly to avoid false positives on slow network
+        self.child = pexpect.spawn(cmd, encoding='utf-8', timeout=20) 
         self.child.setwinsize(40, 120)
         
         self.logfile = open(self.log_file_path, 'w', encoding='utf-8')
-        # Log both to file AND to stdout for real-time visibility
         self.child.logfile_read = Tee(sys.stdout, self.logfile)
         
         try:
-            # Initial Wait for startup
             print("⏳ Waiting for Actor to initialize...")
             
-            history = "" # Keeps a running summary if needed (not fully implemented yet to save tokens) 
+            history = "" 
             
             while True:
-                # 1. OBSERVE: Wait for the Actor to stop talking and ask for input
                 index = self.child.expect(self.WAIT_PATTERNS)
                 
-                # Capture what was on screen before the prompt
                 current_screen = self.child.before 
                 prompt_trigger = self.child.after if isinstance(self.child.after, str) else "EOF/TIMEOUT"
                 
-                # If EOF, we are done
-                if index == 6: # EOF (index updated due to new patterns)
+                if index == 7: # EOF
                     print("🏁 Actor exited. Mission End.")
                     break
                 
-                if index == 7: # TIMEOUT (index updated)
-                    # If timeout, maybe it's thinking or stuck.
-                    # We can try to send a newline or just continue waiting?
-                    # Or ask Brain "It's silent, what do I do?"
+                if index == 8: # TIMEOUT
                     print("⏳ Actor is silent (Timeout). Asking Brain if we should poke it...")
-                    print(f"DEBUG: Raw buffer content: {repr(self.child.before)}") # Show invisible chars
                     current_screen += "\n[System Notice: The Actor has been silent for a while.]"
                 
-                # Echo to console so user sees what's happening (since we only logged read to file)
-                print(f"\n--- 👁️ OBSERVED (Buffer len: {len(current_screen)}) ---")
-                # print(current_screen.strip()) # Optional: print full screen
+                print(f"\n--- 👁️ OBSERVED (Trigger: {repr(prompt_trigger)}) ---")
                 
-                # 2. THINK: Ask Brain what to do
                 print("🤔 Brain is thinking...")
                 action = self.brain.think(goal, constraints, history, current_screen + prompt_trigger)
                 
+                # Simple loop prevention
+                if action == self.last_action:
+                    print(f"⚠️ Loop detected. Brain suggested '{action}' again.")
+                    # We might want to force a wait or a different prompt, but for now just warn.
+                
+                self.last_action = action
                 print(f"💡 Brain decided: '{action}'")
                 
-                # 3. ACT: Execute the decision
                 if action == "MISSION_COMPLETED":
                     print("🎉 Mission Accomplished. Exiting.")
                     self.child.sendline("/exit")
                     break
                 
-                # Send the command/response
                 self.child.sendline(action)
                 
-                # Add to history (simple version)
                 history += f"\n[Actor Output]: ...\n[Brain Action]: {action}\n"
 
         except Exception as e:
