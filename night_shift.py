@@ -315,7 +315,10 @@ class NightShiftAgent:
                     self.last_claude_output
                 )
 
-                print(f"💡 Brain decided: '{next_action}'")
+                print(f"💡 Director (Brain): {next_action}")
+
+                # Log Brain's decision immediately
+                self.conversation_history += f"Director (Brain): {next_action}\n"
 
                 if next_action == "MISSION_COMPLETED":
                     print("🎉 Mission Accomplished. Exiting.")
@@ -331,7 +334,8 @@ class NightShiftAgent:
 
                 claude_output = self._run_claude_command(next_action)
                 
-                self.conversation_history += f"Director: {next_action}\nActor Output:\n{claude_output}\n"
+                # Append Actor's output to history
+                self.conversation_history += f"Actor Output:\n{claude_output}\n"
                 self.last_claude_query = next_action
                 self.last_claude_output = claude_output
                 
