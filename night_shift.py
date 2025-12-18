@@ -137,7 +137,7 @@ Return ONLY the text to type into the terminal. Do not wrap in markdown or quote
 """
         
         response_text = ""
-try:
+        try:
             if self.model_type == 'gemini':
                 model = genai.GenerativeModel(self.model_name)
                 resp = model.generate_content(prompt)
@@ -159,7 +159,7 @@ try:
                 )
                 response_text = msg.content[0].text.strip()
                 
-except Exception as e:
+        except Exception as e:
             print(f"🧠 Brain Freeze (Error): {e}")
             return "n" # Default safety fallback: reject/no
 
@@ -192,7 +192,7 @@ class NightShiftAgent:
             r"(?:>|❯|\?)\s*$",             # Standard CLI prompt
             r"(?i)run this command\?",     # Explicit confirmation
             r"(?i)cost:.*continue\?",      # Cost check
-            r"[y/n]",                    # Generic yes/no
+            r"\[y/n\]",                    # Generic yes/no
             pexpect.EOF,
             pexpect.TIMEOUT
         ]
