@@ -2,61 +2,42 @@
 
 All notable changes to Night Shift will be documented in this file.
 
+## [4.0.0] - 2024-12-18
+
+### 🚀 Brain & Body Architecture (Major Update)
+
+#### New Architecture
+- **Brain & Body Separation**: `Brain`(전략가)과 `Body`(실행가)의 역할을 명확히 분리하여 모듈성 강화.
+- **Pluggable Drivers**: `settings.yaml`을 통해 `claude` 외에도 `aider` 등 다양한 CLI 도구를 Body로 사용할 수 있는 구조 도입.
+- **Dynamic Configuration**: 코드 수정 없이 설정 파일만으로 실행 도구(Driver)의 명령어, 인자, 환경변수를 정의 가능.
+
+#### Added
+- **`Body` Class**: CLI 도구 실행을 전담하는 클래스 신설.
+  - `prepare()`: 시스템 프롬프트 파일 등 사전 작업 처리
+  - `run()`: 설정된 드라이버 커맨드 실행 및 결과 반환
+  - `cleanup()`: 임시 파일 정리
+- **Quota Management**: Claude Code의 쿼터 제한("You've hit your limit") 발생 시 리셋 시간을 파싱하여 자동으로 대기하는 기능 추가.
+- **Concise Prompting**: Brain에게 1-2줄의 간결한 명령을 내리도록 지시하여 쿼터 및 컨텍스트 효율성 증대.
+
+#### Changed
+- **Terminology**: `Actor`/`CC` 용어를 `Body`로 통일.
+- **Dependency**: `pexpect` 의존성 완전 제거 (subprocess 기반 실행 확립).
+- **Settings Structure**: `body` 섹션 추가 (`active_driver`, `drivers` 설정).
+
+#### Technical Details
+- **Environment Variables**: `${VAR_NAME}` 문법을 통해 `settings.yaml`에서 환경변수 동적 주입 지원 (예: Aider 실행 시 `GOOGLE_API_KEY` 전달).
+- **Logging**: 로그 메시지에서 실행 주체를 명확히 표시 (`BODY (CLAUDE) OUTPUT`, `DIRECTOR (BRAIN) DECISION`).
+
+---
+
 ## [3.0.0] - 2024-12-18
 
 ### 🎉 Major Refactoring & Enhancements
 
 #### Added
-- **Schema Validation**: 설정 파일 (`settings.yaml`, `mission.yaml`)에 대한 스키마 검증 추가
-  - `validate_settings_schema()`: Brain 설정 검증
-  - `validate_mission_schema()`: 미션 설정 검증
-  - 런타임 오류를 사전에 방지하여 안정성 향상
-
-- **Enhanced Logging System**: Brain의 모든 활동을 상세히 기록
-  - `brain_log_{date}.txt`: Brain의 요청/응답을 타임스탬프와 함께 기록
-  - `_log_to_file()` 메서드: 전용 Brain 로그 파일 관리
-  - 디버깅 및 트러블슈팅 용이
-
-- **Google AI Library Update**: 최신 API로 마이그레이션
-  - `google-generativeai` (deprecated) → `google-genai` (최신)
-  - `genai.Client()` 기반의 새로운 API 사용
-  - FutureWarning 제거
-
-#### Improved
-- **Code Readability**: 대규모 리팩토링으로 가독성 대폭 향상
-  - `Brain.think()`: 79줄 → 45줄 (프롬프트 빌딩 및 LLM 호출 분리)
-  - `NightShiftAgent._run_claude_command()`: 61줄 → 40줄 (명령어 구성 및 실행 분리)
-  - 각 메서드가 단일 책임 원칙(SRP) 준수
-
-- **Error Handling**: 일반적인 Exception에서 구체적인 예외 타입으로 개선
-  - `ValueError`: 설정 오류 (잘못된 API 키, 모델 타입)
-  - `RuntimeError`: LLM API 호출 실패
-  - `FileNotFoundError`: Claude CLI 미설치
-  - 더 명확하고 유용한 에러 메시지
-
-- **Documentation**: 모든 메서드에 포괄적인 docstring 추가
-  - Args, Returns, Raises 섹션 명시
-  - 한국어 설명으로 이해도 향상
-  - 코드 의도를 명확히 전달
-
-#### Refactored
-- **Brain Class** - 새로운 헬퍼 메서드 추가:
-  - `_build_director_prompt()`: Director 프롬프트 구성 전담
-  - `_call_llm_api()`: LLM API 호출 및 응답 처리 전담
-  - `_log_to_file()`: Brain 활동 로깅 전담
-
-- **NightShiftAgent Class** - 명령어 실행 로직 분리:
-  - `_build_claude_command()`: Claude Code 명령어 구성
-  - `_execute_subprocess()`: subprocess 실행 및 에러 처리
-
-### Changed
-- `requirements.txt`: `google-generativeai` → `google-genai`
-- 전체 파일 라인 수: 354줄 → 544줄 (더 나은 구조화 및 문서화)
-
-### Technical Details
-- **코드 품질**: +233 insertions, -76 deletions
-- **테스트 상태**: ✅ 모든 검증 통과 (문법, import, CLI)
-- **기능 손상**: 없음 (기존 기능 100% 보존)
+- **Stateless CLI Wrapper**: `pexpect` 대신 `subprocess`와 `claude -p` 플래그를 사용하는 안정적인 통신 방식 도입.
+- **Schema Validation**: 설정 파일 검증 로직 추가.
+- **Google GenAI**: 최신 `google-genai` 라이브러리로 마이그레이션.
 
 ---
 
@@ -66,15 +47,3 @@ All notable changes to Night Shift will be documented in this file.
 - Brain 기반 자율 의사결정
 - OODA Loop 구현
 - Multi-LLM 지원 (Gemini, GPT, Claude)
-- 자연어 미션 정의
-
----
-
-## Future Roadmap
-
-### Planned Features
-- [ ] Unit Tests 추가 (pytest)
-- [ ] Type Hints 추가 (Python 타입 어노테이션)
-- [ ] Logging Module 전환 (print → logging)
-- [ ] Morning Report 자동 생성
-- [ ] Web UI 지원

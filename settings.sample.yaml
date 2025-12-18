@@ -15,3 +15,38 @@ brain:
   gpt:
     api_key: "YOUR_OPENAI_API_KEY"
     model: "gpt-4o" # 현재 공개된 가장 강력한 버전
+
+body:
+  # 작업을 수행할 주체(Actor/Body)를 선택합니다.
+  active_driver: "claude" # or "aider"
+
+  drivers:
+    claude:
+      # Claude Code CLI (requires 'claude' in PATH)
+      command: "claude"
+      # {query} will be replaced with the actual command
+      # {system_prompt_file} will be replaced with the path to the system prompt file
+      # {system_prompt} will be replaced with the system prompt text
+      args: 
+        - "--system-prompt-file"
+        - "{system_prompt_file}"
+        - "-p"
+        - "{query}"
+        - "-c"
+        - "--dangerously-skip-permissions"
+        - "--allowedTools"
+        - "Write"
+      env: {}
+
+    aider:
+      # Aider CLI (requires 'aider' in PATH and google-generativeai installed)
+      command: "aider"
+      args:
+        - "--model"
+        - "gemini/gemini-1.5-pro"
+        - "--message"
+        - "{query}"
+        - "--no-auto-commits"
+        - "--yes" # Always say yes to edits
+      env:
+        GOOGLE_API_KEY: "${GEMINI_API_KEY}" # Uses env var substitution
