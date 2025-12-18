@@ -162,6 +162,7 @@ Your goal is to guide the Actor to achieve the [MISSION GOAL].
                 # 가독성 개선: 변수명을 명확하게 변경 (resp → response)
                 response = model.generate_content(prompt)
                 response_text = response.text.strip()
+                print(f"--- 🧠 BRAIN RAW RESPONSE ---\n{response_text}\n--- END RAW RESPONSE ---")
 
             elif self.model_type == 'gpt':
                 # 가독성 개선: 변수명을 명확하게 변경 (resp → response)
@@ -171,6 +172,7 @@ Your goal is to guide the Actor to achieve the [MISSION GOAL].
                               {"role": "user", "content": prompt}]
                 )
                 response_text = response.choices[0].message.content.strip()
+                print(f"--- 🧠 BRAIN RAW RESPONSE ---\n{response_text}\n--- END RAW RESPONSE ---")
 
             elif self.model_type == 'claude':
                 # 가독성 개선: 변수명을 명확하게 변경 (msg → message)
@@ -180,6 +182,7 @@ Your goal is to guide the Actor to achieve the [MISSION GOAL].
                     messages=[{"role": "user", "content": prompt}]
                 )
                 response_text = message.content[0].text.strip()
+                print(f"--- 🧠 BRAIN RAW RESPONSE ---\n{response_text}\n--- END RAW RESPONSE ---")
                 
         except Exception as e:
             print(f"🧠 Brain Freeze (Error): {e}")
