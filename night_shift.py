@@ -358,7 +358,7 @@ class NightShiftAgent:
             now = datetime.now()
             target = datetime.strptime(time_str, "%I%p").replace(year=now.year, month=now.month, day=now.day)
             if target < now: target += timedelta(days=1)
-            target += timedelta(minutes=5) # Buffer
+            target += timedelta(minutes=1) # Buffer
             
             sleep_sec = (target - now).total_seconds()
             logging.warning(f"\n⏳ Quota limit. Sleeping until {target} ({sleep_sec/60:.1f}m)...")
@@ -422,6 +422,11 @@ class NightShiftAgent:
                     self.last_hassan_output = hassan_output
                     
                     time.sleep(RATE_LIMIT_SLEEP)
+
+            logging.info(f"\n{'='*60}")
+            logging.info("🏁 ALL TASKS COMPLETED. Requesting Final Commit & Push...")
+            logging.info(f"{ '='*60}\n")
+            self.hassan.run("Commit and push all changes now that all tasks are completed.")
 
         finally:
             self.hassan.cleanup()
