@@ -1,2 +1,24 @@
+# Configuration files (contain sensitive API keys)
 settings.yaml
 mission.yaml
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Logs and temporary files
+logs/
+*.log
+.night_shift_system_prompt.txt
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store

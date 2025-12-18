@@ -38,10 +38,11 @@ MAX_HISTORY_CHARS = 4000
 MAX_TOKENS = 1024
 RATE_LIMIT_SLEEP = 2
 
-# Defaults
-DEFAULT_GEMINI_MODEL = 'gemini-1.5-pro'
+# Default model names
+# 유지보수성 개선: 모델명을 한 곳에서 관리하여 변경 시 수정 지점을 명확히 함
+DEFAULT_GEMINI_MODEL = 'gemini-1.5-pro-002'
 DEFAULT_GPT_MODEL = 'gpt-4o'
-DEFAULT_CLAUDE_MODEL = 'claude-3-opus-20240229'
+DEFAULT_CLAUDE_MODEL = 'claude-3-5-sonnet-20240620'
 
 # --- Utils ---
 def validate_settings_schema(settings):

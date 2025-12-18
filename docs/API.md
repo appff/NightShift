@@ -120,9 +120,9 @@ mission.yaml의 필수 키(`goal`) 존재 여부를 검증합니다.
 ## Constants
 
 ### Defaults
-- `DEFAULT_GEMINI_MODEL`: 'gemini-1.5-pro'
+- `DEFAULT_GEMINI_MODEL`: 'gemini-1.5-pro-002'
 - `DEFAULT_GPT_MODEL`: 'gpt-4o'
-- `DEFAULT_CLAUDE_MODEL`: 'claude-3-opus-20240229'
+- `DEFAULT_CLAUDE_MODEL`: 'claude-3-5-sonnet-20240620'
 
 ### Limits
 - `MAX_CONTEXT_CHARS`: 3000
