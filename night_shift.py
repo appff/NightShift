@@ -68,34 +68,43 @@ class Brain:
         print(f"🧠 Brain Initialized: [{self.model_type.upper()}] Mode with model: {self.model_name}")
 
     def _load_settings(self, path):
-        """설정 파일을 로드합니다."""
+        """
+        설정 파일을 로드합니다.
+        
+        Args:
+            path: 설정 파일 경로
+            
+        Returns:
+            dict: 파싱된 설정 딕셔너리 (파일이 없으면 빈 딕셔너리)
+        """
         if not os.path.exists(path):
             print(f"⚠️  Settings file not found: {path}. Using defaults.")
             return {}
-        # 가독성 개선: 변수명을 명확하게 변경 (f → file)
         with open(path, 'r', encoding='utf-8') as file:
             return yaml.safe_load(file)
 
     def _setup_client(self):
-        """LLM 클라이언트를 설정합니다."""
-        # 가독성 개선: 변수명을 명확하게 변경 (brain_conf → brain_config)
+        """
+        LLM 클라이언트를 설정합니다.
+        
+        Raises:
+            ValueError: API 키가 없거나 잘못된 모델 타입인 경우
+        """
         brain_config = self.settings.get('brain', {})
 
         if self.model_type == 'gemini':
-            # 가독성 개선: 변수명을 명확하게 변경 (conf → config)
             config = brain_config.get('gemini', {})
             api_key = config.get('api_key') or os.getenv("GEMINI_API_KEY")
             if not api_key:
                 raise ValueError("Gemini API Key is missing in settings.yaml or env vars.")
             genai.configure(api_key=api_key)
-            # 유지보수성 개선: 기본 모델명을 상수로 관리
             self.model_name = config.get('model', DEFAULT_GEMINI_MODEL)
 
         elif self.model_type == 'gpt':
             config = brain_config.get('gpt', {})
             api_key = config.get('api_key') or os.getenv("OPENAI_API_KEY")
             if not api_key:
-                raise ValueError("OpenAI API Key is missing.")
+                raise ValueError("OpenAI API Key is missing in settings.yaml or env vars.")
             self.client = OpenAI(api_key=api_key)
             self.model_name = config.get('model', DEFAULT_GPT_MODEL)
 
@@ -103,20 +112,31 @@ class Brain:
             config = brain_config.get('claude', {})
             api_key = config.get('api_key') or os.getenv("CLAUDE_API_KEY")
             if not api_key:
-                raise ValueError("Anthropic API Key is missing.")
+                raise ValueError("Anthropic API Key is missing in settings.yaml or env vars.")
             self.client = Anthropic(api_key=api_key)
             self.model_name = config.get('model', DEFAULT_CLAUDE_MODEL)
+        
+        else:
+            raise ValueError(f"Unsupported model type: '{self.model_type}'. Choose from: gemini, gpt, claude.")
 
     def clean_ansi(self, text):
         return ANSI_ESCAPE_PATTERN.sub('', text)
 
-    def think(self, mission_goal, constraints, conversation_history, last_claude_output):
+    def _build_director_prompt(self, mission_goal, constraints, conversation_history, clean_output):
         """
-        Analyzes the situation and returns the next command for Claude Code.
+        Director 프롬프트를 구성합니다.
+        
+        Args:
+            mission_goal: 미션 목표
+            constraints: 제약사항 리스트
+            conversation_history: 대화 이력
+            clean_output: ANSI 코드가 제거된 Claude 출력
+            
+        Returns:
+            str: 구성된 프롬프트
         """
-        # 가독성 개선: 상수 사용으로 매직 넘버의 의미를 명확히 함
-        clean_output = self.clean_ansi(last_claude_output)[-MAX_CONTEXT_CHARS:]
-
+        constraints_text = '\n'.join(constraints) if isinstance(constraints, list) else str(constraints)
+        
         prompt = f"""
 You are the "Director" of an autonomous coding session.
 Your "Actor" is a non-interactive CLI tool (Claude Code) which you invoke with `claude -p "YOUR_COMMAND_HERE" -c`.
@@ -126,7 +146,7 @@ Your goal is to guide the Actor to achieve the [MISSION GOAL].
 {mission_goal}
 
 [CONSTRAINTS]
-{constraints}
+{constraints_text}
 
 [CONVERSATION HISTORY]
 {conversation_history[-MAX_HISTORY_CHARS:]}
@@ -149,46 +169,103 @@ Your goal is to guide the Actor to achieve the [MISSION GOAL].
 - Do NOT repeat the exact same command if it was just executed and yielded no progress.
 - Be concise and direct.
 """
-        
-        response_text = ""
-        try:
-            # For debugging, printing the prompt to console. For production, log to file.
-            print("\n--- 🧠 PROMPT TO BRAIN ---")
-            print(prompt)
-            print("--- END PROMPT ---")
+        return prompt
 
+    def _call_llm_api(self, prompt):
+        """
+        설정된 LLM API를 호출하여 응답을 받습니다.
+        
+        Args:
+            prompt: LLM에 전달할 프롬프트
+            
+        Returns:
+            str: LLM의 응답 텍스트
+            
+        Raises:
+            ValueError: 지원하지 않는 모델 타입인 경우
+            RuntimeError: LLM API 호출 실패 시
+        """
+        try:
             if self.model_type == 'gemini':
                 model = genai.GenerativeModel(self.model_name)
-                # 가독성 개선: 변수명을 명확하게 변경 (resp → response)
                 response = model.generate_content(prompt)
                 response_text = response.text.strip()
                 print(f"--- 🧠 BRAIN RAW RESPONSE ---\n{response_text}\n--- END RAW RESPONSE ---")
+                return response_text
 
             elif self.model_type == 'gpt':
-                # 가독성 개선: 변수명을 명확하게 변경 (resp → response)
                 response = self.client.chat.completions.create(
                     model=self.model_name,
-                    messages=[{"role": "system", "content": "You are a helpful AI Director. Respond ONLY with the command to execute."},
-                              {"role": "user", "content": prompt}]
+                    messages=[
+                        {"role": "system", "content": "You are a helpful AI Director. Respond ONLY with the command to execute."},
+                        {"role": "user", "content": prompt}
+                    ]
                 )
                 response_text = response.choices[0].message.content.strip()
                 print(f"--- 🧠 BRAIN RAW RESPONSE ---\n{response_text}\n--- END RAW RESPONSE ---")
+                return response_text
 
             elif self.model_type == 'claude':
-                # 가독성 개선: 변수명을 명확하게 변경 (msg → message)
                 message = self.client.messages.create(
                     model=self.model_name,
-                    max_tokens=MAX_TOKENS,  # 가독성 개선: 상수 사용
+                    max_tokens=MAX_TOKENS,
                     messages=[{"role": "user", "content": prompt}]
                 )
                 response_text = message.content[0].text.strip()
                 print(f"--- 🧠 BRAIN RAW RESPONSE ---\n{response_text}\n--- END RAW RESPONSE ---")
+                return response_text
+            
+            else:
+                raise ValueError(f"Unknown model type: {self.model_type}")
                 
+        except ValueError:
+            raise
         except Exception as e:
-            print(f"🧠 Brain Freeze (Error): {e}")
-            return "MISSION_FAILED: LLM call failed."
+            raise RuntimeError(f"Failed to call {self.model_type} LLM: {str(e)}") from e
 
-        return response_text
+    def think(self, mission_goal, constraints, conversation_history, last_claude_output):
+        """
+        상황을 분석하고 Claude Code를 위한 다음 명령을 반환합니다.
+        
+        Args:
+            mission_goal: 미션 목표
+            constraints: 제약사항 리스트
+            conversation_history: 대화 이력
+            last_claude_output: 마지막 Claude 출력
+            
+        Returns:
+            str: 다음에 실행할 명령어 또는 "MISSION_COMPLETED"/"MISSION_FAILED"
+        """
+        # ANSI 이스케이프 코드 제거 및 컨텍스트 크기 제한
+        clean_output = self.clean_ansi(last_claude_output)[-MAX_CONTEXT_CHARS:]
+
+        # 프롬프트 구성
+        prompt = self._build_director_prompt(mission_goal, constraints, conversation_history, clean_output)
+        
+        # 디버깅용 프롬프트 출력
+        print("\n--- 🧠 PROMPT TO BRAIN ---")
+        print(prompt)
+        print("--- END PROMPT ---")
+
+        try:
+            # LLM API 호출
+            response_text = self._call_llm_api(prompt)
+            return response_text
+            
+        except ValueError as e:
+            # 설정 오류 (잘못된 모델 타입)
+            print(f"🧠 Brain Configuration Error: {e}")
+            return f"MISSION_FAILED: Configuration error - {e}"
+            
+        except RuntimeError as e:
+            # LLM API 호출 실패
+            print(f"🧠 Brain Freeze (LLM Error): {e}")
+            return f"MISSION_FAILED: {e}"
+            
+        except Exception as e:
+            # 예상치 못한 오류
+            print(f"🧠 Brain Freeze (Unexpected Error): {e}")
+            return "MISSION_FAILED: Unexpected error during LLM call."
 
 class NightShiftAgent:
     """Night Shift 에이전트 메인 클래스"""
@@ -214,7 +291,12 @@ class NightShiftAgent:
         self.last_claude_output = ""
 
     def _create_system_prompt_file(self):
-        """Creates a temporary file for the system prompt to handle multi-line goals."""
+        """
+        멀티라인 goal 처리를 위한 임시 시스템 프롬프트 파일을 생성합니다.
+        
+        Returns:
+            str: 생성된 파일명 또는 None (goal이 없는 경우)
+        """
         goal = self.mission_config.get('goal', '')
         if not goal:
             return None
@@ -225,40 +307,55 @@ class NightShiftAgent:
         return filename
 
     def _cleanup_system_prompt_file(self, filename):
+        """
+        임시로 생성한 시스템 프롬프트 파일을 삭제합니다.
+        
+        Args:
+            filename: 삭제할 파일명 (None인 경우 무시)
+        """
         if filename and os.path.exists(filename):
             os.remove(filename)
 
-    def _run_claude_command(self, query):
-        if not query or query.strip() == "":
-            # If Brain sends empty query, consider it mission failed or done.
-            return "ERROR: Brain sent an empty query to Claude Code. Assuming mission failure."
-
-        # Base command for Claude Code
+    def _build_claude_command(self, query):
+        """
+        Claude Code 실행을 위한 명령어를 구성합니다.
+        
+        Args:
+            query: Claude에게 전달할 쿼리
+            
+        Returns:
+            list: subprocess 실행을 위한 명령어 리스트
+        """
         command = ["claude"]
 
-        # Use --system-prompt-file if available
+        # 시스템 프롬프트 파일 또는 직접 프롬프트 추가
         if self.system_prompt_file:
             command.extend(["--system-prompt-file", self.system_prompt_file])
         elif self.mission_config.get('goal'):
-             # Fallback (though start() ensures file is created)
             command.extend(["--system-prompt", self.mission_config['goal']])
 
-        # Add the actual query via -p
+        # 쿼리 추가
         command.extend(["-p", query])
 
-        # Continue the most recent conversation
+        # 대화 계속 플래그
         command.append("-c")
         
-        # Enable automated file modification
+        # 자동 파일 수정 허용
         command.append("--dangerously-skip-permissions")
-        # Explicitly allow Write tool
         command.extend(["--allowedTools", "Write"])
 
-        print(f"\n--- 🚀 Running Claude Code ---")
-        print(f"Full Command: {' '.join(command)}")
-        print(f"Query: {query}")
-        print("---")
+        return command
 
+    def _execute_subprocess(self, command):
+        """
+        subprocess를 실행하고 결과를 반환합니다.
+        
+        Args:
+            command: 실행할 명령어 리스트
+            
+        Returns:
+            tuple: (stdout, stderr, returncode)
+        """
         try:
             result = subprocess.run(
                 command,
@@ -267,48 +364,77 @@ class NightShiftAgent:
                 check=False,
                 cwd=self.mission_config.get('project_path', os.getcwd())
             )
+            return result.stdout.strip(), result.stderr.strip(), result.returncode
             
-            output = result.stdout.strip()
-            error = result.stderr.strip()
-
-            print(f"--- Claude Code Output ---")
-            print(output)
-            if error:
-                print(f"--- Claude Code Error ---")
-                print(error)
-            print("---")
-
-            if result.returncode != 0:
-                # Claude Code can return non-zero for warnings, but we should capture if it's an actual error
-                # For now, treat any non-zero as an error from the perspective of NightShift.
-                return f"Claude Code exited with error code {result.returncode}:\n{output}\n{error}"
-            
-            return output
-
         except FileNotFoundError:
-            return "ERROR: 'claude' command not found. Is Claude Code CLI installed and in PATH?"
+            error_msg = "ERROR: 'claude' command not found. Is Claude Code CLI installed and in PATH?"
+            return error_msg, "", 1
         except Exception as e:
-            return f"ERROR running Claude Code: {e}"
+            error_msg = f"ERROR running Claude Code: {e}"
+            return error_msg, "", 1
+
+    def _run_claude_command(self, query):
+        """
+        Claude Code를 실행하고 결과를 반환합니다.
+        
+        Args:
+            query: Claude에게 전달할 명령/쿼리
+            
+        Returns:
+            str: Claude의 출력 또는 에러 메시지
+        """
+        if not query or query.strip() == "":
+            return "ERROR: Brain sent an empty query to Claude Code. Assuming mission failure."
+
+        # 명령어 구성
+        command = self._build_claude_command(query)
+
+        # 명령어 정보 출력
+        print(f"\n--- 🚀 Running Claude Code ---")
+        print(f"Full Command: {' '.join(command)}")
+        print(f"Query: {query}")
+        print("---")
+
+        # 명령어 실행
+        output, error, returncode = self._execute_subprocess(command)
+
+        # 결과 출력
+        print(f"--- Claude Code Output ---")
+        print(output)
+        if error:
+            print(f"--- Claude Code Error ---")
+            print(error)
+        print("---")
+
+        # 에러 처리
+        if returncode != 0:
+            return f"Claude Code exited with error code {returncode}:\n{output}\n{error}"
+        
+        return output
 
     def start(self):
+        """
+        Night Shift 에이전트를 시작하고 OODA Loop를 실행합니다.
+        미션을 수행하고 대화 로그를 저장합니다.
+        """
         print("🌙 Night Shift (v3.0) Starting...")
         
         project_path = self.mission_config.get('project_path', os.getcwd())
         goal = self.mission_config.get('goal', 'No goal specified')
         constraints = self.mission_config.get('constraints', [])
         
-        # Create system prompt file to handle multi-line goals
+        # 멀티라인 goal 처리를 위한 시스템 프롬프트 파일 생성
         self.system_prompt_file = self._create_system_prompt_file()
         
         try:
-            # Initial kickstart
-            # Pass the main goal as --system-prompt-file once, then a generic start command
+            # 초기 미션 시작
             initial_query = "Begin the mission. Analyze the current project based on the system prompt."
             claude_output = self._run_claude_command(initial_query)
             self.conversation_history += f"Director initial instruction: {initial_query}\nActor Output:\n{claude_output}\n"
             self.last_claude_query = initial_query
             self.last_claude_output = claude_output
 
+            # OODA Loop 실행
             while True:
                 print("\n🤔 Brain is thinking...")
                 next_action = self.brain.think(
@@ -320,7 +446,7 @@ class NightShiftAgent:
 
                 print(f"💡 Director (Brain): {next_action}")
 
-                # Log Brain's decision immediately
+                # Brain의 결정을 대화 이력에 기록
                 self.conversation_history += f"Director (Brain): {next_action}\n"
 
                 if next_action == "MISSION_COMPLETED":
@@ -337,24 +463,23 @@ class NightShiftAgent:
 
                 claude_output = self._run_claude_command(next_action)
                 
-                # Append Actor's output to history
+                # Actor의 출력을 대화 이력에 추가
                 self.conversation_history += f"Actor Output:\n{claude_output}\n"
                 self.last_claude_query = next_action
                 self.last_claude_output = claude_output
                 
-                # Simple rate limiting to avoid hammering LLM/Claude
-                time.sleep(2) 
+                # Rate limiting
+                time.sleep(RATE_LIMIT_SLEEP)
 
         finally:
-             self._cleanup_system_prompt_file(self.system_prompt_file)
+            self._cleanup_system_prompt_file(self.system_prompt_file)
 
         print("\n👋 Night Shift Ended.")
-        # Optionally, save final report or full history to log file.
-        # 가독성 개선: 변수명을 명확하게 변경 (f → file)
+        
+        # 대화 로그 저장
         with open(self.log_file_path, "w", encoding="utf-8") as file:
             file.write(self.conversation_history)
         print(f"📝 Full conversation log saved to: {self.log_file_path}")
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Night Shift: Brain-Powered Agent")
