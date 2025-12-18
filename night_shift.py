@@ -137,7 +137,7 @@ Return ONLY the text to type into the terminal. Do not wrap in markdown or quote
 """
         
         response_text = ""
-        try:
+try:
             if self.model_type == 'gemini':
                 model = genai.GenerativeModel(self.model_name)
                 resp = model.generate_content(prompt)
@@ -159,7 +159,7 @@ Return ONLY the text to type into the terminal. Do not wrap in markdown or quote
                 )
                 response_text = msg.content[0].text.strip()
                 
-        except Exception as e:
+except Exception as e:
             print(f"🧠 Brain Freeze (Error): {e}")
             return "n" # Default safety fallback: reject/no
 
@@ -185,12 +185,14 @@ class NightShiftAgent:
         
         # Regex to detect when Claude Code is waiting for input
         # Matches standard prompts (>, ❯, ?) at end of line, or cost confirmations
+        # Note: We use \x1b\[.*?m to match optional ANSI codes within the prompt
         self.WAIT_PATTERNS = [
-            r"(?:>|❯|\?)\s+Try\s.*",       # Claude Code specific prompt with hint
-            r"(?:>|❯|\?)\s*$",            # Standard CLI prompt
+            r">",                          # Simplest prompt matcher (Catch-all)
+            r"Try \"",                     # Matches 'Try "' text
+            r"(?:>|❯|\?)\s*$",             # Standard CLI prompt
             r"(?i)run this command\?",     # Explicit confirmation
             r"(?i)cost:.*continue\?",      # Cost check
-            r"\[y/n\]",                    # Generic yes/no
+            r"[y/n]",                    # Generic yes/no
             pexpect.EOF,
             pexpect.TIMEOUT
         ]
@@ -210,7 +212,8 @@ class NightShiftAgent:
         cmd = "claude"
         print(f"🚀 Spawning Actor: {cmd}")
         
-        self.child = pexpect.spawn(cmd, encoding='utf-8', timeout=300) # 5 min default timeout per turn
+        # Reduced default timeout to 10s for debugging hang issues
+        self.child = pexpect.spawn(cmd, encoding='utf-8', timeout=10) 
         self.child.setwinsize(40, 120)
         
         self.logfile = open(self.log_file_path, 'w', encoding='utf-8')
@@ -220,7 +223,6 @@ class NightShiftAgent:
         try:
             # Initial Wait for startup
             print("⏳ Waiting for Actor to initialize...")
-            time.sleep(3) 
             
             history = "" # Keeps a running summary if needed (not fully implemented yet to save tokens) 
             
@@ -233,15 +235,16 @@ class NightShiftAgent:
                 prompt_trigger = self.child.after if isinstance(self.child.after, str) else "EOF/TIMEOUT"
                 
                 # If EOF, we are done
-                if index == 4: # EOF
+                if index == 6: # EOF (index updated due to new patterns)
                     print("🏁 Actor exited. Mission End.")
                     break
                 
-                if index == 5: # TIMEOUT
+                if index == 7: # TIMEOUT (index updated)
                     # If timeout, maybe it's thinking or stuck.
                     # We can try to send a newline or just continue waiting?
                     # Or ask Brain "It's silent, what do I do?"
                     print("⏳ Actor is silent (Timeout). Asking Brain if we should poke it...")
+                    print(f"DEBUG: Raw buffer content: {repr(self.child.before)}") # Show invisible chars
                     current_screen += "\n[System Notice: The Actor has been silent for a while.]"
                 
                 # Echo to console so user sees what's happening (since we only logged read to file)
