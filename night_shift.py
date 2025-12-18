@@ -22,14 +22,9 @@ from datetime import datetime
 import json # For parsing Claude's JSON output if applicable
 
 # --- Third-party LLM SDKs ---
-try:
-    from google import genai
-    from openai import OpenAI
-    from anthropic import Anthropic
-except ImportError:
-    print("⚠️  Missing required LLM libraries. Please run: pip install google-genai openai anthropic")
-    # We continue, assuming the user might fix it or use a mockup mode if we had one.
-    # But practically, the Brain will fail.
+from google import genai
+from openai import OpenAI
+from anthropic import Anthropic
 
 # --- Configuration & Constants ---
 
@@ -567,7 +562,7 @@ class NightShiftAgent:
                 print(f"💡 Director (Brain): {next_action}")
 
                 # Brain의 결정을 대화 이력에 기록
-                self.conversation_history += f"Director (Brain): {next_action}\n"
+                self.conversation_history += f"\n--- 🧠 DIRECTOR (BRAIN) DECISION ---\n{next_action}\n----------------------------------\n"
 
                 if next_action == "MISSION_COMPLETED":
                     print("🎉 Mission Accomplished. Exiting.")
@@ -584,7 +579,7 @@ class NightShiftAgent:
                 claude_output = self._run_claude_command(next_action)
                 
                 # Actor의 출력을 대화 이력에 추가
-                self.conversation_history += f"Actor Output:\n{claude_output}\n"
+                self.conversation_history += f"\n--- 🤖 ACTOR (CLAUDE) OUTPUT ---\n{claude_output}\n------------------------------\n"
                 self.last_claude_query = next_action
                 self.last_claude_output = claude_output
                 
