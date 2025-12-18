@@ -6,12 +6,12 @@ brain:
   gemini:
     # 환경 변수 GEMINI_API_KEY가 설정되어 있다면 이곳은 비워두셔도 됩니다.
     api_key: "YOUR_GEMINI_API_KEY" 
-    model: "gemini-2.0-flash-exp" # 복잡한 추론과 속도 균형이 좋음
+    model: "gemini-1.5-pro" # 현재 공개된 가장 강력한 버전
 
   claude:
     api_key: "YOUR_CLAUDE_API_KEY"
-    model: "claude-3-5-sonnet-20241022" # 코딩 및 제어 능력이 탁월함
+    model: "claude-3-opus-20240229" # Claude Opus 최신 모델
 
   gpt:
     api_key: "YOUR_OPENAI_API_KEY"
-    model: "gpt-4o" # 멀티모달 및 범용 성능 우수
+    model: "gpt-4o" # 현재 공개된 가장 강력한 버전
