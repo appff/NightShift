@@ -11,7 +11,6 @@ brain:
         - "-p"
         - "{prompt}"
         - "--dangerously-skip-permissions"
-        # Brain은 파일 쓰기 권한이 필요 없을 수 있지만, 혹시 모를 상황 대비
     
     codex:
       # OpenAI Codex CLI (@openai/codex)
