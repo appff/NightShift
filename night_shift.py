@@ -38,6 +38,26 @@ LOG_FILE_TEMPLATE = os.path.join(LOG_DIR, "night_shift_log_{timestamp}.txt")
 REPORT_FILE = "morning_report.md"
 SETTINGS_FILE = "settings.yaml"
 
+class Tee:
+    """Helper to write to multiple files (stdout and log file) simultaneously."""
+    def __init__(self, *files):
+        self.files = files
+    
+    def write(self, obj):
+        for f in self.files:
+            try:
+                f.write(obj)
+                f.flush() # Ensure real-time output
+            except Exception:
+                pass # Ignore write errors to avoid crashing
+
+    def flush(self):
+        for f in self.files:
+            try:
+                f.flush()
+            except Exception:
+                pass
+
 class Brain:
     """The Intelligence Unit. Decides what to do based on the mission and current context."""
     
@@ -65,7 +85,7 @@ class Brain:
             if not api_key:
                 raise ValueError("Gemini API Key is missing in settings.yaml or env vars.")
             genai.configure(api_key=api_key)
-            self.model_name = conf.get('model', 'gemini-2.0-flash-exp')
+            self.model_name = conf.get('model', 'gemini-1.5-pro')
             
         elif self.model_type == 'gpt':
             conf = brain_conf.get('gpt', {})
@@ -73,7 +93,7 @@ class Brain:
             if not api_key:
                 raise ValueError("OpenAI API Key is missing.")
             self.client = OpenAI(api_key=api_key)
-            self.model_name = conf.get('model', 'gpt-4-turbo')
+            self.model_name = conf.get('model', 'gpt-4o')
             
         elif self.model_type == 'claude':
             conf = brain_conf.get('claude', {})
@@ -117,7 +137,7 @@ Return ONLY the text to type into the terminal. Do not wrap in markdown or quote
 """
         
         response_text = ""
-        try:
+try:
             if self.model_type == 'gemini':
                 model = genai.GenerativeModel(self.model_name)
                 resp = model.generate_content(prompt)
@@ -139,7 +159,7 @@ Return ONLY the text to type into the terminal. Do not wrap in markdown or quote
                 )
                 response_text = msg.content[0].text.strip()
                 
-        except Exception as e:
+except Exception as e:
             print(f"🧠 Brain Freeze (Error): {e}")
             return "n" # Default safety fallback: reject/no
 
@@ -147,6 +167,10 @@ Return ONLY the text to type into the terminal. Do not wrap in markdown or quote
 
 class NightShiftAgent:
     def __init__(self, mission_path="mission.yaml"):
+        if not os.path.exists(mission_path):
+            print(f"❌ Mission file not found: {mission_path}")
+            sys.exit(1)
+
         with open(mission_path, 'r', encoding='utf-8') as f:
             self.mission_config = yaml.safe_load(f)
         
@@ -189,10 +213,8 @@ class NightShiftAgent:
         self.child.setwinsize(40, 120)
         
         self.logfile = open(self.log_file_path, 'w', encoding='utf-8')
-        # We log to file, but we can also print to stdout if we want to see it live.
-        # For 'Brain' edition, user might just want to watch the logs or status.
-        # Let's keep Tee for visibility.
-        self.child.logfile_read = self.logfile # Log what we READ (output)
+        # Log both to file AND to stdout for real-time visibility
+        self.child.logfile_read = Tee(sys.stdout, self.logfile)
         
         try:
             # Initial Wait for startup
