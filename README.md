@@ -6,13 +6,16 @@
 
 ---
 
-## ✨ Key Features (v2.0 Brain Edition)
+## ✨ Key Features (v3.0 Enhanced Edition)
 
 *   **🧠 The Brain**: Gemini, GPT, Claude 등 강력한 LLM을 두뇌로 사용하여 상황을 판단합니다.
 *   **🔄 OODA Loop**: 관찰(Observe) -> 상황파악(Orient) -> 결정(Decide) -> 행동(Act) 루프를 통해 비정형적인 상황에도 유연하게 대처합니다.
 *   **🗣️ Natural Language Mission**: 딱딱한 명령어 리스트 대신, "이 코드를 리팩토링해줘"와 같은 자연어 목표를 이해합니다.
 *   **🛡️ Safety & Constraints**: 미션 수행 중 지켜야 할 제약사항(파일 삭제 금지 등)을 설정하여 안전하게 작업을 수행합니다.
 *   **🔌 Multi-LLM Support**: `settings.yaml`을 통해 원하는 LLM(Gemini, Claude, GPT)을 간편하게 교체하여 사용할 수 있습니다.
+*   **✅ Schema Validation**: 설정 파일 검증으로 런타임 오류를 사전에 방지합니다.
+*   **📝 Enhanced Logging**: Brain의 모든 요청과 응답을 상세히 기록하여 디버깅을 용이하게 합니다.
+*   **🔄 Updated Libraries**: 최신 Google Gemini API (`google-genai`)를 사용합니다.
 
 ---
 
@@ -70,7 +73,10 @@ python3 night_shift.py
 *   `settings.yaml`: LLM 설정 및 API 키 관리.
 *   `mission.yaml`: 미션 목표 및 제약사항 정의.
 *   `logs/`: 실행 로그 저장소.
-*   `morning_report.md`: (구현 예정) 작업 결과 요약 보고서.
+    *   `night_shift_log_{timestamp}.txt`: 전체 대화 이력
+    *   `brain_log_{date}.txt`: Brain의 요청/응답 상세 로그 (v3.0 신규)
+*   `docs/`: 프로젝트 문서
+*   `requirements.txt`: Python 의존성 목록
 
 ---
 

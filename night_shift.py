@@ -23,11 +23,11 @@ import json # For parsing Claude's JSON output if applicable
 
 # --- Third-party LLM SDKs ---
 try:
-    import google.generativeai as genai
+    from google import genai
     from openai import OpenAI
     from anthropic import Anthropic
 except ImportError:
-    print("⚠️  Missing required LLM libraries. Please run: pip install google-generativeai openai anthropic")
+    print("⚠️  Missing required LLM libraries. Please run: pip install google-genai openai anthropic")
     # We continue, assuming the user might fix it or use a mockup mode if we had one.
     # But practically, the Brain will fail.
 
@@ -55,6 +55,65 @@ DEFAULT_GEMINI_MODEL = 'gemini-1.5-pro'
 DEFAULT_GPT_MODEL = 'gpt-4o'
 DEFAULT_CLAUDE_MODEL = 'claude-3-opus-20240229'
 
+
+# --- Schema Validation Functions ---
+
+def validate_settings_schema(settings):
+    """
+    settings.yaml의 스키마를 검증합니다.
+    
+    Args:
+        settings: 검증할 설정 딕셔너리
+        
+    Raises:
+        ValueError: 스키마가 유효하지 않은 경우
+    """
+    if not isinstance(settings, dict):
+        raise ValueError("Settings must be a dictionary")
+    
+    brain_config = settings.get('brain', {})
+    if not isinstance(brain_config, dict):
+        raise ValueError("'brain' configuration must be a dictionary")
+    
+    active_model = brain_config.get('active_model', '')
+    valid_models = ['gemini', 'gpt', 'claude']
+    if active_model and active_model not in valid_models:
+        raise ValueError(f"active_model must be one of {valid_models}, got: {active_model}")
+    
+    # 각 모델 설정 검증
+    for model_name in valid_models:
+        if model_name in brain_config:
+            model_config = brain_config[model_name]
+            if not isinstance(model_config, dict):
+                raise ValueError(f"'{model_name}' configuration must be a dictionary")
+
+def validate_mission_schema(mission_config):
+    """
+    mission.yaml의 스키마를 검증합니다.
+    
+    Args:
+        mission_config: 검증할 미션 설정 딕셔너리
+        
+    Raises:
+        ValueError: 스키마가 유효하지 않은 경우
+    """
+    if not isinstance(mission_config, dict):
+        raise ValueError("Mission configuration must be a dictionary")
+    
+    # 필수 필드 검증
+    if 'mission_name' not in mission_config:
+        raise ValueError("Missing required field: 'mission_name'")
+    
+    if 'goal' not in mission_config or not mission_config['goal']:
+        raise ValueError("Missing or empty required field: 'goal'")
+    
+    # 선택 필드 타입 검증
+    if 'project_path' in mission_config and not isinstance(mission_config['project_path'], str):
+        raise ValueError("'project_path' must be a string")
+    
+    if 'constraints' in mission_config and not isinstance(mission_config['constraints'], list):
+        raise ValueError("'constraints' must be a list")
+
 class Brain:
     """The Intelligence Unit. Decides what to do based on the mission and current context."""
     
@@ -69,19 +128,32 @@ class Brain:
 
     def _load_settings(self, path):
         """
-        설정 파일을 로드합니다.
+        설정 파일을 로드하고 스키마를 검증합니다.
         
         Args:
             path: 설정 파일 경로
             
         Returns:
-            dict: 파싱된 설정 딕셔너리 (파일이 없으면 빈 딕셔너리)
+            dict: 파싱되고 검증된 설정 딕셔너리 (파일이 없으면 빈 딕셔너리)
+            
+        Raises:
+            ValueError: 스키마 검증 실패 시
         """
         if not os.path.exists(path):
             print(f"⚠️  Settings file not found: {path}. Using defaults.")
             return {}
+        
         with open(path, 'r', encoding='utf-8') as file:
-            return yaml.safe_load(file)
+            settings = yaml.safe_load(file)
+        
+        # 스키마 검증
+        try:
+            validate_settings_schema(settings)
+        except ValueError as e:
+            print(f"❌ Settings validation error: {e}")
+            raise
+        
+        return settings
 
     def _setup_client(self):
         """
@@ -97,7 +169,7 @@ class Brain:
             api_key = config.get('api_key') or os.getenv("GEMINI_API_KEY")
             if not api_key:
                 raise ValueError("Gemini API Key is missing in settings.yaml or env vars.")
-            genai.configure(api_key=api_key)
+            self.client = genai.Client(api_key=api_key)
             self.model_name = config.get('model', DEFAULT_GEMINI_MODEL)
 
         elif self.model_type == 'gpt':
@@ -187,8 +259,11 @@ Your goal is to guide the Actor to achieve the [MISSION GOAL].
         """
         try:
             if self.model_type == 'gemini':
-                model = genai.GenerativeModel(self.model_name)
-                response = model.generate_content(prompt)
+                # 가독성 개선: 변수명을 명확하게 변경 (resp → response)
+                response = self.client.models.generate_content(
+                    model=self.model_name,
+                    contents=prompt
+                )
                 response_text = response.text.strip()
                 print(f"--- 🧠 BRAIN RAW RESPONSE ---\n{response_text}\n--- END RAW RESPONSE ---")
                 return response_text
@@ -242,42 +317,87 @@ Your goal is to guide the Actor to achieve the [MISSION GOAL].
         # 프롬프트 구성
         prompt = self._build_director_prompt(mission_goal, constraints, conversation_history, clean_output)
         
-        # 디버깅용 프롬프트 출력
+        # 디버깅 및 로깅용 프롬프트 출력
         print("\n--- 🧠 PROMPT TO BRAIN ---")
         print(prompt)
         print("--- END PROMPT ---")
+        
+        # 로그 파일에도 기록 (타임스탬프 포함)
+        log_entry = f"\n{'='*80}\n[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] BRAIN REQUEST\n{'='*80}\n{prompt}\n"
+        self._log_to_file(log_entry)
 
         try:
             # LLM API 호출
             response_text = self._call_llm_api(prompt)
+            
+            # 응답도 로그에 기록
+            response_log = f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] BRAIN RESPONSE\n{'-'*80}\n{response_text}\n"
+            self._log_to_file(response_log)
+            
             return response_text
             
         except ValueError as e:
             # 설정 오류 (잘못된 모델 타입)
             print(f"🧠 Brain Configuration Error: {e}")
-            return f"MISSION_FAILED: Configuration error - {e}"
+            error_msg = f"MISSION_FAILED: Configuration error - {e}"
+            self._log_to_file(f"\n❌ ERROR: {error_msg}\n")
+            return error_msg
             
         except RuntimeError as e:
             # LLM API 호출 실패
             print(f"🧠 Brain Freeze (LLM Error): {e}")
-            return f"MISSION_FAILED: {e}"
+            error_msg = f"MISSION_FAILED: {e}"
+            self._log_to_file(f"\n❌ ERROR: {error_msg}\n")
+            return error_msg
             
         except Exception as e:
             # 예상치 못한 오류
             print(f"🧠 Brain Freeze (Unexpected Error): {e}")
-            return "MISSION_FAILED: Unexpected error during LLM call."
+            error_msg = "MISSION_FAILED: Unexpected error during LLM call."
+            self._log_to_file(f"\n❌ ERROR: {error_msg} - {e}\n")
+            return error_msg
+
+    def _log_to_file(self, message):
+        """
+        Brain 활동을 전용 로그 파일에 기록합니다.
+        
+        Args:
+            message: 기록할 메시지
+        """
+        brain_log_file = os.path.join(LOG_DIR, f"brain_log_{datetime.now().strftime('%Y%m%d')}.txt")
+        try:
+            with open(brain_log_file, "a", encoding="utf-8") as f:
+                f.write(message)
+        except Exception as e:
+            print(f"⚠️ Failed to write to brain log: {e}")
 
 class NightShiftAgent:
     """Night Shift 에이전트 메인 클래스"""
 
     def __init__(self, mission_path="mission.yaml"):
+        """
+        NightShiftAgent를 초기화하고 미션 설정을 로드합니다.
+        
+        Args:
+            mission_path: 미션 설정 파일 경로
+            
+        Raises:
+            SystemExit: 미션 파일을 찾을 수 없는 경우
+            ValueError: 미션 스키마 검증 실패 시
+        """
         if not os.path.exists(mission_path):
             print(f"❌ Mission file not found: {mission_path}")
             sys.exit(1)
 
-        # 가독성 개선: 변수명을 명확하게 변경 (f → file)
         with open(mission_path, 'r', encoding='utf-8') as file:
             self.mission_config = yaml.safe_load(file)
+        
+        # 미션 스키마 검증
+        try:
+            validate_mission_schema(self.mission_config)
+        except ValueError as e:
+            print(f"❌ Mission validation error: {e}")
+            sys.exit(1)
         
         if not os.path.exists(LOG_DIR):
             os.makedirs(LOG_DIR)

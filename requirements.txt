@@ -1,5 +1,5 @@
 pexpect
 pyyaml
-google-generativeai
+google-genai
 openai
 anthropic
