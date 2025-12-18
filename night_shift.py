@@ -35,10 +35,25 @@ except ImportError:
 
 # ANSI Escape Code Regex for cleaning output before analysis
 ANSI_ESCAPE_PATTERN = re.compile(r'\x1B(?:[@-Z\-_]|[0-?]*[@-~])')
+
+# File paths
 LOG_DIR = "logs"
 LOG_FILE_TEMPLATE = os.path.join(LOG_DIR, "night_shift_log_{timestamp}.txt")
 REPORT_FILE = "morning_report.md"
 SETTINGS_FILE = "settings.yaml"
+
+# LLM Configuration
+# 가독성 개선: 매직 넘버를 명확한 이름의 상수로 추출하여 의도를 명확히 함
+MAX_CONTEXT_CHARS = 3000  # Brain에 전달할 Claude 출력의 최대 문자 수
+MAX_HISTORY_CHARS = 4000  # Brain에 전달할 대화 히스토리의 최대 문자 수
+MAX_TOKENS = 1024  # LLM 응답의 최대 토큰 수
+RATE_LIMIT_SLEEP = 2  # Brain 반복 사이의 대기 시간 (초)
+
+# Default model names
+# 유지보수성 개선: 모델명을 한 곳에서 관리하여 변경 시 수정 지점을 명확히 함
+DEFAULT_GEMINI_MODEL = 'gemini-1.5-pro'
+DEFAULT_GPT_MODEL = 'gpt-4o'
+DEFAULT_CLAUDE_MODEL = 'claude-3-opus-20240229'
 
 class Brain:
     """The Intelligence Unit. Decides what to do based on the mission and current context."""
@@ -53,38 +68,44 @@ class Brain:
         print(f"🧠 Brain Initialized: [{self.model_type.upper()}] Mode with model: {self.model_name}")
 
     def _load_settings(self, path):
+        """설정 파일을 로드합니다."""
         if not os.path.exists(path):
             print(f"⚠️  Settings file not found: {path}. Using defaults.")
             return {}
-        with open(path, 'r', encoding='utf-8') as f:
-            return yaml.safe_load(f)
+        # 가독성 개선: 변수명을 명확하게 변경 (f → file)
+        with open(path, 'r', encoding='utf-8') as file:
+            return yaml.safe_load(file)
 
     def _setup_client(self):
-        brain_conf = self.settings.get('brain', {})
-        
+        """LLM 클라이언트를 설정합니다."""
+        # 가독성 개선: 변수명을 명확하게 변경 (brain_conf → brain_config)
+        brain_config = self.settings.get('brain', {})
+
         if self.model_type == 'gemini':
-            conf = brain_conf.get('gemini', {})
-            api_key = conf.get('api_key') or os.getenv("GEMINI_API_KEY")
+            # 가독성 개선: 변수명을 명확하게 변경 (conf → config)
+            config = brain_config.get('gemini', {})
+            api_key = config.get('api_key') or os.getenv("GEMINI_API_KEY")
             if not api_key:
                 raise ValueError("Gemini API Key is missing in settings.yaml or env vars.")
             genai.configure(api_key=api_key)
-            self.model_name = conf.get('model', 'gemini-1.5-pro')
-            
+            # 유지보수성 개선: 기본 모델명을 상수로 관리
+            self.model_name = config.get('model', DEFAULT_GEMINI_MODEL)
+
         elif self.model_type == 'gpt':
-            conf = brain_conf.get('gpt', {})
-            api_key = conf.get('api_key') or os.getenv("OPENAI_API_KEY")
+            config = brain_config.get('gpt', {})
+            api_key = config.get('api_key') or os.getenv("OPENAI_API_KEY")
             if not api_key:
                 raise ValueError("OpenAI API Key is missing.")
             self.client = OpenAI(api_key=api_key)
-            self.model_name = conf.get('model', 'gpt-4o')
-            
+            self.model_name = config.get('model', DEFAULT_GPT_MODEL)
+
         elif self.model_type == 'claude':
-            conf = brain_conf.get('claude', {})
-            api_key = conf.get('api_key') or os.getenv("CLAUDE_API_KEY")
+            config = brain_config.get('claude', {})
+            api_key = config.get('api_key') or os.getenv("CLAUDE_API_KEY")
             if not api_key:
                 raise ValueError("Anthropic API Key is missing.")
             self.client = Anthropic(api_key=api_key)
-            self.model_name = conf.get('model', 'claude-3-opus-20240229')
+            self.model_name = config.get('model', DEFAULT_CLAUDE_MODEL)
 
     def clean_ansi(self, text):
         return ANSI_ESCAPE_PATTERN.sub('', text)
@@ -93,10 +114,11 @@ class Brain:
         """
         Analyzes the situation and returns the next command for Claude Code.
         """
-        clean_output = self.clean_ansi(last_claude_output)[-3000:] # Last 3000 chars context
-        
+        # 가독성 개선: 상수 사용으로 매직 넘버의 의미를 명확히 함
+        clean_output = self.clean_ansi(last_claude_output)[-MAX_CONTEXT_CHARS:]
+
         prompt = f"""
-You are the "Director" of an autonomous coding session. 
+You are the "Director" of an autonomous coding session.
 Your "Actor" is a non-interactive CLI tool (Claude Code) which you invoke with `claude -p "YOUR_COMMAND_HERE" -c`.
 Your goal is to guide the Actor to achieve the [MISSION GOAL].
 
@@ -107,7 +129,7 @@ Your goal is to guide the Actor to achieve the [MISSION GOAL].
 {constraints}
 
 [CONVERSATION HISTORY]
-{conversation_history[-4000:]}
+{conversation_history[-MAX_HISTORY_CHARS:]}
 
 [LAST ACTOR'S OUTPUT]
 {clean_output}
@@ -115,7 +137,10 @@ Your goal is to guide the Actor to achieve the [MISSION GOAL].
 [INSTRUCTIONS]
 1. Analyze the [MISSION GOAL], [CONSTRAINTS], [CONVERSATION HISTORY], and [LAST ACTOR'S OUTPUT].
 2. Determine the NEXT single, specific, and actionable command/query to send to Claude Code via the `-p` flag to move closer to the [MISSION GOAL].
-3. If the Actor (Claude Code) requires a specific input (e.g., confirmation "y/n", a filename), provide that direct input.
+3. **Handle Actor's Prompts:**
+   - If the Actor proposes a plan, evaluate it against the [MISSION GOAL]. If good, reply with "Proceed" or "Yes".
+   - If the Actor offers choices (e.g., "English or Korean?"), select the one that best fits the goal/constraints.
+   - If the Actor needs confirmation (e.g., "y/n"), provide it.
 4. If the Actor's output indicates the mission is complete, or you believe no further action is needed, reply with exactly: "MISSION_COMPLETED".
 5. The command you output will be executed as `claude -p "YOUR_OUTPUT_HERE" -c`. Ensure it's a valid query for Claude Code.
 
@@ -134,24 +159,27 @@ Your goal is to guide the Actor to achieve the [MISSION GOAL].
 
             if self.model_type == 'gemini':
                 model = genai.GenerativeModel(self.model_name)
-                resp = model.generate_content(prompt)
-                response_text = resp.text.strip()
-                
+                # 가독성 개선: 변수명을 명확하게 변경 (resp → response)
+                response = model.generate_content(prompt)
+                response_text = response.text.strip()
+
             elif self.model_type == 'gpt':
-                resp = self.client.chat.completions.create(
+                # 가독성 개선: 변수명을 명확하게 변경 (resp → response)
+                response = self.client.chat.completions.create(
                     model=self.model_name,
-                    messages=[{"role": "system", "content": "You are a helpful AI Director. Respond ONLY with the command to execute."}, 
+                    messages=[{"role": "system", "content": "You are a helpful AI Director. Respond ONLY with the command to execute."},
                               {"role": "user", "content": prompt}]
                 )
-                response_text = resp.choices[0].message.content.strip()
-                
+                response_text = response.choices[0].message.content.strip()
+
             elif self.model_type == 'claude':
-                msg = self.client.messages.create(
+                # 가독성 개선: 변수명을 명확하게 변경 (msg → message)
+                message = self.client.messages.create(
                     model=self.model_name,
-                    max_tokens=1024,
+                    max_tokens=MAX_TOKENS,  # 가독성 개선: 상수 사용
                     messages=[{"role": "user", "content": prompt}]
                 )
-                response_text = msg.content[0].text.strip()
+                response_text = message.content[0].text.strip()
                 
         except Exception as e:
             print(f"🧠 Brain Freeze (Error): {e}")
@@ -160,13 +188,16 @@ Your goal is to guide the Actor to achieve the [MISSION GOAL].
         return response_text
 
 class NightShiftAgent:
+    """Night Shift 에이전트 메인 클래스"""
+
     def __init__(self, mission_path="mission.yaml"):
         if not os.path.exists(mission_path):
             print(f"❌ Mission file not found: {mission_path}")
             sys.exit(1)
 
-        with open(mission_path, 'r', encoding='utf-8') as f:
-            self.mission_config = yaml.safe_load(f)
+        # 가독성 개선: 변수명을 명확하게 변경 (f → file)
+        with open(mission_path, 'r', encoding='utf-8') as file:
+            self.mission_config = yaml.safe_load(file)
         
         if not os.path.exists(LOG_DIR):
             os.makedirs(LOG_DIR)
@@ -179,6 +210,21 @@ class NightShiftAgent:
         self.last_claude_query = ""
         self.last_claude_output = ""
 
+    def _create_system_prompt_file(self):
+        """Creates a temporary file for the system prompt to handle multi-line goals."""
+        goal = self.mission_config.get('goal', '')
+        if not goal:
+            return None
+        
+        filename = ".night_shift_system_prompt.txt"
+        with open(filename, "w", encoding="utf-8") as f:
+            f.write(goal)
+        return filename
+
+    def _cleanup_system_prompt_file(self, filename):
+        if filename and os.path.exists(filename):
+            os.remove(filename)
+
     def _run_claude_command(self, query):
         if not query or query.strip() == "":
             # If Brain sends empty query, consider it mission failed or done.
@@ -187,8 +233,11 @@ class NightShiftAgent:
         # Base command for Claude Code
         command = ["claude"]
 
-        # Always include the system prompt for context
-        if self.mission_config.get('goal'):
+        # Use --system-prompt-file if available
+        if self.system_prompt_file:
+            command.extend(["--system-prompt-file", self.system_prompt_file])
+        elif self.mission_config.get('goal'):
+             # Fallback (though start() ensures file is created)
             command.extend(["--system-prompt", self.mission_config['goal']])
 
         # Add the actual query via -p
@@ -245,51 +294,58 @@ class NightShiftAgent:
         goal = self.mission_config.get('goal', 'No goal specified')
         constraints = self.mission_config.get('constraints', [])
         
-        # Initial kickstart
-        # Pass the main goal as --system-prompt once, then a generic start command
-        # The _run_claude_command now always includes --system-prompt from mission_config['goal']
-        initial_query = "Begin the mission. Analyze the current project based on the system prompt."
-        claude_output = self._run_claude_command(initial_query)
-        self.conversation_history += f"Director initial instruction: {initial_query}\nActor Output:\n{claude_output}\n"
-        self.last_claude_query = initial_query
-        self.last_claude_output = claude_output
+        # Create system prompt file to handle multi-line goals
+        self.system_prompt_file = self._create_system_prompt_file()
+        
+        try:
+            # Initial kickstart
+            # Pass the main goal as --system-prompt-file once, then a generic start command
+            initial_query = "Begin the mission. Analyze the current project based on the system prompt."
+            claude_output = self._run_claude_command(initial_query)
+            self.conversation_history += f"Director initial instruction: {initial_query}\nActor Output:\n{claude_output}\n"
+            self.last_claude_query = initial_query
+            self.last_claude_output = claude_output
 
-        # while True:
-        #     print("\n🤔 Brain is thinking...")
-        #     next_action = self.brain.think(
-        #         goal,
-        #         constraints,
-        #         self.conversation_history,
-        #         self.last_claude_output
-        #     )
-        #
-        #     print(f"💡 Brain decided: '{next_action}'")
-        #
-        #     if next_action == "MISSION_COMPLETED":
-        #         print("🎉 Mission Accomplished. Exiting.")
-        #         break
-        #     
-        #     if next_action.startswith("MISSION_FAILED"):
-        #         print(f"❌ {next_action}. Exiting.")
-        #         break
-        #
-        #     if next_action == self.last_claude_query:
-        #         print(f"⚠️ Loop detected: Brain suggested '{next_action}' again without new output. Forcing break.")
-        #         break
-        #
-        #     claude_output = self._run_claude_command(next_action)
-        #     
-        #     self.conversation_history += f"Director: {next_action}\nActor Output:\n{claude_output}\n"
-        #     self.last_claude_query = next_action
-        #     self.last_claude_output = claude_output
-        #     
-        #     # Simple rate limiting to avoid hammering LLM/Claude
-        #     time.sleep(2) 
+            while True:
+                print("\n🤔 Brain is thinking...")
+                next_action = self.brain.think(
+                    goal,
+                    constraints,
+                    self.conversation_history,
+                    self.last_claude_output
+                )
+
+                print(f"💡 Brain decided: '{next_action}'")
+
+                if next_action == "MISSION_COMPLETED":
+                    print("🎉 Mission Accomplished. Exiting.")
+                    break
+                
+                if next_action.startswith("MISSION_FAILED"):
+                    print(f"❌ {next_action}. Exiting.")
+                    break
+
+                if next_action == self.last_claude_query:
+                    print(f"⚠️ Loop detected: Brain suggested '{next_action}' again without new output. Forcing break.")
+                    break
+
+                claude_output = self._run_claude_command(next_action)
+                
+                self.conversation_history += f"Director: {next_action}\nActor Output:\n{claude_output}\n"
+                self.last_claude_query = next_action
+                self.last_claude_output = claude_output
+                
+                # Simple rate limiting to avoid hammering LLM/Claude
+                time.sleep(2) 
+
+        finally:
+             self._cleanup_system_prompt_file(self.system_prompt_file)
 
         print("\n👋 Night Shift Ended.")
         # Optionally, save final report or full history to log file.
-        with open(self.log_file_path, "w", encoding="utf-8") as f:
-            f.write(self.conversation_history)
+        # 가독성 개선: 변수명을 명확하게 변경 (f → file)
+        with open(self.log_file_path, "w", encoding="utf-8") as file:
+            file.write(self.conversation_history)
         print(f"📝 Full conversation log saved to: {self.log_file_path}")
 
 

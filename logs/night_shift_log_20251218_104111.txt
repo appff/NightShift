@@ -1,0 +1,47 @@
+Director initial instruction: Begin the mission. Analyze the current project based on the system prompt.
+Actor Output:
+Excellent! I've identified the major refactoring opportunities. Let me present my findings to you before proceeding:
+
+## 🔍 Refactoring Analysis Complete
+
+I've analyzed `night_shift.py` and found several areas that need improvement for better readability:
+
+### **Major Issues Identified:**
+
+1. **`Brain.think()` - 73 lines** ⚠️
+   - Builds complex multi-line prompts
+   - Handles 3 different LLM API calls in one method
+   - Should extract: prompt building + separate LLM call methods
+
+2. **`NightShiftAgent._run_claude_command()` - 61 lines** ⚠️
+   - Mixes command building, execution, and error handling
+   - Should extract: command building into separate method
+
+3. **`NightShiftAgent.start()` - 60 lines** ⚠️
+   - Contains large commented-out OODA loop (30 lines of dead code)
+   - Should remove dead code and simplify
+
+4. **Error Handling**
+   - Generic `Exception` catching - should be more specific
+
+5. **Docstrings**
+   - Inconsistent (Korean/English mix, some missing)
+
+### **Positive Notes:**
+✅ Recent refactoring already improved variable names (`f` → `file`, `resp` → `response`)  
+✅ Magic numbers extracted to constants  
+✅ Consistent naming conventions
+
+---
+
+### **Proposed Refactoring Plan:**
+
+Would you like me to proceed with refactoring these functions to improve readability? I will:
+
+1. ✂️ **Break down long functions** into smaller, focused methods
+2. 🗑️ **Remove commented-out dead code** 
+3. 📝 **Standardize docstrings** (I can use English or Korean - which do you prefer?)
+4. 🛡️ **Improve error handling** specificity
+5. ✅ **Test the refactored code** to ensure nothing breaks
+
+Should I proceed with this refactoring plan?
