@@ -187,8 +187,9 @@ class NightShiftAgent:
         # Matches standard prompts (>, ❯, ?) at end of line, or cost confirmations
         # Note: We use \x1b\[.*?m to match optional ANSI codes within the prompt
         self.WAIT_PATTERNS = [
+            r"\? for shortcuts",           # Reliable prompt indicator in the footer
+            r"Try\s+\"",                   # Matches 'Try "' 
             r">",                          # Simplest prompt matcher (Catch-all)
-            r"Try \"",                     # Matches 'Try "' text
             r"(?:>|❯|\?)\s*$",             # Standard CLI prompt
             r"(?i)run this command\?",     # Explicit confirmation
             r"(?i)cost:.*continue\?",      # Cost check
