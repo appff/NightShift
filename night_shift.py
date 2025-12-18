@@ -5,8 +5,8 @@ Target: macOS M3 (Apple Silicon)
 Version: 4.1.0
 
 Core Features:
-1. Brain Module (LLM): Strategic decision making (Director).
-2. Hassan Module (CLI Driver): Execution of commands via interchangeable drivers (Claude, Aider, etc.).
+1. Brain Module (Director): Strategic decision making via CLI tools.
+2. Hassan Module (Worker): Execution of commands via interchangeable CLI drivers.
 3. OODA Loop: Observe-Orient-Decide-Act loop for autonomous operation.
 4. Stateless & Configurable: Fully driven by settings.yaml.
 5. Sequential Tasking: Processes a list of goals one by one.
@@ -23,27 +23,18 @@ import logging
 from datetime import datetime, timedelta
 import copy
 
-# --- Third-party LLM SDKs ---
-from google import genai
-from openai import OpenAI
-from anthropic import Anthropic
-
 # --- Configuration & Constants ---
 ANSI_ESCAPE_PATTERN = re.compile(r'\x1B(?:[@-Z\-_]|[0-?]*[@-~])')
 LOG_DIR = "logs"
 LOG_FILE_TEMPLATE = os.path.join(LOG_DIR, "night_shift_log_{timestamp}.txt")
 SETTINGS_FILE = "settings.yaml"
+BRAIN_WORKSPACE_DIR = os.path.join(".night_shift", "brain_hq")
 
 # LLM Limits
 MAX_CONTEXT_CHARS = 3000
 MAX_HISTORY_CHARS = 4000
 MAX_TOKENS = 1024
 RATE_LIMIT_SLEEP = 2
-
-# Defaults
-DEFAULT_GEMINI_MODEL = 'gemini-1.5-pro-002'
-DEFAULT_GPT_MODEL = 'gpt-4o'
-DEFAULT_CLAUDE_MODEL = 'claude-3-5-sonnet-20240620'
 
 # --- Utils ---
 def setup_logging():
@@ -96,38 +87,29 @@ def validate_mission_schema(mission_config):
 # --- Core Classes ---
 
 class Brain:
-    """The Intelligence Unit (Director). Decides what to do."""
+    """The Intelligence Unit (Director). Decides what to do via CLI tools."""
     
     def __init__(self, settings):
         self.settings = settings
-        self.model_type = self.settings.get('brain', {}).get('active_model', 'gemini')
-        self.client = None
-        self.model_name = ""
-        self._setup_client()
-        logging.info(f"🧠 Brain Initialized: [{self.model_type.upper()}] Mode with model: {self.model_name}")
-
-    def _setup_client(self):
-        brain_config = self.settings.get('brain', {})
-        if self.model_type == 'gemini':
-            config = brain_config.get('gemini', {})
-            api_key = config.get('api_key') or os.getenv("GEMINI_API_KEY")
-            if not api_key: raise ValueError("Gemini API Key missing")
-            self.client = genai.Client(api_key=api_key)
-            self.model_name = config.get('model', DEFAULT_GEMINI_MODEL)
-        elif self.model_type == 'gpt':
-            config = brain_config.get('gpt', {})
-            api_key = config.get('api_key') or os.getenv("OPENAI_API_KEY")
-            if not api_key: raise ValueError("OpenAI API Key missing")
-            self.client = OpenAI(api_key=api_key)
-            self.model_name = config.get('model', DEFAULT_GPT_MODEL)
-        elif self.model_type == 'claude':
-            config = brain_config.get('claude', {})
-            api_key = config.get('api_key') or os.getenv("CLAUDE_API_KEY")
-            if not api_key: raise ValueError("Anthropic API Key missing")
-            self.client = Anthropic(api_key=api_key)
-            self.model_name = config.get('model', DEFAULT_CLAUDE_MODEL)
-        else:
-            raise ValueError(f"Unknown model type: {self.model_type}")
+        self.brain_config = self.settings.get('brain', {})
+        self.active_driver_name = self.brain_config.get('active_driver', 'claude')
+        self.drivers = self.brain_config.get('drivers', {})
+        
+        # Setup Brain Workspace (Shadow Workspace)
+        if not os.path.exists(BRAIN_WORKSPACE_DIR):
+            os.makedirs(BRAIN_WORKSPACE_DIR, exist_ok=True)
+        
+        # Load driver config
+        self.driver_config = self.drivers.get(self.active_driver_name)
+        if not self.driver_config:
+            logging.warning(f"⚠️ Brain Driver '{self.active_driver_name}' not found. Using default Claude config.")
+            self.driver_config = {
+                "command": "claude",
+                "args": ["-p", "{prompt}"]
+            }
+            
+        logging.info(f"🧠 Brain Initialized: [{self.active_driver_name.upper()}] CLI Mode")
+        logging.info(f"🧠 Brain Workspace: {BRAIN_WORKSPACE_DIR}")
 
     def clean_ansi(self, text):
         return ANSI_ESCAPE_PATTERN.sub('', text)
@@ -140,6 +122,43 @@ class Brain:
                 f.write(message)
         except Exception:
             pass
+
+    def _run_cli_command(self, prompt):
+        """Executes the CLI command for the Brain."""
+        base_cmd = self.driver_config.get("command", "claude")
+        args_template = self.driver_config.get("args", [])
+        
+        cmd_list = [base_cmd]
+        
+        # Replace placeholders in args
+        for arg in args_template:
+            val = arg.replace("{prompt}", prompt)
+            if val: 
+                cmd_list.append(val)
+        
+        logging.info(f"🧠 Brain Thinking via {base_cmd} (in {BRAIN_WORKSPACE_DIR})...")
+        
+        try:
+            # Brain runs in non-interactive mode, capturing stdout
+            # Important: Run in the SHADOW WORKSPACE to keep sessions separate
+            process = subprocess.run(
+                cmd_list,
+                capture_output=True,
+                text=True,
+                cwd=BRAIN_WORKSPACE_DIR, # Force Brain to work in its own room
+                check=False 
+            )
+            
+            if process.returncode != 0:
+                error_msg = process.stderr.strip()
+                logging.error(f"🧠 Brain CLI Error ({process.returncode}): {error_msg}")
+                return f"MISSION_FAILED: Brain CLI Error - {error_msg}"
+                
+            return process.stdout.strip()
+            
+        except Exception as e:
+            logging.error(f"🧠 Brain Execution Exception: {e}")
+            return f"MISSION_FAILED: {e}"
 
     def think(self, current_task, total_goal_context, constraints, conversation_history, last_hassan_output):
         clean_output = self.clean_ansi(last_hassan_output)[-MAX_CONTEXT_CHARS:]
@@ -187,34 +206,16 @@ Your "Hassan" (Worker) is a CLI tool that executes your commands.
         log_entry = f"\n{'='*80}\n[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] BRAIN REQUEST\n{'='*80}\n{prompt}\n"
         self._log_brain_activity(log_entry)
 
-        try:
-            if self.model_type == 'gemini':
-                response = self.client.models.generate_content(model=self.model_name, contents=prompt)
-                response_text = response.text.strip()
-            elif self.model_type == 'gpt':
-                response = self.client.chat.completions.create(
-                    model=self.model_name,
-                    messages=[{"role": "system", "content": "You are a Director. Respond ONLY with the command."}, {"role": "user", "content": prompt}]
-                )
-                response_text = response.choices[0].message.content.strip()
-            elif self.model_type == 'claude':
-                message = self.client.messages.create(
-                    model=self.model_name, max_tokens=MAX_TOKENS, messages=[{"role": "user", "content": prompt}]
-                )
-                response_text = message.content[0].text.strip()
+        response_text = self._run_cli_command(prompt)
             
-            logging.info(f"--- 🧠 BRAIN RAW RESPONSE ---\n{response_text}\n--- END RAW RESPONSE ---")
+        logging.info(f"--- 🧠 BRAIN RESPONSE ---\n{response_text}\n--- END RESPONSE ---")
             
-            # Logging response (verbose)
-            self._log_brain_activity(f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] BRAIN RESPONSE\n{'-'*80}\n{response_text}\n")
-            return response_text
-
-        except Exception as e:
-            logging.error(f"🧠 Brain Error: {e}")
-            return f"MISSION_FAILED: {e}"
+        # Logging response (verbose)
+        self._log_brain_activity(f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] BRAIN RESPONSE\n{'-'*80}\n{response_text}\n")
+        return response_text
 
 class Hassan:
-    """The Execution Unit (Worker/Slave). Abstraction for CLI tools like Claude or Aider."""
+    """The Execution Unit (Worker/Slave). Abstraction for CLI tools."""
     
     def __init__(self, settings, mission_config):
         self.hassan_config = settings.get('body', {})

@@ -1,24 +1,36 @@
 brain:
-  # 메인으로 사용할 두뇌를 선택합니다. (options: gemini, claude, gpt)
-  # 비정형 미션 해석과 능동적 명령 생성을 담당합니다.
-  active_model: "gemini"
+  # 메인으로 사용할 두뇌(Director)를 선택합니다.
+  # API 호출이 아닌 CLI 도구를 사용하여 비정형 미션 해석과 명령 생성을 수행합니다.
+  active_driver: "claude" # options: claude, codex, gemini
 
-  gemini:
-    # 환경 변수 GEMINI_API_KEY가 설정되어 있다면 이곳은 비워두셔도 됩니다.
-    api_key: "YOUR_GEMINI_API_KEY" 
-    model: "gemini-1.5-pro-002" # 최신 개선 버전 (Coding 성능 향상)
+  drivers:
+    claude:
+      # Claude Code CLI (requires 'claude' in PATH)
+      command: "claude"
+      args: 
+        - "-p"
+        - "{prompt}"
+        - "--dangerously-skip-permissions"
+        # Brain은 파일 쓰기 권한이 필요 없을 수 있지만, 혹시 모를 상황 대비
+    
+    codex:
+      # OpenAI Codex CLI (@openai/codex)
+      command: "codex"
+      args:
+        - "exec"
+        - "--full-auto"
+        - "{prompt}"
 
-  claude:
-    api_key: "YOUR_CLAUDE_API_KEY"
-    model: "claude-3-5-sonnet-20240620" # 가성비 및 코딩 성능 최적 모델
-
-  gpt:
-    api_key: "YOUR_OPENAI_API_KEY"
-    model: "gpt-4o" # 현재 공개된 가장 강력한 버전
+    gemini:
+      # Gemini CLI (Official/Community)
+      command: "gemini"
+      args:
+        - "-p"
+        - "{prompt}"
 
 body:
-  # 작업을 수행할 주체(Actor/Body)를 선택합니다.
-  active_driver: "claude" # or "aider"
+  # 작업을 수행할 주체(Worker/Hassan)를 선택합니다.
+  active_driver: "claude"
 
   drivers:
     claude:
@@ -26,7 +38,6 @@ body:
       command: "claude"
       # {query} will be replaced with the actual command
       # {system_prompt_file} will be replaced with the path to the system prompt file
-      # {system_prompt} will be replaced with the system prompt text
       args: 
         - "--system-prompt-file"
         - "{system_prompt_file}"
@@ -37,16 +48,3 @@ body:
         - "--allowedTools"
         - "Write"
       env: {}
-
-    aider:
-      # Aider CLI (requires 'aider' in PATH and google-generativeai installed)
-      command: "aider"
-      args:
-        - "--model"
-        - "gemini/gemini-1.5-pro"
-        - "--message"
-        - "{query}"
-        - "--no-auto-commits"
-        - "--yes" # Always say yes to edits
-      env:
-        GOOGLE_API_KEY: "${GEMINI_API_KEY}" # Uses env var substitution
