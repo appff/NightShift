@@ -2,15 +2,17 @@ mission_name: "Legacy Code Analysis & Refactoring"
 project_path: "." 
 
 # [NEW] Brain을 위한 지침
-# 기존의 'tasks' 리스트 대신, 자연어로 된 목표와 제약사항을 기술합니다.
-goal: |
-  이 프로젝트의 소스 코드를 분석하고, Python 파일들에서 '개선이 필요한 부분'을 찾아 리팩토링해줘.
-  특히 함수 길이가 너무 길거나, 변수명이 명확하지 않은 레거시 코드를 중점적으로 봐주길 바래.
-  무리하게 로직을 바꾸기보다는 가독성 위주로 수정하고, 수정 후에는 코드가 깨지지 않았는지 확인하는 과정도 거쳐야 해.
+# goal을 리스트(List) 형태로 작성하면 Night Shift가 순차적으로 하나씩 처리합니다.
+goal:
+  - "Google AI 라이브러리 업데이트: deprecated `google.generativeai`에서 `google.genai`로 마이그레이션"
+  - "설정 검증: `settings.yaml`과 `mission.yaml`을 위한 스키마 검증 추가"
+  - "로깅 시스템 개선: brain으로 보내는 request 도 log에 추가해줘 (query를 알고 싶어)"
+  - "모든 작업이 끝나면 out-dated된 docs들을 업데이트 해줄 것 (/sc:document 명령을 사용할 것 (SuperClaude))"
+  - "모든 작업이 끝나면 Git commit & push 해줄 것"
 
 # Brain이 참고할 제약 사항
 constraints:
   - "파일을 삭제할 때는 신중하게 판단할 것."
   - "CC가 불확실한 제안을 하면 거절할 것."
   - "모든 변경 사항은 설명 주석을 포함할 것."
-  - "작업이 완료되었다고 판단되면 스스로 종료할 것."
+  - "작업이 완료되었다고 판단되면 스스로 종료할 것. 다만 Claude가 추가 사항을 제안할 경우 3번까지는 작업을 계속 진행할 수 있도록 할 것"
