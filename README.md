@@ -14,7 +14,7 @@
 *   **📋 Sequential Task Execution**: `mission.yaml`의 `goal`을 리스트로 작성하면, 각 항목을 순차적으로 수행하여 작업의 정확도와 성공률을 극대화합니다.
 *   **🔌 Plug & Play Drivers**: 설정 파일만 변경하면 Claude Code에서 Aider로, 또는 커스텀 스크립트로 실행 주체를 즉시 변경할 수 있습니다.
 *   **🛡️ Automated Safety**: 쿼터 제한(Quota Limit) 자동 감지 및 대기, 반복 루프 방지 기능이 내장되어 있습니다.
-*   **📝 Enhanced Logging**: Brain의 사고 과정(Prompt)과 Hassan의 실행 결과(Output)를 명확히 구분하여 상세히 기록합니다.
+*   **📝 Enhanced Logging**: Python 표준 `logging` 모듈을 사용하여 Brain의 사고 과정과 Hassan의 실행 결과를 체계적으로 기록합니다.
 
 ---
 
@@ -87,7 +87,8 @@ python3 night_shift.py
 *   `settings.yaml`: Brain/Hassan 설정 및 API 키 관리.
 *   `mission.yaml`: 미션 목표 및 제약사항 정의.
 *   `logs/`: 실행 로그 저장소.
-    *   `night_shift_log_{timestamp}.txt`: 전체 대화 이력 (Director & Hassan)
+    *   `night_shift_log_{timestamp}.txt`: 런타임 로그 (logging 모듈)
+    *   `night_shift_history_{timestamp}.txt`: 전체 대화 이력 (Report용)
     *   `brain_log_{date}.txt`: Brain의 사고 과정 상세 로그
 *   `docs/`: 프로젝트 문서
 *   `requirements.txt`: Python 의존성 목록

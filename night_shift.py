@@ -19,6 +19,7 @@ import yaml
 import re
 import os
 import argparse
+import logging
 from datetime import datetime, timedelta
 import copy
 
@@ -45,6 +46,32 @@ DEFAULT_GPT_MODEL = 'gpt-4o'
 DEFAULT_CLAUDE_MODEL = 'claude-3-5-sonnet-20240620'
 
 # --- Utils ---
+def setup_logging():
+    if not os.path.exists(LOG_DIR):
+        os.makedirs(LOG_DIR)
+    
+    log_file_path = LOG_FILE_TEMPLATE.format(timestamp=datetime.now().strftime("%Y%m%d_%H%M%S"))
+    
+    # Create logger
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+    
+    # File Handler
+    file_handler = logging.FileHandler(log_file_path, encoding='utf-8')
+    file_handler.setLevel(logging.INFO)
+    file_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    file_handler.setFormatter(file_formatter)
+    logger.addHandler(file_handler)
+    
+    # Console Handler
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(logging.INFO)
+    console_formatter = logging.Formatter('%(message)s') # Keep console output clean
+    console_handler.setFormatter(console_formatter)
+    logger.addHandler(console_handler)
+    
+    return logger, log_file_path
+
 def validate_settings_schema(settings):
     """Simple validation for critical settings keys."""
     if not isinstance(settings, dict):
@@ -77,7 +104,7 @@ class Brain:
         self.client = None
         self.model_name = ""
         self._setup_client()
-        print(f"🧠 Brain Initialized: [{self.model_type.upper()}] Mode with model: {self.model_name}")
+        logging.info(f"🧠 Brain Initialized: [{self.model_type.upper()}] Mode with model: {self.model_name}")
 
     def _setup_client(self):
         brain_config = self.settings.get('brain', {})
@@ -105,7 +132,8 @@ class Brain:
     def clean_ansi(self, text):
         return ANSI_ESCAPE_PATTERN.sub('', text)
 
-    def _log_to_file(self, message):
+    def _log_brain_activity(self, message):
+        """Logs detailed brain activity to a separate debug log file if needed."""
         brain_log_file = os.path.join(LOG_DIR, f"brain_log_{datetime.now().strftime('%Y%m%d')}.txt")
         try:
             with open(brain_log_file, "a", encoding="utf-8") as f:
@@ -116,8 +144,7 @@ class Brain:
     def think(self, current_task, total_goal_context, constraints, conversation_history, last_hassan_output):
         clean_output = self.clean_ansi(last_hassan_output)[-MAX_CONTEXT_CHARS:]
         
-        # Log input for debugging
-        print(f"\n--- 📥 INPUT TO BRAIN (HASSAN OUTPUT) ---\n{clean_output[:200]}...\n---------------------------------------")
+        logging.info(f"\n--- 📥 INPUT TO BRAIN (HASSAN OUTPUT) ---\n{clean_output[:200]}...\n---------------------------------------")
 
         constraints_text = '\n'.join(constraints) if isinstance(constraints, list) else str(constraints)
         
@@ -156,9 +183,9 @@ Your "Hassan" (Worker) is a CLI tool that executes your commands.
 - Avoid sending long scripts. Rely on Hassan's internal capabilities.
 - Do NOT repeat the exact same command if it failed.
 """
-        # Logging request
+        # Logging request (verbose)
         log_entry = f"\n{'='*80}\n[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] BRAIN REQUEST\n{'='*80}\n{prompt}\n"
-        self._log_to_file(log_entry)
+        self._log_brain_activity(log_entry)
 
         try:
             if self.model_type == 'gemini':
@@ -176,23 +203,23 @@ Your "Hassan" (Worker) is a CLI tool that executes your commands.
                 )
                 response_text = message.content[0].text.strip()
             
-            print(f"--- 🧠 BRAIN RAW RESPONSE ---\n{response_text}\n--- END RAW RESPONSE ---")
+            logging.info(f"--- 🧠 BRAIN RAW RESPONSE ---\n{response_text}\n--- END RAW RESPONSE ---")
             
-            # Logging response
-            self._log_to_file(f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] BRAIN RESPONSE\n{'-'*80}\n{response_text}\n")
+            # Logging response (verbose)
+            self._log_brain_activity(f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] BRAIN RESPONSE\n{'-'*80}\n{response_text}\n")
             return response_text
 
         except Exception as e:
-            print(f"🧠 Brain Error: {e}")
+            logging.error(f"🧠 Brain Error: {e}")
             return f"MISSION_FAILED: {e}"
 
 class Hassan:
     """The Execution Unit (Worker/Slave). Abstraction for CLI tools like Claude or Aider."""
     
     def __init__(self, settings, mission_config):
-        self.hassan_config = settings.get('body', {}) # Still read 'body' from settings for compatibility
+        self.hassan_config = settings.get('body', {})
         if not self.hassan_config:
-             self.hassan_config = settings.get('hassan', {}) # Try 'hassan' key too
+             self.hassan_config = settings.get('hassan', {})
 
         self.active_driver_name = self.hassan_config.get('active_driver', 'claude')
         self.drivers = self.hassan_config.get('drivers', {})
@@ -202,20 +229,18 @@ class Hassan:
         # Load driver config
         self.driver_config = self.drivers.get(self.active_driver_name)
         if not self.driver_config:
-            # Fallback default if not in settings.yaml (for compatibility)
-            print(f"⚠️ Driver '{self.active_driver_name}' not found in settings. Using default Claude config.")
+            logging.warning(f"⚠️ Driver '{self.active_driver_name}' not found in settings. Using default Claude config.")
             self.driver_config = {
                 "command": "claude",
                 "args": ["--system-prompt-file", "{system_prompt_file}", "-p", "{query}", "-c", "--dangerously-skip-permissions", "--allowedTools", "Write"],
                 "env": {}
             }
             
-        print(f"🦾 Hassan Initialized: [{self.active_driver_name.upper()}] Driver")
+        logging.info(f"🦾 Hassan Initialized: [{self.active_driver_name.upper()}] Driver")
 
     def prepare(self, current_goal_text):
         """Prepares resources like system prompt files with the CURRENT goal."""
         if current_goal_text:
-            # Use absolute path to ensure driver can find it regardless of cwd
             self.system_prompt_file = os.path.abspath(".night_shift_system_prompt.txt")
             with open(self.system_prompt_file, "w", encoding="utf-8") as f:
                 f.write(current_goal_text)
@@ -257,48 +282,50 @@ class Hassan:
             else:
                 current_env[key] = str(value)
 
-        print(f"\n--- 🚀 Running Hassan ({self.active_driver_name}) ---")
-        print(f"Command: {' '.join(cmd_list)}")
-        print(f"Query: {query}")
-        print("---")
+        logging.info(f"\n--- 🚀 Running Hassan ({self.active_driver_name}) ---")
+        logging.info(f"Command: {' '.join(cmd_list)}")
+        logging.info(f"Query: {query}")
+        logging.info("---")
 
         try:
             # Use Popen for real-time output mirroring
             process = subprocess.Popen(
                 cmd_list,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT, # Merge stderr into stdout
+                stderr=subprocess.STDOUT, 
                 text=True,
                 cwd=self.mission_config.get('project_path', os.getcwd()),
                 env=current_env,
-                bufsize=1 # Line buffered
+                bufsize=1 
             )
             
             output_lines = []
-            print("--- Hassan Output (Streaming) ---")
+            print("--- Hassan Output (Streaming) ---") 
             
-            # Read line by line
             for line in process.stdout:
-                print(line, end='') # Mirror to console immediately
+                print(line, end='') 
                 output_lines.append(line)
             
-            # Wait for process to finish
             returncode = process.wait()
             full_output = "".join(output_lines).strip()
             
-            print("-------------------------------")
+            print("-------------------------------") 
 
             if returncode != 0:
                 return f"Hassan exited with error code {returncode}:\n{full_output}"
             return full_output
 
         except Exception as e:
+            logging.error(f"ERROR running Hassan: {e}")
             return f"ERROR running Hassan: {e}"
 
 class NightShiftAgent:
     def __init__(self, mission_path="mission.yaml"):
+        # Setup Logging first
+        self.logger, self.log_file_path = setup_logging()
+        
         if not os.path.exists(mission_path):
-            print(f"❌ Mission file not found: {mission_path}")
+            logging.error(f"❌ Mission file not found: {mission_path}")
             sys.exit(1)
 
         with open(mission_path, 'r', encoding='utf-8') as f:
@@ -306,16 +333,12 @@ class NightShiftAgent:
         validate_mission_schema(self.mission_config)
         
         if not os.path.exists(SETTINGS_FILE):
-            print(f"⚠️ {SETTINGS_FILE} not found. Using defaults.")
+            logging.warning(f"⚠️ {SETTINGS_FILE} not found. Using defaults.")
             self.settings = {}
         else:
             with open(SETTINGS_FILE, 'r', encoding='utf-8') as f:
                 self.settings = yaml.safe_load(f)
 
-        if not os.path.exists(LOG_DIR): os.makedirs(LOG_DIR)
-        
-        self.log_file_path = LOG_FILE_TEMPLATE.format(timestamp=datetime.now().strftime("%Y%m%d_%H%M%S"))
-        
         # Initialize Modules
         self.brain = Brain(self.settings)
         self.hassan = Hassan(self.settings, self.mission_config)
@@ -328,7 +351,7 @@ class NightShiftAgent:
         try:
             match = re.search(r"resets\s+(\d+(?:am|pm))", error_message, re.IGNORECASE)
             if not match:
-                print("⚠️ Quota hit but time parse failed. Sleeping 1h.")
+                logging.warning("⚠️ Quota hit but time parse failed. Sleeping 1h.")
                 time.sleep(3600); return
 
             time_str = match.group(1)
@@ -338,32 +361,29 @@ class NightShiftAgent:
             target += timedelta(minutes=5) # Buffer
             
             sleep_sec = (target - now).total_seconds()
-            print(f"\n⏳ Quota limit. Sleeping until {target} ({sleep_sec/60:.1f}m)...")
+            logging.warning(f"\n⏳ Quota limit. Sleeping until {target} ({sleep_sec/60:.1f}m)...")
             time.sleep(sleep_sec)
         except Exception:
             time.sleep(3600)
 
     def start(self):
-        print("🌙 Night Shift (v4.1) Starting...")
+        logging.info("🌙 Night Shift (v4.1) Starting...")
         
-        # Determine Goals (List or String)
         raw_goals = self.mission_config.get('goal')
         goals = raw_goals if isinstance(raw_goals, list) else [raw_goals]
         constraints = self.mission_config.get('constraints', [])
         
-        print(f"📋 Mission loaded with {len(goals)} task(s).")
+        logging.info(f"📋 Mission loaded with {len(goals)} task(s).")
         
         try:
             for i, task in enumerate(goals, 1):
-                print(f"\n{'='*60}")
-                print(f"🚀 STARTING TASK {i}/{len(goals)}")
-                print(f"📄 Task: {task}")
-                print(f"{ '='*60}\n")
+                logging.info(f"\n{'='*60}")
+                logging.info(f"🚀 STARTING TASK {i}/{len(goals)}")
+                logging.info(f"📄 Task: {task}")
+                logging.info(f"{ '='*60}\n")
                 
-                # Update System Prompt for CURRENT Task
                 self.hassan.prepare(current_goal_text=task)
                 
-                # Kickstart this specific task
                 initial_query = f"Start Task {i}: {task}"
                 hassan_output = self.hassan.run(initial_query)
                 
@@ -372,28 +392,27 @@ class NightShiftAgent:
                 self.last_hassan_output = hassan_output
 
                 while True:
-                    # Quota Check
                     if "hit your limit" in self.last_hassan_output and "resets" in self.last_hassan_output:
                         self._handle_quota_limit(self.last_hassan_output)
                     
-                    print("\n🤔 Brain is thinking...")
+                    logging.info("\n🤔 Brain is thinking...")
                     next_action = self.brain.think(
-                        task, # Current Task
-                        str(raw_goals), # Total Context (String representation of full list)
+                        task,
+                        str(raw_goals),
                         constraints,
                         self.conversation_history,
                         self.last_hassan_output
                     )
 
-                    print(f"💡 Director (Brain): {next_action}")
+                    logging.info(f"💡 Director (Brain): {next_action}")
                     self.conversation_history += f"\n--- 🧠 DIRECTOR (BRAIN) DECISION ---\n{next_action}\n----------------------------------\n"
 
                     if next_action == "MISSION_COMPLETED":
-                        print(f"✅ Task {i} Completed!"); break
+                        logging.info(f"✅ Task {i} Completed!"); break
                     if next_action.startswith("MISSION_FAILED"):
-                        print(f"❌ Task {i} Failed: {next_action}"); return # Exit all on failure? Or continue? Let's stop.
+                        logging.error(f"❌ Task {i} Failed: {next_action}"); return 
                     if next_action == self.last_hassan_query:
-                        print("⚠️ Loop detected. Skipping to next task?"); break # Or stop? Let's break task loop.
+                        logging.warning("⚠️ Loop detected. Skipping to next task?"); break 
 
                     hassan_output = self.hassan.run(next_action)
                     
@@ -406,9 +425,11 @@ class NightShiftAgent:
 
         finally:
             self.hassan.cleanup()
-            with open(self.log_file_path, "w", encoding="utf-8") as f:
+            history_file = self.log_file_path.replace("night_shift_log", "night_shift_history")
+            with open(history_file, "w", encoding="utf-8") as f:
                 f.write(self.conversation_history)
-            print(f"📝 Log saved: {self.log_file_path}")
+            logging.info(f"📝 Full history saved: {history_file}")
+            logging.info(f"📝 Runtime log saved: {self.log_file_path}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Night Shift: Brain & Hassan")
