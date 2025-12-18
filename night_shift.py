@@ -201,7 +201,8 @@ class Body:
         """Prepares resources like system prompt files."""
         goal = self.mission_config.get('goal', '')
         if goal:
-            self.system_prompt_file = ".night_shift_system_prompt.txt"
+            # Use absolute path to ensure driver can find it regardless of cwd
+            self.system_prompt_file = os.path.abspath(".night_shift_system_prompt.txt")
             with open(self.system_prompt_file, "w", encoding="utf-8") as f:
                 f.write(goal)
 
@@ -254,27 +255,34 @@ class Body:
         print("---")
 
         try:
-            result = subprocess.run(
+            # Use Popen for real-time output mirroring
+            process = subprocess.Popen(
                 cmd_list,
-                capture_output=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT, # Merge stderr into stdout
                 text=True,
-                check=False,
                 cwd=self.mission_config.get('project_path', os.getcwd()),
-                env=current_env
+                env=current_env,
+                bufsize=1 # Line buffered
             )
-            output = result.stdout.strip()
-            error = result.stderr.strip()
+            
+            output_lines = []
+            print("--- Body Output (Streaming) ---")
+            
+            # Read line by line
+            for line in process.stdout:
+                print(line, end='') # Mirror to console immediately
+                output_lines.append(line)
+            
+            # Wait for process to finish
+            returncode = process.wait()
+            full_output = "".join(output_lines).strip()
+            
+            print("-------------------------------")
 
-            print(f"--- Body Output ---")
-            print(output)
-            if error:
-                print(f"--- Body Error ---")
-                print(error)
-            print("---")
-
-            if result.returncode != 0:
-                return f"Body exited with error code {result.returncode}:\n{output}\n{error}"
-            return output
+            if returncode != 0:
+                return f"Body exited with error code {returncode}:\n{full_output}"
+            return full_output
 
         except Exception as e:
             return f"ERROR running Body: {e}"
