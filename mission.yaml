@@ -1,6 +1,16 @@
-name: "Readme Correction Mission"
-project_path: "/Users/jeongminkim/Downloads/NightShift" # Target project directory
-tasks:
-  - "현재 폴더의 README.md 내용을 읽어줘."
-  - "내용 중에서 오타나 문법적으로 어색한 부분을 3군데 찾아서 알려줘."
-  - "찾은 오타를 수정해서 README.md 파일에 덮어써줘."
+mission_name: "Legacy Code Analysis & Refactoring"
+project_path: "." 
+
+# [NEW] Brain을 위한 지침
+# 기존의 'tasks' 리스트 대신, 자연어로 된 목표와 제약사항을 기술합니다.
+goal: |
+  이 프로젝트의 소스 코드를 분석하고, Python 파일들에서 '개선이 필요한 부분'을 찾아 리팩토링해줘.
+  특히 함수 길이가 너무 길거나, 변수명이 명확하지 않은 레거시 코드를 중점적으로 봐주길 바래.
+  무리하게 로직을 바꾸기보다는 가독성 위주로 수정하고, 수정 후에는 코드가 깨지지 않았는지 확인하는 과정도 거쳐야 해.
+
+# Brain이 참고할 제약 사항
+constraints:
+  - "파일을 삭제할 때는 신중하게 판단할 것."
+  - "CC가 불확실한 제안을 하면 거절할 것."
+  - "모든 변경 사항은 설명 주석을 포함할 것."
+  - "작업이 완료되었다고 판단되면 스스로 종료할 것."

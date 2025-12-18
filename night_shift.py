@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 """
-Night Shift: Autonomous Wrapper for Claude Code
+Night Shift: Autonomous AI Agent Wrapper
 Target: macOS M3 (Apple Silicon)
-Version: 1.0.0
+Version: 2.0.0 (Brain Edition)
 
 Core Features:
-1. Robust Regex for ANSI/Color handling.
-2. Safety Guard against dangerous commands (rm -rf, etc.).
-3. Git Backup Automation.
-4. Morning Report Generation.
+1. Brain Module (LLM) for autonomous decision making.
+2. OODA Loop (Observe-Orient-Decide-Act) architecture.
+3. Multi-LLM Support (Gemini, Claude, GPT).
 """
 
 import pexpect
@@ -16,153 +15,140 @@ import sys
 import time
 import yaml
 import re
-import subprocess
 import os
-import glob
 import argparse
 from datetime import datetime
+
+# --- Third-party LLM SDKs ---
+try:
+    import google.generativeai as genai
+    from openai import OpenAI
+    from anthropic import Anthropic
+except ImportError:
+    print("⚠️  Missing required LLM libraries. Please run: pip install google-generativeai openai anthropic")
+    # We continue, assuming the user might fix it or use a mockup mode if we had one.
+    # But practically, the Brain will fail.
 
 # --- Configuration & Constants ---
 
 # ANSI Escape Code Regex for cleaning output before analysis
 ANSI_ESCAPE_PATTERN = re.compile(r'\x1B(?:[@-Z\-_]|[0-?]*[@-~])')
-
-# Dangerous commands that must trigger an emergency stop or rejection
-DANGEROUS_PATTERNS = [
-    r"rm\s+(-[a-zA-Z]*r[a-zA-Z]*|[a-zA-Z]*r[a-zA-Z]*-)\s+", # rm -rf, rm -r
-    r"mkfs",            # formatting
-    r"dd\s+if=",        # disk writing
-    r">\s*/dev/sd",     # overwriting devices
-    r">\s*/dev/nvme",   # overwriting devices
-    r":\(\s*:\s*|\s*:\s*&\s*\)\s*;", # fork bomb
-    r"chmod\s+[-+]?000", # removing all permissions
-    r"mv\s+/\s+",       # moving root
-]
-
-# Log file paths
 LOG_DIR = "logs"
 LOG_FILE_TEMPLATE = os.path.join(LOG_DIR, "night_shift_log_{timestamp}.txt")
 REPORT_FILE = "morning_report.md"
+SETTINGS_FILE = "settings.yaml"
 
-class SafetyOfficer:
-    """Responsible for inspecting commands and enforcing safety policies."""
+class Brain:
+    """The Intelligence Unit. Decides what to do based on the mission and current context."""
     
-    @staticmethod
-    def clean_ansi(text):
-        """Strips ANSI escape codes from text."""
+    def __init__(self, settings_path=SETTINGS_FILE):
+        self.settings = self._load_settings(settings_path)
+        self.model_type = self.settings.get('brain', {}).get('active_model', 'gemini')
+        self.client = None
+        self._setup_client()
+        
+        print(f"🧠 Brain Initialized: [{self.model_type.upper()}] Mode")
+
+    def _load_settings(self, path):
+        if not os.path.exists(path):
+            print(f"⚠️  Settings file not found: {path}. Using defaults.")
+            return {}
+        with open(path, 'r', encoding='utf-8') as f:
+            return yaml.safe_load(f)
+
+    def _setup_client(self):
+        brain_conf = self.settings.get('brain', {})
+        
+        if self.model_type == 'gemini':
+            conf = brain_conf.get('gemini', {})
+            api_key = conf.get('api_key') or os.getenv("GEMINI_API_KEY")
+            if not api_key:
+                raise ValueError("Gemini API Key is missing in settings.yaml or env vars.")
+            genai.configure(api_key=api_key)
+            self.model_name = conf.get('model', 'gemini-2.0-flash-exp')
+            
+        elif self.model_type == 'gpt':
+            conf = brain_conf.get('gpt', {})
+            api_key = conf.get('api_key') or os.getenv("OPENAI_API_KEY")
+            if not api_key:
+                raise ValueError("OpenAI API Key is missing.")
+            self.client = OpenAI(api_key=api_key)
+            self.model_name = conf.get('model', 'gpt-4-turbo')
+            
+        elif self.model_type == 'claude':
+            conf = brain_conf.get('claude', {})
+            api_key = conf.get('api_key') or os.getenv("CLAUDE_API_KEY")
+            if not api_key:
+                raise ValueError("Anthropic API Key is missing.")
+            self.client = Anthropic(api_key=api_key)
+            self.model_name = conf.get('model', 'claude-3-opus-20240229')
+
+    def clean_ansi(self, text):
         return ANSI_ESCAPE_PATTERN.sub('', text)
 
-    @staticmethod
-    def inspect(buffer_content):
+    def think(self, mission_goal, constraints, history_text, current_screen):
         """
-        Inspects the buffer content (previous output) for dangerous commands.
-        Returns: (is_safe: bool, reason: str)
+        Analyzes the situation and returns the next command or response.
         """
-        clean_text = SafetyOfficer.clean_ansi(buffer_content)
+        clean_screen = self.clean_ansi(current_screen)[-2000:] # Last 2000 chars context
         
-        # Look at the last few lines where the command usually sits
-        # Claude Code typically prints the command it wants to run just before asking.
-        # We scan the whole buffer captured since last prompt to be safe.
-        
-        for pattern in DANGEROUS_PATTERNS:
-            if re.search(pattern, clean_text):
-                return False, f"Detected dangerous pattern: {pattern}"
-        
-        return True, "Safe"
+        prompt = f"""
+You are the "Director" of an autonomous coding session. 
+Your "Actor" is a CLI tool (Claude Code) that executes commands and asks questions.
 
-class GitOps:
-    """Handles Git-related automation."""
-    
-    @staticmethod
-    def create_backup_branch():
-        """Creates a new git branch with a timestamp."""
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        branch_name = f"night-shift-auto-{timestamp}"
-        
-        try:
-            # Check if inside a git repo
-            subprocess.run(["git", "rev-parse", "--is-inside-work-tree"], 
-                           check=True, capture_output=True)
-            
-            print(f"🌿 [GitOps] Creating backup branch: {branch_name}")
-            subprocess.run(["git", "checkout", "-b", branch_name], check=True)
-            return True, branch_name
-        except subprocess.CalledProcessError:
-            print("⚠️ [GitOps] Not a git repository or git error. Skipping backup branch.")
-            return False, None
+[MISSION GOAL]
+{mission_goal}
 
-class MorningReporter:
-    """Generates a summary report from the execution logs."""
-    
-    def __init__(self, log_path):
-        self.log_path = log_path
-        self.start_time = datetime.now()
-        self.tasks_completed = []
-        self.approvals_count = 0
-        self.errors = []
+[CONSTRAINTS]
+{constraints}
 
-    def log_approval(self):
-        self.approvals_count += 1
+[CURRENT SCREEN STATE (Actor's Output)]
+{clean_screen}
 
-    def log_error(self, message):
-        self.errors.append(message)
+[INSTRUCTIONS]
+1. Analyze the 'CURRENT SCREEN STATE'. The Actor is waiting for input.
+2. Determine the next best action to move closer to the [MISSION GOAL].
+3. If the Actor is asking a question (e.g., "Run this command?"), decide Y/N or provide the requested input based on Constraints.
+4. If the Actor is idle (command finished), provide the NEXT natural language instruction or shell command to proceed.
+5. If the Mission is FULLY COMPLETED, reply with exactly: "MISSION_COMPLETED"
 
-    def log_task(self, task_name):
-        self.tasks_completed.append(task_name)
-
-    def generate_report(self, duration_str):
-        """Reads the raw log file (optional) and internal stats to create markdown."""
-        
-        report_content = f"""# ☀️ Morning Report
-Generated at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
-
-## ⏱️ Execution Stats
-- **Total Duration:** {duration_str}
-- **Commands Auto-Approved:** {self.approvals_count}
-- **Tasks Processed:** {len(self.tasks_completed)}
-
-## 📝 Tasks Performed
+[OUTPUT FORMAT]
+Return ONLY the text to type into the terminal. Do not wrap in markdown or quotes unless necessary for the command itself.
 """
-        for i, task in enumerate(self.tasks_completed, 1):
-            report_content += f"{i}. {task}\n"
-
-        report_content += "\n## 🚨 Errors & Warnings\n"
-        if self.errors:
-            for err in self.errors:
-                report_content += f"- ❌ {err}\n"
-        else:
-            report_content += "- ✅ No critical errors detected.\n"
-            
-        with open(REPORT_FILE, "w", encoding="utf-8") as f:
-            f.write(report_content)
         
-        print(f"📄 [Reporter] Report generated: {REPORT_FILE}")
+        response_text = ""
+try:
+            if self.model_type == 'gemini':
+                model = genai.GenerativeModel(self.model_name)
+                resp = model.generate_content(prompt)
+                response_text = resp.text.strip()
+                
+            elif self.model_type == 'gpt':
+                resp = self.client.chat.completions.create(
+                    model=self.model_name,
+                    messages=[{"role": "system", "content": "You are a helpful AI Director."},
+                              {"role": "user", "content": prompt}]
+                )
+                response_text = resp.choices[0].message.content.strip()
+                
+            elif self.model_type == 'claude':
+                msg = self.client.messages.create(
+                    model=self.model_name,
+                    max_tokens=1024,
+                    messages=[{"role": "user", "content": prompt}]
+                )
+                response_text = msg.content[0].text.strip()
+                
+except Exception as e:
+            print(f"🧠 Brain Freeze (Error): {e}")
+            return "n" # Default safety fallback: reject/no
 
-class Tee:
-    """Helper to write to multiple files (stdout and log file) simultaneously."""
-    def __init__(self, *files):
-        self.files = files
-    
-    def write(self, obj):
-        for f in self.files:
-            try:
-                f.write(obj)
-                f.flush() # Ensure real-time output
-            except Exception:
-                pass # Ignore write errors to avoid crashing
-
-    def flush(self):
-        for f in self.files:
-            try:
-                f.flush()
-            except Exception:
-                pass
+        return response_text
 
 class NightShiftAgent:
-    def __init__(self, config_path="mission.yaml"):
-        self.config_path = config_path
-        with open(config_path, 'r', encoding='utf-8') as f:
-            self.config = yaml.safe_load(f)
+    def __init__(self, mission_path="mission.yaml"):
+        with open(mission_path, 'r', encoding='utf-8') as f:
+            self.mission_config = yaml.safe_load(f)
         
         if not os.path.exists(LOG_DIR):
             os.makedirs(LOG_DIR)
@@ -170,190 +156,104 @@ class NightShiftAgent:
         self.log_file_path = LOG_FILE_TEMPLATE.format(
             timestamp=datetime.now().strftime("%Y%m%d_%H%M%S")
         )
-        self.reporter = MorningReporter(self.log_file_path)
-        
-        # Pexpect child process
+        self.brain = Brain()
         self.child = None
         
-        # Regex Patterns for Pexpect
-        # Note: We use rb (bytes) for reading, but regexes in pexpect can be strings if spawned with encoding.
-        # However, for robustness with weird binary chars, we usually assume encoding='utf-8' in spawn.
-        
-        self.PATTERNS = {
-            'PROMPT': r"❯",  # Standard prompt for many CLIs, adjust for Claude if needed. 
-                             # Claude Code usually just waits or shows a specific prompt.
-                             # If Claude Code uses a specific prompt string like '>>' or similar, update this.
-                             # Assuming interaction mode where it waits for user input.
-            
-            # Pattern matching "Run this command?" or variations
-            'CONFIRM_CMD': r"(?i)run this command\?", 
-            
-            # Pattern for Cost approval: "Cost: $0.15. Continue?"
-            'CONFIRM_COST': r"(?i)cost:.*continue\?",
-            
-            # Standard EOF or Timeout
-            'EOF': pexpect.EOF,
-            'TIMEOUT': pexpect.TIMEOUT
-        }
-        
-        # The prompt Claude Code uses when waiting for user text input.
-        # This is tricky as it changes. We'll look for the generic prompt indicator.
-        # Based on public demos, it often just ends output.
-        # We will treat "stopping printing" + "cursor" as prompt, but pexpect needs explicit pattern.
-        # We will assume a pattern representing 'Ready for input'.
-        self.CLAUDE_PROMPT = r"(?:>|❯|\?)\s*$" 
+        # Regex to detect when Claude Code is waiting for input
+        # Matches standard prompts (>, ❯, ?) at end of line, or cost confirmations
+        self.WAIT_PATTERNS = [
+            r"(?:>|❯|\?)\s*$",            # Standard CLI prompt
+            r"(?i)run this command\?",     # Explicit confirmation
+            r"(?i)cost:.*continue\?",      # Cost check
+            r"\[y/n\]",                    # Generic yes/no
+            pexpect.EOF,
+            pexpect.TIMEOUT
+        ]
 
     def start(self):
-        start_time = datetime.now()
+        print("🌙 Night Shift (Autonomous) Starting...")
         
-        print("🌙 Night Shift Starting...")
+        project_path = self.mission_config.get('project_path', os.getcwd())
+        goal = self.mission_config.get('goal', 'No goal specified')
+        constraints = self.mission_config.get('constraints', [])
         
-        # Determine Working Directory
-        project_path = self.config.get('project_path', os.getcwd())
-        if not os.path.exists(project_path):
-            print(f"❌ Project path not found: {project_path}")
-            return
-
-        # 1. Git Backup (Only if inside a git repo at project_path)
-        # We need to change dir context or pass cwd to git commands, but for simplicity, 
-        # let's assume GitOps handles it or we switch temporarily? 
-        # Actually, GitOps.create_backup_branch uses subprocess without cwd. 
-        # Ideally, we should update GitOps too, but per user request, let's focus on spawning claude in that dir.
-        # However, if we want backup to work for that project, we should probably switch to that dir or pass it.
-        # Let's simple switch process cwd to project_path for this session if it's different.
+        os.chdir(project_path)
+        print(f"📂 Working Directory: {project_path}")
         
-        original_cwd = os.getcwd()
+        # Start Claude Code
+        # We use a wrapper command or just 'claude'
+        cmd = "claude"
+        print(f"🚀 Spawning Actor: {cmd}")
+        
+        self.child = pexpect.spawn(cmd, encoding='utf-8', timeout=300) # 5 min default timeout per turn
+        self.child.setwinsize(40, 120)
+        
+        self.logfile = open(self.log_file_path, 'w', encoding='utf-8')
+        # We log to file, but we can also print to stdout if we want to see it live.
+        # For 'Brain' edition, user might just want to watch the logs or status.
+        # Let's keep Tee for visibility.
+        self.child.logfile_read = self.logfile # Log what we READ (output)
+        
         try:
-            os.chdir(project_path)
-            print(f"📂 Working Directory set to: {project_path}")
+            # Initial Wait for startup
+            print("⏳ Waiting for Actor to initialize...")
+            time.sleep(3) 
             
-            # Now run Git Backup in the target directory
-            GitOps.create_backup_branch()
+            history = "" # Keeps a running summary if needed (not fully implemented yet to save tokens) 
             
-            # 2. Start Claude Code
-            cmd = "claude" 
-            print(f"🚀 Spawning process: {cmd}")
-            
-            # encoding='utf-8' allows using string regex patterns
-            # Spawning in the current directory (which is now project_path)
-            self.child = pexpect.spawn(cmd, encoding='utf-8', timeout=120, cwd=project_path)
-            self.child.setwinsize(40, 120) # Rows, Cols
-            
-            # Logging stdout to file AND console (Tee)
-            self.logfile = open(self.log_file_path, 'w', encoding='utf-8')
-            self.child.logfile = Tee(sys.stdout, self.logfile)
-            
-            try:
-                # 3. Process Tasks
-                for task in self.config.get('tasks', []):
-                    self.process_task(task)
-                    
-                # Exit Claude
-                self.child.sendline("/exit")
-                self.child.expect(pexpect.EOF)
+            while True:
+                # 1. OBSERVE: Wait for the Actor to stop talking and ask for input
+                index = self.child.expect(self.WAIT_PATTERNS)
                 
-            except Exception as e:
-                error_msg = f"Critical Exception: {str(e)}"
-                print(f"\n💥 {error_msg}")
-                self.reporter.log_error(error_msg)
-            finally:
-                self.cleanup()
-                end_time = datetime.now()
-                duration = end_time - start_time
-                self.reporter.generate_report(str(duration))
-                print("👋 Night Shift Ended.")
+                # Capture what was on screen before the prompt
+                current_screen = self.child.before 
+                prompt_trigger = self.child.after if isinstance(self.child.after, str) else "EOF/TIMEOUT"
+                
+                # If EOF, we are done
+                if index == 4: # EOF
+                    print("🏁 Actor exited. Mission End.")
+                    break
+                
+                if index == 5: # TIMEOUT
+                    # If timeout, maybe it's thinking or stuck.
+                    # We can try to send a newline or just continue waiting?
+                    # Or ask Brain "It's silent, what do I do?"
+                    print("⏳ Actor is silent (Timeout). Asking Brain if we should poke it...")
+                    current_screen += "\n[System Notice: The Actor has been silent for a while.]"
+                
+                # Echo to console so user sees what's happening (since we only logged read to file)
+                print(f"\n--- 👁️ OBSERVED (Buffer len: {len(current_screen)}) ---")
+                # print(current_screen.strip()) # Optional: print full screen
+                
+                # 2. THINK: Ask Brain what to do
+                print("🤔 Brain is thinking...")
+                action = self.brain.think(goal, constraints, history, current_screen + prompt_trigger)
+                
+                print(f"💡 Brain decided: '{action}'")
+                
+                # 3. ACT: Execute the decision
+                if action == "MISSION_COMPLETED":
+                    print("🎉 Mission Accomplished. Exiting.")
+                    self.child.sendline("/exit")
+                    break
+                
+                # Send the command/response
+                self.child.sendline(action)
+                
+                # Add to history (simple version)
+                history += f"\n[Actor Output]: ...\n[Brain Action]: {action}\n"
+
+        except Exception as e:
+            print(f"💥 Critical Error: {e}")
         finally:
-            # Restore original CWD if needed (though script ends here usually)
-            os.chdir(original_cwd)
-
-    def process_task(self, task_text):
-        print(f"\n📋 Processing Task: {task_text}")
-        self.reporter.log_task(task_text)
-        
-        # Wait for prompt to settle before sending
-        # Initial wait might be needed if it's the first task
-        try:
-            # We look for the prompt or the end of the previous command output
-            # Just sending the task might interrupt if it's not ready, but pexpect usually buffers.
-            # We'll try to sync on a prompt pattern if possible.
-            # For now, we assume if we are in this method, the CLI is ready or we just started.
-            
-            self.child.sendline(task_text)
-            
-            self.monitor_and_approve()
-            
-        except pexpect.TIMEOUT:
-            self.reporter.log_error(f"Timeout processing task: {task_text}")
-            print("⏳ Timeout waiting for response.")
-
-    def monitor_and_approve(self):
-        """
-        Monitors output for confirmation requests and safety checks.
-        Returns when the task seems 'done' (back to main prompt).
-        """
-        while True:
-            # We expect multiple possibilities
-            index = self.child.expect([
-                self.CLAUDE_PROMPT,      # 0: Ready for next task
-                self.PATTERNS['CONFIRM_CMD'], # 1: "Run this command?"
-                self.PATTERNS['CONFIRM_COST'], # 2: Cost warning
-                self.PATTERNS['TIMEOUT'], # 3
-                self.PATTERNS['EOF']      # 4
-            ], timeout=600) # Long timeout for task execution
-            
-            if index == 0:
-                # Task finished, back to prompt
-                print("✅ Task apparently finished (Prompt detected).")
-                break
-            
-            elif index == 1:
-                # Confirmation request
-                # self.child.before contains the text preceding the match (the command)
-                buffer_content = self.child.before
-                
-                print("\n🔍 Detecting Command Approval Request...")
-                is_safe, reason = SafetyOfficer.inspect(buffer_content)
-                
-                if is_safe:
-                    print(f"✅ Safety Check Passed. Approving command.")
-                    self.child.sendline("y")
-                    self.reporter.log_approval()
-                else:
-                    print(f"⛔️ Safety Check FAILED: {reason}")
-                    self.reporter.log_error(f"Blocked dangerous command: {reason}")
-                    self.child.sendline("n") # Reject
-                    # Optional: Kill process if strictly required, but 'n' usually suffices to skip.
-                    # self.child.close()
-                    # return
-            
-            elif index == 2:
-                # Cost confirmation
-                print("💰 Cost confirmation detected. Auto-approving.")
-                self.child.sendline("y")
-            
-            elif index == 3:
-                # Timeout inside the loop - maybe task is taking too long without output?
-                # We loop again or consider it stuck.
-                print("... Working ...")
-                continue
-                
-            elif index == 4:
-                raise Exception("Process terminated unexpectedly (EOF).")
-
-    def cleanup(self):
-        if self.child and self.child.isalive():
             self.child.close()
-        if hasattr(self, 'logfile') and self.logfile:
             self.logfile.close()
+            print(f"📝 Log saved to: {self.log_file_path}")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Night Shift: Autonomous Claude Code Wrapper")
-    parser.add_argument("mission_file", nargs="?", default="mission.yaml", help="Path to the mission YAML file")
+    parser = argparse.ArgumentParser(description="Night Shift: Brain-Powered Agent")
+    parser.add_argument("mission_file", nargs="?", default="mission.yaml")
     args = parser.parse_args()
-
-    if not os.path.exists(args.mission_file):
-        print(f"❌ Mission file not found: {args.mission_file}")
-        sys.exit(1)
-        
-    agent = NightShiftAgent(config_path=args.mission_file)
+    
+    agent = NightShiftAgent(mission_path=args.mission_file)
     agent.start()
