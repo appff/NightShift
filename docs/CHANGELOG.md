@@ -2,6 +2,27 @@
 
 All notable changes to Night Shift will be documented in this file.
 
+## [4.2.0] - 2024-12-19
+
+### 🚀 Pure CLI & Shadow Workspace (Current)
+
+#### New Features
+- **Pure CLI Brain**: 제거된 API SDK(google-genai, openai, anthropic)를 대신하여 `claude`, `gemini`, `codex` CLI를 직접 '두뇌'로 사용하는 구조 도입.
+- **Shadow Workspace (HOME Isolation)**: Brain 실행 시 전용 `HOME` 환경 변수(`.night_shift/brain_env`)를 주입하여 세션 데이터 및 메타데이터를 작업자(Hassan)와 완벽히 격리.
+- **Auth Symlinking**: 실제 `$HOME`의 인증 정보(`.claude`, `.gemini` 등)를 격리된 환경으로 자동 연결하여 로그인 상태 유지.
+- **Interactive Quota Countdown**: 쿼터 제한 발생 시 1분 단위로 잔여 시간을 알려주는 카운트다운 기능 추가.
+- **Relative Quota Parsing**: Gemini CLI의 "reset after 1h17m" 같은 상대 시간 형식 파싱 지원.
+- **Brain Execution Timeout**: 브레인의 무한 루프나 응답 지연을 방지하기 위한 5분 타임아웃 도입.
+
+#### Changed
+- **Settings Optimization**: 더 이상 필요 없는 API Key 및 모델명 필드를 제거하고 드라이버 중심 구조로 간소화.
+- **Dependency Cleanup**: `requirements.txt`에서 대형 LLM SDK 제거 (경량화).
+
+#### Removed
+- **Aider Driver**: 사용 빈도가 낮고 중복되는 `aider` 드라이버 관련 코드 및 가이드 삭제.
+
+---
+
 ## [4.1.0] - 2024-12-18
 
 ### 🚀 Sequential Tasking & Rebranding
