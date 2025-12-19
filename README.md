@@ -1,102 +1,76 @@
-# 🌙 Night Shift: Autonomous AI Agent Orchestrator
+# 🌙 Night Shift: The Autonomous Overlord (v4.2)
 
-**Night Shift**는 단순한 CLI 래퍼가 아닙니다. **Brain(두뇌)**과 **Hassan(신체/노동자)**을 분리한 아키텍처를 통해, 다양한 AI 코딩 도구(Claude Code, Aider 등)를 자율적으로 지휘하는 **오케스트레이터(Orchestrator)**입니다.
+**Night Shift**는 단순히 코딩을 돕는 도구가 아닙니다. 당신이 잠든 사이(또는 커피를 마시는 사이), **Brain(두뇌)**과 **Hassan(수행자)**이라는 두 존재가 협력하여 프로젝트를 완수하는 **자율 에이전트 오케스트레이터**입니다.
 
-사용자가 자연어로 **목표(Goal)**를 설정하면, Night Shift의 Brain이 상황을 판단(Observe-Orient-Decide-Act)하여 Hassan(실행 도구)에게 명령을 내리고, 돌발 상황에 대처하며 미션을 완수합니다.
+v4.2부터는 거추장스러운 API SDK와 작별하고, 오직 **순수 CLI 도구(Claude Code, Gemini CLI, Codex 등)**만을 사용하여 더욱 강력하고 격리된 방식으로 동작합니다.
 
 ---
 
-## ✨ Key Features (v4.1 Brain & Hassan Architecture)
+## ✨ Why Night Shift? (Witty Features)
 
-*   **🧠 The Brain (Director)**: Gemini, GPT, Claude 등 강력한 LLM을 두뇌로 사용하여 전략을 수립하고 명령을 내립니다.
-*   **🦾 The Hassan (Worker)**: Claude Code, Aider 등 다양한 CLI 도구를 '신체'로 사용하여 실제 작업을 수행합니다. `settings.yaml`에서 드라이버를 교체할 수 있습니다.
-*   **🔄 OODA Loop**: 관찰(Observe) -> 상황파악(Orient) -> 결정(Decide) -> 행동(Act) 루프를 통해 비정형적인 상황에도 유연하게 대처합니다.
-*   **📋 Sequential Task Execution**: `mission.yaml`의 `goal`을 리스트로 작성하면, 각 항목을 순차적으로 수행하여 작업의 정확도와 성공률을 극대화합니다.
-*   **🔌 Plug & Play Drivers**: 설정 파일만 변경하면 Claude Code에서 Aider로, 또는 커스텀 스크립트로 실행 주체를 즉시 변경할 수 있습니다.
-*   **🛡️ Automated Safety**: 쿼터 제한(Quota Limit) 자동 감지 및 대기, 반복 루프 방지 기능이 내장되어 있습니다.
-*   **📝 Enhanced Logging**: Python 표준 `logging` 모듈을 사용하여 Brain의 사고 과정과 Hassan의 실행 결과를 체계적으로 기록합니다.
+*   **🧠 Pure CLI Brain (Director)**: 더 이상 API 키를 찾아 헤매지 마세요. 이미 설치된 `claude`, `gemini`, `codex` CLI를 그대로 '두뇌'로 사용합니다.
+*   **🏘️ Brain's Own Room (Shadow Workspace)**: Brain은 `.night_shift/brain_env`라는 자기만의 방(Isolated $HOME)에서 고민합니다. 당신의 실제 작업 세션과 Brain의 독백이 섞일 염려가 없습니다. "평행 우주"급 격리를 보장합니다!
+*   **🦾 The Hassan (Worker)**: 무거운 짐은 Hassan이 듭니다. `Claude Code` 같은 강력한 수행자를 드라이버로 사용하여 실제 코드를 주무릅니다.
+*   **⏳ The Patient Waiter**: 쿼터 제한(Quota Limit)에 걸리셨나요? Night Shift는 조급해하지 않습니다. 1분마다 남은 시간을 카운트다운하며 쿼터가 풀리는 순간까지 끈질기게 기다립니다.
+*   **🔄 Stateless OODA Loop**: 관찰하고, 판단하고, 결정하고, 실행합니다. 매 루프마다 백지 상태에서 최신 상황을 분석하므로, 과거의 실수에 갇히지 않습니다.
+*   **🔌 Zero-SDK Dependency**: `requirements.txt`가 가벼워졌습니다. 복잡한 라이브러리 설치 없이 CLI 도구만 있으면 바로 시작할 수 있습니다.
 
 ---
 
 ## 🚀 Getting Started
 
-### 1. Installation
-
-필요한 Python 패키지를 설치합니다.
-
+### 1. Preparation
+사용할 CLI 도구에 미리 로그인해 두세요. (인증 정보는 Brain과 Hassan이 사이 좋게 공유합니다.)
 ```bash
-pip install -r requirements.txt
+claude login  # or gemini login, codex login
 ```
 
 ### 2. Configuration (`settings.yaml`)
-
-`settings.yaml` 파일에서 **Brain(두뇌)**과 **Hassan(신체)**를 각각 설정합니다. (`body` 키워드도 호환성을 위해 지원합니다)
+이제 API 키 대신 실행 경로와 인자를 설정합니다. 훨씬 직관적이죠!
 
 ```yaml
-# 1. 두뇌 설정 (전략가)
 brain:
-  active_model: "gemini" 
-  gemini:
-    api_key: "YOUR_GEMINI_API_KEY"
-    model: "gemini-1.5-pro-002"
-
-# 2. 신체 설정 (실행가)
-hassan: # or body
-  active_driver: "claude" # 사용할 드라이버 선택 (claude, aider 등)
-
+  active_driver: "claude" # 전략을 짤 똑똑한 녀석
   drivers:
     claude:
       command: "claude"
-      args: ["-p", "{query}", "-c", "--dangerously-skip-permissions"]
-    
-    aider:
-      command: "aider"
-      args: ["--message", "{query}", "--no-auto-commits"]
+      args: ["-p", "{prompt}", "--dangerously-skip-permissions"]
+
+hassan: # 실제로 삽질을 할 녀석
+  active_driver: "claude"
+  drivers:
+    claude:
+      command: "claude"
+      args: ["--system-prompt-file", "{system_prompt_file}", "-p", "{query}", "-c", "--dangerously-skip-permissions"]
 ```
 
-### 3. Define Your Mission (`mission.yaml`)
-
-수행할 작업을 정의합니다. 리스트(List) 형태로 작성하면 순차적으로 실행됩니다.
-
-```yaml
-mission_name: "Project Cleanup & Refactor"
-project_path: "."
-
-# [NEW] Sequential Task List
-goal:
-  - "docs/ 폴더 내의 오래된 문서를 찾아 삭제하거나 업데이트해줘."
-  - "night_shift.py 코드의 가독성을 위해 긴 함수를 분리해줘."
-  - "README.md에 최신 변경 사항을 반영해줘."
-
-constraints:
-  - "기존 기능을 깨뜨리지 말 것."
-  - "주석을 꼼꼼하게 달아줄 것."
-```
-
-### 4. Run Night Shift
-
+### 3. Run Your Mission
+`mission.yaml`에 목표를 적고, 명령을 내리세요.
 ```bash
-python3 night_shift.py
+python3 night_shift.py mission.yaml
 ```
 
 ---
 
-## 📂 Project Structure
+## 📂 The New Folder Structure
 
-*   `night_shift.py`: 메인 실행 스크립트 (Brain & Hassan Coordinator).
-*   `settings.yaml`: Brain/Hassan 설정 및 API 키 관리.
-*   `mission.yaml`: 미션 목표 및 제약사항 정의.
-*   `logs/`: 실행 로그 저장소.
-    *   `night_shift_log_{timestamp}.txt`: 런타임 로그 (logging 모듈)
-    *   `night_shift_history_{timestamp}.txt`: 전체 대화 이력 (Report용)
-    *   `brain_log_{date}.txt`: Brain의 사고 과정 상세 로그
-*   `docs/`: 프로젝트 문서
-*   `requirements.txt`: Python 의존성 목록
+*   `night_shift.py`: 지휘 통제실.
+*   `.night_shift/brain_env`: Brain의 개인 공간. (세션 데이터가 여기 격리됩니다.)
+*   `logs/`: 두 존재의 은밀한 기록들.
+    *   `night_shift_log_...`: 전체 진행 상황.
+    *   `brain_log_...`: Brain의 깊은 고민(지시 프롬프트) 기록.
+    *   `night_shift_history_...`: 나중에 보고할 때 쓰는 전체 요약.
 
 ---
 
-## ⚠️ Disclaimer
+## ⚠️ Safety Notice (The "Adults Only" Rule)
 
-이 도구는 강력한 권한을 가진 AI(Claude Code, Aider 등)를 자동으로 실행합니다.
-*   중요한 데이터가 있는 환경에서는 **반드시 백업** 후 사용하십시오.
-*   `--dangerously-skip-permissions` 옵션이 기본적으로 활성화되어 있을 수 있으니 주의하십시오.
+이 도구는 **파일 수정 및 삭제 권한을 가진 AI**를 자동으로 실행합니다.
+*   **백업은 필수**입니다. Night Shift는 당신의 코드를 사랑하지만, 가끔은 너무 과격하게 사랑할 수 있습니다.
+*   `--dangerously-skip-permissions` 옵션이 켜져 있으므로, 실행 전 `mission.yaml`을 한 번 더 확인하세요.
+
+---
+
+## 🤝 Contribution
+
+이 토이 프로젝트가 맘에 드신다면 마음껏 주무르고 개선해 주세요. 잠은 Night Shift가 자줄 테니까요! 😴✨
