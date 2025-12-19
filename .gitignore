@@ -22,3 +22,7 @@ logs/
 
 # macOS
 .DS_Store
+
+# Metadata and Agent Storage
+.serena/
+.night_shift/
