@@ -89,15 +89,23 @@ def validate_mission_schema(mission_config):
 class Brain:
     """The Intelligence Unit (Director). Decides what to do via CLI tools."""
     
-    def __init__(self, settings):
+    def __init__(self, settings, mission_config):
         self.settings = settings
+        self.mission_config = mission_config
+        self.project_path = os.path.abspath(self.mission_config.get('project_path', os.getcwd()))
+        
         self.brain_config = self.settings.get('brain', {})
         self.active_driver_name = self.brain_config.get('active_driver', 'claude')
         self.drivers = self.brain_config.get('drivers', {})
         
-        # Setup Brain Workspace (Shadow Workspace)
-        if not os.path.exists(BRAIN_WORKSPACE_DIR):
-            os.makedirs(BRAIN_WORKSPACE_DIR, exist_ok=True)
+        # Setup Brain Workspace (Metadata Isolation)
+        # Use absolute path for BRAIN_WORKSPACE_DIR to avoid confusion
+        self.brain_env_dir = os.path.join(self.project_path, BRAIN_WORKSPACE_DIR)
+        if not os.path.exists(self.brain_env_dir):
+            os.makedirs(self.brain_env_dir, exist_ok=True)
+            
+        # Try to link existing auth from real HOME to brain_env to stay logged in
+        self._setup_auth_links()
         
         # Load driver config
         self.driver_config = self.drivers.get(self.active_driver_name)
@@ -109,7 +117,23 @@ class Brain:
             }
             
         logging.info(f"🧠 Brain Initialized: [{self.active_driver_name.upper()}] CLI Mode")
-        logging.info(f"🧠 Brain Workspace: {BRAIN_WORKSPACE_DIR}")
+        logging.info(f"🧠 Brain Home (Isolation): {self.brain_env_dir}")
+
+    def _setup_auth_links(self):
+        """Symlinks common AI CLI auth folders from real HOME to Brain's isolated HOME."""
+        real_home = os.path.expanduser("~")
+        auth_folders = [".claude", ".gemini", ".codex", ".config"]
+        
+        for folder in auth_folders:
+            src = os.path.join(real_home, folder)
+            dst = os.path.join(self.brain_env_dir, folder)
+            if os.path.exists(src) and not os.path.exists(dst):
+                try:
+                    # On some systems/FS symlinks might fail, fallback to a note
+                    os.symlink(src, dst)
+                    logging.debug(f"🔗 Linked auth folder: {folder}")
+                except Exception as e:
+                    logging.warning(f"⚠️ Could not link {folder}: {e}. You might need to login for Brain.")
 
     def clean_ansi(self, text):
         return ANSI_ESCAPE_PATTERN.sub('', text)
@@ -136,18 +160,22 @@ class Brain:
             if val: 
                 cmd_list.append(val)
         
-        logging.info(f"🧠 Brain Thinking via {base_cmd} (in {BRAIN_WORKSPACE_DIR})...")
+        logging.info(f"🧠 Brain Thinking via {base_cmd} (at {self.project_path})...")
+        
+        # Prepare Environment with Isolated HOME
+        brain_env = os.environ.copy()
+        brain_env["HOME"] = self.brain_env_dir
         
         try:
-            # Brain runs in non-interactive mode, capturing stdout
-            # Important: Run in the SHADOW WORKSPACE to keep sessions separate
+            # Brain runs in the ACTUAL PROJECT PATH but with ISOLATED HOME
             process = subprocess.run(
                 cmd_list,
                 capture_output=True,
                 text=True,
-                cwd=BRAIN_WORKSPACE_DIR, # Force Brain to work in its own room
+                cwd=self.project_path, 
+                env=brain_env,
                 check=False,
-                timeout=300 # Prevent infinite hang (5 minutes)
+                timeout=300
             )
             
             if process.returncode != 0:
@@ -345,7 +373,7 @@ class NightShiftAgent:
                 self.settings = yaml.safe_load(f)
 
         # Initialize Modules
-        self.brain = Brain(self.settings)
+        self.brain = Brain(self.settings, self.mission_config)
         self.hassan = Hassan(self.settings, self.mission_config)
         
         self.conversation_history = ""
