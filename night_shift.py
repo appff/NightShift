@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Night Shift: Autonomous AI Agent Wrapper (v4.1 - Sequential Task Execution)
+Night Shift: Autonomous AI Agent Wrapper (v4.2 - Pure CLI & Shadow Workspace)
 Target: macOS M3 (Apple Silicon)
-Version: 4.1.0
+Version: 4.2.0
 
 Core Features:
 1. Brain Module (Director): Strategic decision making via CLI tools.
@@ -423,7 +423,7 @@ class NightShiftAgent:
             time.sleep(3600)
 
     def start(self):
-        logging.info("🌙 Night Shift (v4.1) Starting...")
+        logging.info("🌙 Night Shift (v4.2) Starting...")
         
         raw_goals = self.mission_config.get('goal')
         goals = raw_goals if isinstance(raw_goals, list) else [raw_goals]
