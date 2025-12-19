@@ -350,21 +350,36 @@ class NightShiftAgent:
 
     def _handle_quota_limit(self, error_message):
         try:
-            match = re.search(r"resets\s+(\d+(?:am|pm))", error_message, re.IGNORECASE)
-            if not match:
+            # Case 1: "resets 10pm" (Claude)
+            match_abs = re.search(r"resets\s+(\d+(?:am|pm))", error_message, re.IGNORECASE)
+            # Case 2: "reset after 1h17m41s" or "after 5m" (Gemini)
+            match_rel = re.search(r"after\s+(?:(\d+)h)?\s*(?:(\d+)m)?\s*(?:(\d+)s)?", error_message, re.IGNORECASE)
+
+            now = datetime.now()
+            target = None
+
+            if match_abs:
+                time_str = match_abs.group(1)
+                target = datetime.strptime(time_str, "%I%p").replace(year=now.year, month=now.month, day=now.day)
+                if target < now: target += timedelta(days=1)
+                target += timedelta(minutes=1) # Buffer
+            elif match_rel and any(match_rel.groups()):
+                h = int(match_rel.group(1) or 0)
+                m = int(match_rel.group(2) or 0)
+                s = int(match_rel.group(3) or 0)
+                target = now + timedelta(hours=h, minutes=m, seconds=s + 30) # 30s buffer
+            
+            if not target:
                 logging.warning("⚠️ Quota hit but time parse failed. Sleeping 1h.")
                 time.sleep(3600); return
 
-            time_str = match.group(1)
-            now = datetime.now()
-            target = datetime.strptime(time_str, "%I%p").replace(year=now.year, month=now.month, day=now.day)
-            if target < now: target += timedelta(days=1)
-            target += timedelta(minutes=1) # Buffer
-            
             sleep_sec = (target - now).total_seconds()
-            logging.warning(f"\n⏳ Quota limit. Sleeping until {target} ({sleep_sec/60:.1f}m)...")
+            if sleep_sec < 0: sleep_sec = 60 # Default fallback
+            
+            logging.warning(f"\n⏳ Quota limit detected. Sleeping until {target.strftime('%H:%M:%S')} ({sleep_sec/60:.1f}m)...")
             time.sleep(sleep_sec)
-        except Exception:
+        except Exception as e:
+            logging.error(f"Error in _handle_quota_limit: {e}")
             time.sleep(3600)
 
     def start(self):
@@ -407,6 +422,11 @@ class NightShiftAgent:
 
                     logging.info(f"💡 Director (Brain): {next_action}")
                     self.conversation_history += f"\n--- 🧠 DIRECTOR (BRAIN) DECISION ---\n{next_action}\n----------------------------------\n"
+
+                    # Check for Quota Limit in Brain's response
+                    if "exhausted your capacity" in next_action or "quota" in next_action.lower() or "limit" in next_action.lower():
+                        self._handle_quota_limit(next_action)
+                        continue
 
                     if next_action == "MISSION_COMPLETED":
                         logging.info(f"✅ Task {i} Completed!"); break
