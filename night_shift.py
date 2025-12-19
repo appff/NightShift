@@ -373,11 +373,19 @@ class NightShiftAgent:
                 logging.warning("⚠️ Quota hit but time parse failed. Sleeping 1h.")
                 time.sleep(3600); return
 
-            sleep_sec = (target - now).total_seconds()
-            if sleep_sec < 0: sleep_sec = 60 # Default fallback
+            logging.warning(f"\n⏳ Quota limit detected. Target reset time: {target.strftime('%H:%M:%S')}")
             
-            logging.warning(f"\n⏳ Quota limit detected. Sleeping until {target.strftime('%H:%M:%S')} ({sleep_sec/60:.1f}m)...")
-            time.sleep(sleep_sec)
+            while True:
+                now = datetime.now()
+                remaining = (target - now).total_seconds()
+                if remaining <= 0:
+                    logging.info("✅ Quota wait completed! Resuming...")
+                    break
+                
+                logging.info(f"💤 Waiting for quota reset... {remaining/60:.1f} minutes left.")
+                # Sleep for 1 minute or the remaining time, whichever is shorter
+                wait_tick = min(60, remaining)
+                time.sleep(wait_tick)
         except Exception as e:
             logging.error(f"Error in _handle_quota_limit: {e}")
             time.sleep(3600)
