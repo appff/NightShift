@@ -147,7 +147,7 @@ class Brain:
                 text=True,
                 cwd=BRAIN_WORKSPACE_DIR, # Force Brain to work in its own room
                 check=False,
-                timeout=120 # Prevent infinite hang
+                timeout=300 # Prevent infinite hang (5 minutes)
             )
             
             if process.returncode != 0:
@@ -158,7 +158,7 @@ class Brain:
             return process.stdout.strip()
             
         except subprocess.TimeoutExpired:
-            logging.error("🧠 Brain CLI Timeout (120s expired).")
+            logging.error("🧠 Brain CLI Timeout (300s expired).")
             return "MISSION_FAILED: Brain CLI Timeout"
         except Exception as e:
             logging.error(f"🧠 Brain Execution Exception: {e}")
