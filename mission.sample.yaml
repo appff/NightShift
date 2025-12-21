@@ -1,18 +1,26 @@
-mission_name: "Legacy Code Analysis & Refactoring"
-project_path: "." 
+mission_name: "Project Cleanup & Hierarchical Refactor"
+project_path: "."
+parallel: false
+persona: "architect"
 
-# [NEW] Brain을 위한 지침
-# goal을 리스트(List) 형태로 작성하면 Night Shift가 순차적으로 하나씩 처리합니다.
-goal:
-  - "Google AI 라이브러리 업데이트: deprecated `google.generativeai`에서 `google.genai`로 마이그레이션"
-  - "설정 검증: `settings.yaml`과 `mission.yaml`을 위한 스키마 검증 추가"
-  - "로깅 시스템 개선: brain으로 보내는 request 도 log에 추가해줘 (query를 알고 싶어)"
-  - "모든 작업이 끝나면 out-dated된 docs들을 업데이트 해줄 것 (/sc:document 명령을 사용할 것 (SuperClaude))"
-  - "모든 작업이 끝나면 Git commit & push 해줄 것"
+# [NEW] Hierarchical Task Structure
+task:
+  - title: "Core Logic Refactoring"
+    sub_tasks:
+      - "Identify long functions in night_shift.py"
+      - "Extract task execution logic into a separate class or method"
+      - "Ensure proper error handling during extraction"
+  
+  - title: "Documentation Update"
+    sub_tasks:
+      - "Update README.md with the new 'task' schema"
+      - "Translate any remaining Korean comments to English"
+  
+  - title: "Cleanup"
+    sub_tasks:
+      - "Remove obsolete goal-based code paths"
+      - "Clean up pycache and temporary log files"
 
-# Brain이 참고할 제약 사항
 constraints:
-  - "파일을 삭제할 때는 신중하게 판단할 것."
-  - "CC가 불확실한 제안을 하면 거절할 것."
-  - "모든 변경 사항은 설명 주석을 포함할 것."
-  - "작업이 완료되었다고 판단되면 스스로 종료할 것. 다만 Claude가 추가 사항을 제안할 경우 3번까지는 작업을 계속 진행할 수 있도록 할 것"
+  - "Maintain full backward compatibility where possible"
+  - "Ensure the OODA loop remains robust"

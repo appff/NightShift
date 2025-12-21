@@ -74,18 +74,12 @@ def validate_settings_schema(settings):
         raise ValueError("Missing 'brain' configuration")
     
 def validate_mission_schema(mission_config):
-    if 'goal' not in mission_config or not mission_config['goal']:
-        raise ValueError("Mission must have a 'goal'")
+    if 'task' not in mission_config or not mission_config['task']:
+        raise ValueError("Mission must have at least one 'task'")
     
-    goal = mission_config['goal']
-    if not isinstance(goal, (str, list)):
-        raise ValueError("'goal' must be a string or a list of strings")
-    
-    if isinstance(goal, list):
-        if not all(isinstance(item, str) for item in goal):
-            raise ValueError("All items in 'goal' list must be strings")
-        if len(goal) == 0:
-            raise ValueError("'goal' list cannot be empty")
+    tasks = mission_config['task']
+    if not isinstance(tasks, list):
+        raise ValueError("'task' must be a list of task objects or strings")
 
 # --- Core Classes ---
 
@@ -184,7 +178,7 @@ class Brain:
             logging.error(f"🧠 Brain Execution Exception: {e}")
             return f"MISSION_FAILED: {e}"
 
-    def think(self, current_task, total_goal_context, constraints, conversation_history, last_hassan_output, persona_guidelines="", past_memories=""):
+    def think(self, current_task_block, total_mission_context, constraints, conversation_history, last_hassan_output, persona_guidelines="", past_memories=""):
         clean_output = self.clean_ansi(last_hassan_output)[-MAX_CONTEXT_CHARS:]
         constraints_text = '\n'.join(constraints) if isinstance(constraints, list) else str(constraints)
         
@@ -196,11 +190,11 @@ You are the "Director" of an autonomous coding session.
 Your "Hassan" (Worker) is a CLI tool that executes your commands.
 {persona_section}
 {memory_section}
-[CURRENT ACTIVE TASK]
-{current_task}
+[CURRENT ACTIVE TASK HIERARCHY]
+{current_task_block}
 
 [OVERALL MISSION CONTEXT]
-{total_goal_context}
+{total_mission_context}
 
 [CONSTRAINTS]
 {constraints_text}
@@ -212,10 +206,10 @@ Your "Hassan" (Worker) is a CLI tool that executes your commands.
 {clean_output}
 
 [INSTRUCTIONS]
-1. Focus ONLY on the [CURRENT ACTIVE TASK].
+1. Focus ONLY on the [CURRENT ACTIVE TASK HIERARCHY].
 2. Analyze the [CONSTRAINTS], [PERSONA GUIDELINES], and [LAST HASSAN OUTPUT].
 3. Determine the NEXT single, specific, and actionable command/query for Hassan.
-4. If the [CURRENT ACTIVE TASK] is complete, reply exactly: "MISSION_COMPLETED".
+4. If ALL parts of the [CURRENT ACTIVE TASK HIERARCHY] are complete, reply exactly: "MISSION_COMPLETED".
 5. Output ONLY the command string.
 
 [CRITICAL RULE]
@@ -275,14 +269,14 @@ class Critic:
             
         logging.info(f"🕵️‍♂️ Critic Initialized: [{self.active_driver_name.upper()}] CLI Mode")
 
-    def evaluate(self, task, history, last_output):
-        """Evaluates Hassan's work. Returns 'APPROVED' or feedback."""
+    def evaluate(self, task_block, history, last_output):
+        """Evaluates Hassan's work against the task hierarchy."""
         prompt = f"""
 You are the "Quality Assurance Critic".
 A worker (Hassan) has just completed a task. Your job is to verify if the work is actually complete and high quality.
 
-[TASK TO REVIEW]
-{task}
+[TASK HIERARCHY TO REVIEW]
+{task_block}
 
 [CONVERSATION & WORK HISTORY]
 {history[-MAX_HISTORY_CHARS:]}
@@ -291,7 +285,7 @@ A worker (Hassan) has just completed a task. Your job is to verify if the work i
 {last_output[-MAX_CONTEXT_CHARS:]}
 
 [INSTRUCTIONS]
-1. Verify if all parts of the [TASK TO REVIEW] are fulfilled.
+1. Verify if ALL sub-tasks in the [TASK HIERARCHY TO REVIEW] are fulfilled.
 2. Check for code quality, logic errors, or missing requirements.
 3. If everything is perfect, reply exactly: "APPROVED".
 4. If there are issues, provide a CONCISE list of what needs to be fixed.
@@ -338,14 +332,14 @@ class Hassan:
             
         logging.info(f"🦾 Hassan Initialized: [{self.active_driver_name.upper()}] Driver")
 
-    def prepare(self, current_goal_text, persona_guidelines=""):
-        """Prepares system prompt files with the goal and persona."""
-        if current_goal_text:
+    def prepare(self, current_task_text, persona_guidelines=""):
+        """Prepares system prompt files with the task block and persona."""
+        if current_task_text:
             self.system_prompt_file = os.path.abspath(".night_shift_system_prompt.txt")
             with open(self.system_prompt_file, "w", encoding="utf-8") as f:
                 if persona_guidelines:
                     f.write(f"PERSONA GUIDELINES:\n{persona_guidelines}\n\n")
-                f.write(f"CURRENT GOAL:\n{current_goal_text}")
+                f.write(f"CURRENT TASK BLOCK:\n{current_task_text}")
 
     def cleanup(self):
         if self.system_prompt_file and os.path.exists(self.system_prompt_file):
@@ -472,10 +466,26 @@ class NightShiftAgent:
         except Exception as e:
             logging.error(f"❌ Rollback failed: {e}")
 
-    def _execute_single_task(self, i, task, goals, constraints, safety_config):
-        """Executes a single task goal (can be run in parallel)."""
+    def _format_task_block(self, task_item):
+        """Formats a task object (with title and sub_tasks) into a readable block."""
+        if isinstance(task_item, str):
+            return f"Task: {task_item}"
+        
+        title = task_item.get('title', 'Untitled Task')
+        sub_tasks = task_item.get('sub_tasks', [])
+        
+        block = f"MAIN TASK: {title}\n"
+        if sub_tasks:
+            block += "SUB-TASKS:\n"
+            for sub in sub_tasks:
+                block += f"  - {sub}\n"
+        return block
+
+    def _execute_single_task(self, i, task_item, all_tasks, constraints, safety_config):
+        """Executes a single task item (supports strings or dicts with sub_tasks)."""
         # Task-level checkpoint
         task_start_commit = self._get_git_head()
+        task_block = self._format_task_block(task_item)
         
         # Isolated workspace for parallel execution
         is_parallel = self.mission_config.get('parallel', False)
@@ -495,16 +505,12 @@ class NightShiftAgent:
                 if os.path.isdir(s): shutil.copytree(s, d)
                 else: shutil.copy2(s, d)
         
-        # Local instances for thread safety (optional if Brain/Hassan are stateless enough)
-        # For simplicity, we use the shared ones but could clone them here.
+        logging.info(f"\n{'='*60}\n🚀 STARTING TASK {i} (Persona: {self.active_persona_name})\n{task_block}\n{'='*60}\n")
         
-        logging.info(f"\n{'='*60}\n🚀 STARTING TASK {i} (Persona: {self.active_persona_name})\n📄 Task: {task}\n{'='*60}\n")
-        
-        self.hassan.prepare(current_goal_text=task, persona_guidelines=self.active_persona_guidelines)
-        initial_query = f"Start Task {i}: {task}"
+        self.hassan.prepare(current_task_text=task_block, persona_guidelines=self.active_persona_guidelines)
+        initial_query = f"Start Task {i}: {task_block}"
         
         # Note: If parallel, hassan needs to know the correct work_dir
-        # We temporarily patch hassan's mission_config project_path
         orig_path = self.hassan.mission_config.get('project_path', os.getcwd())
         self.hassan.mission_config['project_path'] = work_dir
         
@@ -517,20 +523,31 @@ class NightShiftAgent:
                 if "hit your limit" in last_output and "resets" in last_output:
                     self._handle_quota_limit(last_output)
                 
-                next_action = self.brain.think(task, str(goals), constraints, task_history, last_output, self.active_persona_guidelines, self.past_memories)
+                next_action = self.brain.think(
+                    task_block, 
+                    str(all_tasks), 
+                    constraints, 
+                    task_history, 
+                    last_output, 
+                    self.active_persona_guidelines,
+                    self.past_memories
+                )
                 task_history += f"\n--- 🧠 DIRECTOR DECISION ---\n{next_action}\n"
 
                 if "capacity" in next_action or "quota" in next_action.lower():
                     self._handle_quota_limit(next_action); continue
 
                 if next_action == "MISSION_COMPLETED":
-                    verification = self.critic.evaluate(task, task_history, last_output)
+                    # Summon the Critic for verification
+                    verification = self.critic.evaluate(task_block, task_history, last_output)
                     if verification.strip().upper() == "APPROVED":
                         logging.info(f"✅ Task {i} Verified and Completed!"); break
                     else:
                         logging.info(f"🕵️‍♂️ Critic Rejected Task {i}: {verification}")
-                        task_history += f"\n--- 🕵️‍♂️ CRITIC FEEDBACK (REJECTED) ---\n{verification}\n-----------------------------------\n"
-                        last_output = f"Critic feedback received: {verification}. I need to fix these issues."
+                        task_history += f"\n--- 🕵️‍♂️ CRITIC FEEDBACK (REJECTED) ---\n{verification}\nPlease address the issues mentioned above.\n-----------------------------------\n"
+                        # Reset loop to address feedback
+                        hassan_output = f"Critic feedback received: {verification}. I need to fix these issues."
+                        last_output = hassan_output
                         continue
                 
                 if next_action.startswith("MISSION_FAILED"):
@@ -559,28 +576,27 @@ class NightShiftAgent:
             subprocess.run(["git", "checkout", "-b", branch_name], cwd=self.mission_config.get('project_path', os.getcwd()))
             logging.info(f"🛡️ Created backup branch: {branch_name}")
 
-        raw_goals = self.mission_config.get('goal')
-        goals = raw_goals if isinstance(raw_goals, list) else [raw_goals]
+        tasks = self.mission_config.get('task', [])
         constraints = self.mission_config.get('constraints', [])
         is_parallel = self.mission_config.get('parallel', False)
         
-        logging.info(f"📋 Mission loaded with {len(goals)} task(s). Mode: {'PARALLEL' if is_parallel else 'SEQUENTIAL'}")
+        logging.info(f"📋 Mission loaded with {len(tasks)} task(s). Mode: {'PARALLEL' if is_parallel else 'SEQUENTIAL'}")
         
         try:
             if is_parallel:
                 if os.path.exists(SQUAD_WORKSPACE_DIR): shutil.rmtree(SQUAD_WORKSPACE_DIR)
-                with ThreadPoolExecutor(max_workers=len(goals)) as executor:
-                    results = list(executor.map(lambda x: self._execute_single_task(x[0], x[1], goals, constraints, safety_config), enumerate(goals, 1)))
+                with ThreadPoolExecutor(max_workers=len(tasks)) as executor:
+                    results = list(executor.map(lambda x: self._execute_single_task(x[0], x[1], tasks, constraints, safety_config), enumerate(tasks, 1)))
                 for res in results:
                     self.conversation_history += res
             else:
-                for i, task in enumerate(goals, 1):
-                    res = self._execute_single_task(i, task, goals, constraints, safety_config)
+                for i, task_item in enumerate(tasks, 1):
+                    res = self._execute_single_task(i, task_item, tasks, constraints, safety_config)
                     self.conversation_history += res
 
             # --- Mission Reflection ---
             logging.info("🧠 Reflecting on mission to store memories...")
-            reflection_prompt = f"Based on this mission: {str(raw_goals)}, provide 2-3 concise 'Lessons Learned' for future similar tasks. Output only the bullets."
+            reflection_prompt = f"Based on this mission: {str(tasks)}, provide 2-3 concise 'Lessons Learned' for future similar tasks. Output only the bullets."
             insights = self.brain._run_cli_command(reflection_prompt)
             if not insights.startswith("MISSION_FAILED"):
                 self.memory_manager.save_memory(insights)
@@ -590,10 +606,12 @@ class NightShiftAgent:
             else:
                 logging.info(f"🏁 Parallel tasks finished. Check isolated workspaces in {SQUAD_WORKSPACE_DIR}")
         finally:
-
             self.hassan.cleanup()
-            with open(self.log_file_path.replace("log", "history"), "w", encoding="utf-8") as f:
+            history_file = self.log_file_path.replace("night_shift_log", "night_shift_history")
+            with open(history_file, "w", encoding="utf-8") as f:
                 f.write(self.conversation_history)
+            logging.info(f"📝 Full history saved: {history_file}")
+            logging.info(f"📝 Runtime log saved: {self.log_file_path}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Night Shift: Brain & Hassan")
