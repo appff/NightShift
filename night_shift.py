@@ -20,8 +20,10 @@ import re
 import os
 import argparse
 import logging
+import shutil
 from datetime import datetime, timedelta
 import copy
+from concurrent.futures import ThreadPoolExecutor
 
 # --- Configuration & Constants ---
 ANSI_ESCAPE_PATTERN = re.compile(r'\x1B(?:[@-Z\-_]|[0-?]*[@-~])')
@@ -29,6 +31,7 @@ LOG_DIR = "logs"
 LOG_FILE_TEMPLATE = os.path.join(LOG_DIR, "night_shift_log_{timestamp}.txt")
 SETTINGS_FILE = "settings.yaml"
 BRAIN_WORKSPACE_DIR = os.path.join(".night_shift", "brain_hq")
+SQUAD_WORKSPACE_DIR = os.path.join(".night_shift", "squad")
 
 # LLM Limits
 MAX_CONTEXT_CHARS = 3000
@@ -469,10 +472,85 @@ class NightShiftAgent:
         except Exception as e:
             logging.error(f"❌ Rollback failed: {e}")
 
+    def _execute_single_task(self, i, task, goals, constraints, safety_config):
+        """Executes a single task goal (can be run in parallel)."""
+        # Task-level checkpoint
+        task_start_commit = self._get_git_head()
+        
+        # Isolated workspace for parallel execution
+        is_parallel = self.mission_config.get('parallel', False)
+        project_root = self.mission_config.get('project_path', os.getcwd())
+        work_dir = project_root
+
+        if is_parallel:
+            work_dir = os.path.join(project_root, SQUAD_WORKSPACE_DIR, f"task_{i}")
+            logging.info(f"⚡ Creating isolated workspace for Task {i}: {work_dir}")
+            if os.path.exists(work_dir): shutil.rmtree(work_dir)
+            # Simple clone: copy current directory excluding .night_shift and logs
+            os.makedirs(work_dir, exist_ok=True)
+            for item in os.listdir(project_root):
+                if item in ['.night_shift', 'logs', '.git', '__pycache__']: continue
+                s = os.path.join(project_root, item)
+                d = os.path.join(work_dir, item)
+                if os.path.isdir(s): shutil.copytree(s, d)
+                else: shutil.copy2(s, d)
+        
+        # Local instances for thread safety (optional if Brain/Hassan are stateless enough)
+        # For simplicity, we use the shared ones but could clone them here.
+        
+        logging.info(f"\n{'='*60}\n🚀 STARTING TASK {i} (Persona: {self.active_persona_name})\n📄 Task: {task}\n{'='*60}\n")
+        
+        self.hassan.prepare(current_goal_text=task, persona_guidelines=self.active_persona_guidelines)
+        initial_query = f"Start Task {i}: {task}"
+        
+        # Note: If parallel, hassan needs to know the correct work_dir
+        # We temporarily patch hassan's mission_config project_path
+        orig_path = self.hassan.mission_config.get('project_path', os.getcwd())
+        self.hassan.mission_config['project_path'] = work_dir
+        
+        try:
+            hassan_output = self.hassan.run(initial_query)
+            task_history = f"\n=== TASK {i} START ===\nDirector Init: {initial_query}\nHassan Output:\n{hassan_output}\n"
+            last_output = hassan_output
+
+            while True:
+                if "hit your limit" in last_output and "resets" in last_output:
+                    self._handle_quota_limit(last_output)
+                
+                next_action = self.brain.think(task, str(goals), constraints, task_history, last_output, self.active_persona_guidelines, self.past_memories)
+                task_history += f"\n--- 🧠 DIRECTOR DECISION ---\n{next_action}\n"
+
+                if "capacity" in next_action or "quota" in next_action.lower():
+                    self._handle_quota_limit(next_action); continue
+
+                if next_action == "MISSION_COMPLETED":
+                    verification = self.critic.evaluate(task, task_history, last_output)
+                    if verification.strip().upper() == "APPROVED":
+                        logging.info(f"✅ Task {i} Verified and Completed!"); break
+                    else:
+                        logging.info(f"🕵️‍♂️ Critic Rejected Task {i}: {verification}")
+                        task_history += f"\n--- 🕵️‍♂️ CRITIC FEEDBACK (REJECTED) ---\n{verification}\n-----------------------------------\n"
+                        last_output = f"Critic feedback received: {verification}. I need to fix these issues."
+                        continue
+                
+                if next_action.startswith("MISSION_FAILED"):
+                    logging.error(f"❌ Task {i} Failed: {next_action}")
+                    if safety_config.get('auto_rollback_on_failure'):
+                        self._git_rollback(task_start_commit)
+                    return f"TASK_{i}_FAILED: {next_action}"
+                
+                hassan_output = self.hassan.run(next_action)
+                task_history += f"\n--- 🦾 HASSAN OUTPUT ---\n{hassan_output}\n"
+                last_output = hassan_output
+                time.sleep(RATE_LIMIT_SLEEP)
+            
+            return task_history
+        finally:
+            self.hassan.mission_config['project_path'] = orig_path
+
     def start(self):
         logging.info(f"🌙 Night Shift (v4.2) Starting with persona: {self.active_persona_name}")
         
-        # Git Checkpoint
         safety_config = self.settings.get('safety', {})
         mission_start_commit = self._get_git_head()
         
@@ -484,72 +562,35 @@ class NightShiftAgent:
         raw_goals = self.mission_config.get('goal')
         goals = raw_goals if isinstance(raw_goals, list) else [raw_goals]
         constraints = self.mission_config.get('constraints', [])
+        is_parallel = self.mission_config.get('parallel', False)
+        
+        logging.info(f"📋 Mission loaded with {len(goals)} task(s). Mode: {'PARALLEL' if is_parallel else 'SEQUENTIAL'}")
         
         try:
-            for i, task in enumerate(goals, 1):
-                # Task-level checkpoint
-                task_start_commit = self._get_git_head()
-                
-                logging.info(f"\n{'='*60}\n🚀 STARTING TASK {i}/{len(goals)}\n📄 Task: {task}\n{'='*60}\n")
-                
-                self.hassan.prepare(current_goal_text=task, persona_guidelines=self.active_persona_guidelines)
-                initial_query = f"Start Task {i}: {task}"
-                hassan_output = self.hassan.run(initial_query)
-                self.conversation_history += f"\n=== TASK {i} START ===\nDirector Init: {initial_query}\nHassan Output:\n{hassan_output}\n"
-                self.last_hassan_output = hassan_output
+            if is_parallel:
+                if os.path.exists(SQUAD_WORKSPACE_DIR): shutil.rmtree(SQUAD_WORKSPACE_DIR)
+                with ThreadPoolExecutor(max_workers=len(goals)) as executor:
+                    results = list(executor.map(lambda x: self._execute_single_task(x[0], x[1], goals, constraints, safety_config), enumerate(goals, 1)))
+                for res in results:
+                    self.conversation_history += res
+            else:
+                for i, task in enumerate(goals, 1):
+                    res = self._execute_single_task(i, task, goals, constraints, safety_config)
+                    self.conversation_history += res
 
-                while True:
-                    if "hit your limit" in self.last_hassan_output and "resets" in self.last_hassan_output:
-                        self._handle_quota_limit(self.last_hassan_output)
-                    
-                    next_action = self.brain.think(
-                        task, 
-                        str(raw_goals), 
-                        constraints, 
-                        self.conversation_history, 
-                        self.last_hassan_output, 
-                        self.active_persona_guidelines,
-                        self.past_memories
-                    )
-                    self.conversation_history += f"\n--- 🧠 DIRECTOR DECISION ---\n{next_action}\n"
-
-                    if "capacity" in next_action or "quota" in next_action.lower():
-                        self._handle_quota_limit(next_action); continue
-
-                    if next_action == "MISSION_COMPLETED":
-                        # Summon the Critic for verification
-                        verification = self.critic.evaluate(task, self.conversation_history, self.last_hassan_output)
-                        if verification.strip().upper() == "APPROVED":
-                            logging.info(f"✅ Task {i} Verified and Completed!"); break
-                        else:
-                            logging.info(f"🕵️‍♂️ Critic Rejected: {verification}")
-                            self.conversation_history += f"\n--- 🕵️‍♂️ CRITIC FEEDBACK (REJECTED) ---\n{verification}\nPlease address the issues mentioned above.\n-----------------------------------\n"
-                            # Reset loop to address feedback
-                            hassan_output = f"Critic feedback received: {verification}. I need to fix these issues."
-                            self.last_hassan_output = hassan_output
-                            continue
-                    
-                    if next_action.startswith("MISSION_FAILED"):
-                        logging.error(f"❌ Task {i} Failed: {next_action}")
-                        if safety_config.get('auto_rollback_on_failure'):
-                            self._git_rollback(task_start_commit)
-                        return 
-                    
-                    hassan_output = self.hassan.run(next_action)
-                    self.conversation_history += f"\n--- 🦾 HASSAN OUTPUT ---\n{hassan_output}\n"
-                    self.last_hassan_output = hassan_output
-                    time.sleep(RATE_LIMIT_SLEEP)
-
-            # --- Mission Reflection & Memory Storage ---
+            # --- Mission Reflection ---
             logging.info("🧠 Reflecting on mission to store memories...")
-            reflection_prompt = f"Based on this mission: {str(raw_goals)}, provide 2-3 concise 'Lessons Learned' or tips for future similar tasks. Output only the bullets."
+            reflection_prompt = f"Based on this mission: {str(raw_goals)}, provide 2-3 concise 'Lessons Learned' for future similar tasks. Output only the bullets."
             insights = self.brain._run_cli_command(reflection_prompt)
             if not insights.startswith("MISSION_FAILED"):
                 self.memory_manager.save_memory(insights)
-                logging.info("📚 New memories stored for future missions.")
 
-            self.hassan.run("Commit and push all changes now that all tasks are completed.")
+            if not is_parallel: # Commit only in sequential mode or let user handle parallel merges
+                self.hassan.run("Commit and push all changes now that all tasks are completed.")
+            else:
+                logging.info(f"🏁 Parallel tasks finished. Check isolated workspaces in {SQUAD_WORKSPACE_DIR}")
         finally:
+
             self.hassan.cleanup()
             with open(self.log_file_path.replace("log", "history"), "w", encoding="utf-8") as f:
                 f.write(self.conversation_history)
