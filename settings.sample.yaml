@@ -7,11 +7,11 @@ brain:
     claude:
       # Claude Code CLI (requires 'claude' in PATH)
       command: "claude"
-      args: 
+      args:
         - "-p"
         - "{prompt}"
         - "--dangerously-skip-permissions"
-    
+
     codex:
       # OpenAI Codex CLI (@openai/codex)
       command: "codex"
@@ -23,34 +23,36 @@ brain:
     gemini:
       # Gemini CLI (Official/Community)
       command: "gemini"
-            args: 
-              - "-p"
-              - "{prompt}"
-      
-      # 비평가(Critic) 설정: 작업 완료 후 검증을 담당합니다.
-      critic:
-        # 브레인과 다른 드라이버를 사용하는 것을 권장합니다 (Cross-verification)
-        active_driver: "gemini" 
-        drivers:
-          claude:
-            command: "claude"
-            args: ["-p", "{prompt}", "--dangerously-skip-permissions"]
-          gemini:
-            command: "gemini"
-            args: ["-p", "{prompt}"]
-      
-      body:
-      
+      args:
+        - "-p"
+        - "{prompt}"
+
+critic:
+  # 브레인과 다른 드라이버를 사용하는 것을 권장합니다 (Cross-verification)
+  active_driver: "gemini"
+  drivers:
+    claude:
+      command: "claude"
+      args:
+        - "-p"
+        - "{prompt}"
+        - "--dangerously-skip-permissions"
+    gemini:
+      command: "gemini"
+      args:
+        - "-p"
+        - "{prompt}"
+
+body:
   # 작업을 수행할 주체(Worker/Hassan)를 선택합니다.
   active_driver: "claude"
-
   drivers:
     claude:
       # Claude Code CLI (requires 'claude' in PATH)
       command: "claude"
       # {query} will be replaced with the actual command
       # {system_prompt_file} will be replaced with the path to the system prompt file
-      args: 
+      args:
         - "--system-prompt-file"
         - "{system_prompt_file}"
         - "-p"
@@ -64,9 +66,11 @@ brain:
 # Safety & Snapshot Settings
 safety:
   # Automatically rollback to the previous commit if a task fails
-  auto_rollback_on_failure: true
+  auto_rollback_on_failure: false
   # Create a temporary backup branch before starting the mission
-  create_backup_branch: true
+  create_backup_branch: false
+  # Automatically commit and push after all tasks complete
+  auto_commit_and_push: false
 
 # 페르소나 정의: Brain과 Hassan이 공유할 전문적 가이드라인
 personas:
@@ -74,12 +78,12 @@ personas:
     - Focus on high-level structure, scalability, and design patterns (SOLID, Clean Architecture).
     - Avoid quick hacks; prioritize maintainability.
     - Ensure all components are modular and well-interfaced.
-  
+
   troubleshooter: |
-    - Prioritize root cause analysis (RCA). 
+    - Prioritize root cause analysis (RCA).
     - Always analyze logs, tracebacks, and environment state before proposing a fix.
     - Explain the logic behind the fix and verify it with tests.
-  
+
   documenter: |
     - Write professional, clear, and concise technical documentation.
     - Ensure READMEs, API docs, and code comments follow standard conventions.

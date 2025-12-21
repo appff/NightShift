@@ -2,6 +2,15 @@
 
 All notable changes to Night Shift will be documented in this file.
 
+## [Unreleased]
+
+### Changed
+- **Safety Defaults**: Added `auto_commit_and_push` and clarified safer defaults in `settings.yaml`.
+- **Rollback Safety**: Automatic rollback now stashes uncommitted changes before resetting.
+
+### Removed
+- **Dependencies**: Removed `pexpect` from `requirements.txt` (no longer used).
+
 ## [4.2.0] - 2024-12-19
 
 ### 🚀 Pure CLI & Shadow Workspace (Current)

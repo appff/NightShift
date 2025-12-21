@@ -30,7 +30,7 @@ ANSI_ESCAPE_PATTERN = re.compile(r'\x1B(?:[@-Z\-_]|[0-?]*[@-~])')
 LOG_DIR = "logs"
 LOG_FILE_TEMPLATE = os.path.join(LOG_DIR, "night_shift_log_{timestamp}.txt")
 SETTINGS_FILE = "settings.yaml"
-BRAIN_WORKSPACE_DIR = os.path.join(".night_shift", "brain_hq")
+BRAIN_WORKSPACE_DIR = os.path.join(".night_shift", "brain_env")
 SQUAD_WORKSPACE_DIR = os.path.join(".night_shift", "squad")
 
 # LLM Limits
@@ -68,18 +68,105 @@ def setup_logging():
 
 def validate_settings_schema(settings):
     """Simple validation for critical settings keys."""
+    if settings is None:
+        return
     if not isinstance(settings, dict):
         raise ValueError("Settings must be a dictionary")
-    if 'brain' not in settings:
-        raise ValueError("Missing 'brain' configuration")
+
+    errors = []
+
+    def validate_driver_block(block_name, block):
+        if not isinstance(block, dict):
+            errors.append(f"'{block_name}' must be a dictionary")
+            return
+        active = block.get("active_driver")
+        drivers = block.get("drivers", {})
+        if active and (not isinstance(active, str) or not active.strip()):
+            errors.append(f"'{block_name}.active_driver' must be a non-empty string")
+        if drivers is not None and not isinstance(drivers, dict):
+            errors.append(f"'{block_name}.drivers' must be a dictionary")
+            return
+        if active and drivers and active not in drivers:
+            errors.append(f"'{block_name}.active_driver' '{active}' not found in drivers")
+        for name, cfg in (drivers or {}).items():
+            if not isinstance(cfg, dict):
+                errors.append(f"'{block_name}.drivers.{name}' must be a dictionary")
+                continue
+            command = cfg.get("command")
+            args = cfg.get("args", [])
+            env = cfg.get("env", {})
+            if command is not None and not isinstance(command, str):
+                errors.append(f"'{block_name}.drivers.{name}.command' must be a string")
+            if args is not None and not isinstance(args, list):
+                errors.append(f"'{block_name}.drivers.{name}.args' must be a list")
+            elif isinstance(args, list) and not all(isinstance(a, str) for a in args):
+                errors.append(f"'{block_name}.drivers.{name}.args' must be a list of strings")
+            if env is not None and not isinstance(env, dict):
+                errors.append(f"'{block_name}.drivers.{name}.env' must be a dictionary")
+
+    if "brain" in settings:
+        validate_driver_block("brain", settings.get("brain"))
+    if "critic" in settings:
+        validate_driver_block("critic", settings.get("critic"))
+    if "body" in settings:
+        validate_driver_block("body", settings.get("body"))
+    if "hassan" in settings:
+        validate_driver_block("hassan", settings.get("hassan"))
+
+    safety = settings.get("safety")
+    if safety is not None and not isinstance(safety, dict):
+        errors.append("'safety' must be a dictionary")
+    elif isinstance(safety, dict):
+        for key in ["auto_rollback_on_failure", "create_backup_branch", "auto_commit_and_push"]:
+            if key in safety and not isinstance(safety.get(key), bool):
+                errors.append(f"'safety.{key}' must be a boolean")
+
+    personas = settings.get("personas")
+    if personas is not None and not isinstance(personas, dict):
+        errors.append("'personas' must be a dictionary of string values")
+    elif isinstance(personas, dict):
+        for name, value in personas.items():
+            if not isinstance(value, str):
+                errors.append(f"'personas.{name}' must be a string")
+
+    if errors:
+        raise ValueError("Settings validation errors:\n- " + "\n- ".join(errors))
     
 def validate_mission_schema(mission_config):
-    if 'task' not in mission_config or not mission_config['task']:
-        raise ValueError("Mission must have at least one 'task'")
-    
-    tasks = mission_config['task']
-    if not isinstance(tasks, list):
-        raise ValueError("'task' must be a list of task objects or strings")
+    if not isinstance(mission_config, dict):
+        raise ValueError("Mission must be a dictionary")
+    if 'goal' not in mission_config or not mission_config['goal']:
+        raise ValueError("Mission must have a 'goal'")
+
+    goal = mission_config['goal']
+    if not isinstance(goal, (str, list)):
+        raise ValueError("'goal' must be a string or a list of strings")
+
+    if isinstance(goal, list):
+        if not all(isinstance(item, str) for item in goal):
+            raise ValueError("All items in 'goal' list must be strings")
+        if len(goal) == 0:
+            raise ValueError("'goal' list cannot be empty")
+
+    if "project_path" in mission_config:
+        project_path = mission_config.get("project_path")
+        if not isinstance(project_path, str):
+            raise ValueError("'project_path' must be a string")
+        if project_path and not os.path.exists(project_path):
+            raise ValueError(f"'project_path' does not exist: {project_path}")
+
+    constraints = mission_config.get("constraints")
+    if constraints is not None:
+        if not isinstance(constraints, list):
+            raise ValueError("'constraints' must be a list of strings")
+        if not all(isinstance(item, str) for item in constraints):
+            raise ValueError("All items in 'constraints' must be strings")
+
+    if "parallel" in mission_config and not isinstance(mission_config.get("parallel"), bool):
+        raise ValueError("'parallel' must be a boolean")
+
+    if "persona" in mission_config and not isinstance(mission_config.get("persona"), str):
+        raise ValueError("'persona' must be a string")
 
 # --- Core Classes ---
 
@@ -392,12 +479,16 @@ class NightShiftAgent:
 
         with open(mission_path, 'r', encoding='utf-8') as f:
             self.mission_config = yaml.safe_load(f)
+        if self.mission_config is None:
+            raise ValueError("Mission file is empty or invalid YAML")
+        validate_mission_schema(self.mission_config)
         
         if not os.path.exists(SETTINGS_FILE):
             self.settings = {}
         else:
             with open(SETTINGS_FILE, 'r', encoding='utf-8') as f:
-                self.settings = yaml.safe_load(f)
+                self.settings = yaml.safe_load(f) or {}
+        validate_settings_schema(self.settings)
 
         # Initialize Modules
         self.memory_manager = MemoryManager(self.mission_config.get('project_path', os.getcwd()))
@@ -456,11 +547,29 @@ class NightShiftAgent:
         except Exception:
             return None
 
+    def _git_is_dirty(self):
+        """Returns True if there are uncommitted changes."""
+        try:
+            res = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True, cwd=self.mission_config.get('project_path', os.getcwd()))
+            return res.returncode == 0 and bool(res.stdout.strip())
+        except Exception:
+            return False
+
+    def _git_stash(self, message):
+        """Stashes uncommitted changes to avoid data loss."""
+        try:
+            subprocess.run(["git", "stash", "push", "-u", "-m", message], cwd=self.mission_config.get('project_path', os.getcwd()))
+        except Exception as e:
+            logging.error(f"❌ Failed to stash changes: {e}")
+
     def _git_rollback(self, commit_hash):
         """Rolls back the repository to a specific commit."""
         if not commit_hash: return
         logging.warning(f"⏪ Rolling back to commit: {commit_hash}...")
         try:
+            if self._git_is_dirty():
+                logging.warning("⚠️ Uncommitted changes detected. Stashing before rollback.")
+                self._git_stash(f"night-shift-auto-stash-{datetime.now().strftime('%Y%m%d-%H%M%S')}")
             subprocess.run(["git", "reset", "--hard", commit_hash], cwd=self.mission_config.get('project_path', os.getcwd()))
             logging.info("✅ Rollback successful.")
         except Exception as e:
@@ -573,8 +682,8 @@ class NightShiftAgent:
         
         if safety_config.get('create_backup_branch') and mission_start_commit:
             branch_name = f"night-shift-backup-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
-            subprocess.run(["git", "checkout", "-b", branch_name], cwd=self.mission_config.get('project_path', os.getcwd()))
-            logging.info(f"🛡️ Created backup branch: {branch_name}")
+            subprocess.run(["git", "branch", branch_name, mission_start_commit], cwd=self.mission_config.get('project_path', os.getcwd()))
+            logging.info(f"🛡️ Created backup branch (no checkout): {branch_name}")
 
         tasks = self.mission_config.get('task', [])
         constraints = self.mission_config.get('constraints', [])
@@ -602,7 +711,10 @@ class NightShiftAgent:
                 self.memory_manager.save_memory(insights)
 
             if not is_parallel: # Commit only in sequential mode or let user handle parallel merges
-                self.hassan.run("Commit and push all changes now that all tasks are completed.")
+                if safety_config.get('auto_commit_and_push'):
+                    self.hassan.run("Commit and push all changes now that all tasks are completed.")
+                else:
+                    logging.info("ℹ️ Auto commit/push disabled. Review and commit changes manually.")
             else:
                 logging.info(f"🏁 Parallel tasks finished. Check isolated workspaces in {SQUAD_WORKSPACE_DIR}")
         finally:
@@ -616,6 +728,14 @@ class NightShiftAgent:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Night Shift: Brain & Hassan")
     parser.add_argument("mission_file", nargs="?", default="mission.yaml")
+    parser.add_argument("--dry-run", action="store_true", help="Validate config files and exit")
     args = parser.parse_args()
-    agent = NightShiftAgent(mission_path=args.mission_file)
+    try:
+        agent = NightShiftAgent(mission_path=args.mission_file)
+    except ValueError as exc:
+        print(f"Configuration error: {exc}")
+        sys.exit(1)
+    if args.dry_run:
+        print("Configuration OK.")
+        sys.exit(0)
     agent.start()

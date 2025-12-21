@@ -34,14 +34,24 @@ Configure your drivers and personas. See `settings.sample.yaml` for a full templ
 ```yaml
 brain:
   active_driver: "claude"
-hassan:
+body: # or "hassan" for backward compatibility
   active_driver: "claude"
 critic:
   active_driver: "gemini" # Use a different model for best QA results!
+
+safety:
+  auto_rollback_on_failure: false
+  create_backup_branch: true
+  auto_commit_and_push: false
 ```
+
+Notes:
+- `auto_commit_and_push` is opt-in; leave false for manual review.
+- `create_backup_branch` creates a backup branch without switching to it.
 
 ### 3. Define Your Mission (`mission.yaml`)
 ```yaml
+mission_name: "Example Mission"
 goal:
   - "Design a MessageBus class."
   - "Implement unit tests."
