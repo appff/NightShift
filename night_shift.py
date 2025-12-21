@@ -181,16 +181,18 @@ class Brain:
             logging.error(f"🧠 Brain Execution Exception: {e}")
             return f"MISSION_FAILED: {e}"
 
-    def think(self, current_task, total_goal_context, constraints, conversation_history, last_hassan_output, persona_guidelines=""):
+    def think(self, current_task, total_goal_context, constraints, conversation_history, last_hassan_output, persona_guidelines="", past_memories=""):
         clean_output = self.clean_ansi(last_hassan_output)[-MAX_CONTEXT_CHARS:]
         constraints_text = '\n'.join(constraints) if isinstance(constraints, list) else str(constraints)
         
         persona_section = f"\n[YOUR PERSONA GUIDELINES]\n{persona_guidelines}\n" if persona_guidelines else ""
+        memory_section = f"\n[PAST MEMORIES / LESSONS LEARNED]\n{past_memories}\n" if past_memories else ""
 
         prompt = f"""
 You are the "Director" of an autonomous coding session.
 Your "Hassan" (Worker) is a CLI tool that executes your commands.
 {persona_section}
+{memory_section}
 [CURRENT ACTIVE TASK]
 {current_task}
 
@@ -224,6 +226,32 @@ Your "Hassan" (Worker) is a CLI tool that executes your commands.
         logging.info(f"--- 🧠 BRAIN RESPONSE ---\n{response_text}\n--- END RESPONSE ---")
         self._log_brain_activity(f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] BRAIN RESPONSE\n{'-'*80}\n{response_text}\n")
         return response_text
+
+class MemoryManager:
+    """Handles long-term memory (lessons learned) for the Brain."""
+    def __init__(self, project_path):
+        self.memory_file = os.path.join(project_path, ".night_shift", "memories.md")
+        if not os.path.exists(os.path.dirname(self.memory_file)):
+            os.makedirs(os.path.dirname(self.memory_file), exist_ok=True)
+
+    def load_memories(self):
+        """Returns the content of the memory file."""
+        if os.path.exists(self.memory_file):
+            try:
+                with open(self.memory_file, "r", encoding="utf-8") as f:
+                    return f.read().strip()
+            except Exception:
+                return ""
+        return ""
+
+    def save_memory(self, new_insight):
+        """Appends a new insight to the memory file."""
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        try:
+            with open(self.memory_file, "a", encoding="utf-8") as f:
+                f.write(f"\n### {timestamp}\n{new_insight}\n")
+        except Exception as e:
+            logging.error(f"❌ Failed to save memory: {e}")
 
 class Critic:
     """The Quality Assurance Unit (Critic). Reviews the work of Hassan."""
@@ -375,9 +403,15 @@ class NightShiftAgent:
                 self.settings = yaml.safe_load(f)
 
         # Initialize Modules
+        self.memory_manager = MemoryManager(self.mission_config.get('project_path', os.getcwd()))
         self.brain = Brain(self.settings, self.mission_config)
         self.critic = Critic(self.settings, self.mission_config)
         self.hassan = Hassan(self.settings, self.mission_config)
+        
+        # Load Long-term Memories
+        self.past_memories = self.memory_manager.load_memories()
+        if self.past_memories:
+            logging.info("📚 Long-term memories loaded. Brain is feeling experienced.")
         
         # Load Persona Guidelines
         self.personas = self.settings.get('personas', {})
@@ -468,7 +502,15 @@ class NightShiftAgent:
                     if "hit your limit" in self.last_hassan_output and "resets" in self.last_hassan_output:
                         self._handle_quota_limit(self.last_hassan_output)
                     
-                    next_action = self.brain.think(task, str(raw_goals), constraints, self.conversation_history, self.last_hassan_output, self.active_persona_guidelines)
+                    next_action = self.brain.think(
+                        task, 
+                        str(raw_goals), 
+                        constraints, 
+                        self.conversation_history, 
+                        self.last_hassan_output, 
+                        self.active_persona_guidelines,
+                        self.past_memories
+                    )
                     self.conversation_history += f"\n--- 🧠 DIRECTOR DECISION ---\n{next_action}\n"
 
                     if "capacity" in next_action or "quota" in next_action.lower():
@@ -497,6 +539,14 @@ class NightShiftAgent:
                     self.conversation_history += f"\n--- 🦾 HASSAN OUTPUT ---\n{hassan_output}\n"
                     self.last_hassan_output = hassan_output
                     time.sleep(RATE_LIMIT_SLEEP)
+
+            # --- Mission Reflection & Memory Storage ---
+            logging.info("🧠 Reflecting on mission to store memories...")
+            reflection_prompt = f"Based on this mission: {str(raw_goals)}, provide 2-3 concise 'Lessons Learned' or tips for future similar tasks. Output only the bullets."
+            insights = self.brain._run_cli_command(reflection_prompt)
+            if not insights.startswith("MISSION_FAILED"):
+                self.memory_manager.save_memory(insights)
+                logging.info("📚 New memories stored for future missions.")
 
             self.hassan.run("Commit and push all changes now that all tasks are completed.")
         finally:
