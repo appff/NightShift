@@ -1,51 +1,55 @@
 # 🌙 Night Shift: The Autonomous Overlord (v4.2)
 
-**Night Shift** is more than just a coding assistant. It's an **Autonomous Agent Orchestrator** where two entities—the **Brain (Director)** and **Hassan (Worker)**—collaborate to complete your projects while you sleep (or grab a coffee).
+**Night Shift** is an **Autonomous Agent Orchestrator** where the **Brain (Director)** and **Hassan (Worker)** collaborate to finish your projects while you're away. 
 
-From v4.2, we’ve ditched the clunky API SDKs. Night Shift now runs exclusively using **Pure CLI Tools (Claude Code, Gemini CLI, Codex, etc.)**, making it more powerful, isolated, and lightweight.
+v4.2 is a major leap forward, moving away from API SDKs to **Pure CLI Tools** and introducing advanced agentic features like Cross-verification, Long-term Memory, and Parallel Execution.
 
 ---
 
-## ✨ Why Night Shift? (Witty Features)
+## ✨ Why Night Shift? (Advanced Features)
 
-*   **🧠 Pure CLI Brain (Director)**: Stop hunting for API keys. Night Shift uses your installed `claude`, `gemini`, or `codex` CLIs directly as its "intellect."
-*   **🏘️ Brain's Own Room (Shadow Workspace)**: The Brain thinks inside its own private sanctuary (`.night_shift/brain_env`). Your actual workspace and the Brain's internal monologues never mix. It’s "parallel-universe-tier" isolation.
-*   **🦾 The Hassan (Worker)**: Let Hassan do the heavy lifting. Using world-class CLI drivers like `Claude Code`, it modifies code, runs tests, and gets its hands dirty.
-*   **⏳ The Patient Waiter**: Hit a quota limit? Night Shift doesn't panic. It counts down every minute, waiting persistently until the quota resets so it can resume the mission.
-*   **🔄 Stateless OODA Loop**: Observe, Orient, Decide, and Act. By analyzing the full context from scratch in every loop, the Brain avoids getting stuck in past mistakes.
-*   **🔌 Zero-SDK Dependency**: Our `requirements.txt` is on a diet. No heavy LLM libraries needed—just your CLI tools and Python.
+*   **🧠 Pure CLI Brain (Director)**: No more API SDKs. Night Shift uses your installed `claude`, `gemini`, or `codex` CLIs directly as its "intellect."
+*   **🏘️ Brain's Own Room (Shadow Workspace)**: The Brain thinks inside its own private sanctuary (`.night_shift/brain_env`). Your actual workspace and the Brain's internal monologues never mix.
+*   **🦾 The Hassan (Worker)**: World-class execution using CLI drivers like `Claude Code` to modify code and run tests.
+*   **🕵️‍♂️ The Critic (Dual-Brain QA)**: Every completed task is cross-verified by a separate AI persona (the Critic). If it's not perfect, Hassan goes back to work.
+*   **📚 Memories of the Night**: Brain now stores "Lessons Learned" in `.night_shift/memories.md` after every mission, ensuring it avoids past mistakes and gets smarter over time.
+*   **⚡ The Squad (Parallel Mode)**: Need speed? Enable `parallel: true` in your mission to spawn multiple Hassans in isolated workspaces to tackle independent goals simultaneously.
+*   **⏪ Safety Net (Auto-Rollback)**: Before every task, Night Shift creates a Git checkpoint. If a task fails, it automatically rolls back to a clean state.
+*   **🎭 Dynamic Personas**: Switch between **Architect, Troubleshooter, Brainstormer, Researcher, or Documenter**. Both the Brain and Hassan adopt the same professional identity for maximum synergy.
+*   **⏳ The Patient Waiter**: Automatically handles quota limits with a live countdown—it waits persistently until the API resets.
 
 ---
 
 ## 🚀 Getting Started
 
 ### 1. Preparation
-Log in to your preferred CLI tools beforehand. (Auth tokens are shared between the Brain and Hassan seamlessly.)
+Log in to your preferred CLI tools beforehand.
 ```bash
 claude login  # or gemini login, codex login
 ```
 
 ### 2. Configuration (`settings.yaml`)
-Instead of API keys, you now configure executable paths and arguments. Much more intuitive!
+Configure your drivers and personas. See `settings.sample.yaml` for a full template.
 
 ```yaml
 brain:
-  active_driver: "claude" # The smart guy who strategizes
-  drivers:
-    claude:
-      command: "claude"
-      args: ["-p", "{prompt}", "--dangerously-skip-permissions"]
-
-hassan: # The strong guy who executes
   active_driver: "claude"
-  drivers:
-    claude:
-      command: "claude"
-      args: ["--system-prompt-file", "{system_prompt_file}", "-p", "{query}", "-c", "--dangerously-skip-permissions"]
+hassan:
+  active_driver: "claude"
+critic:
+  active_driver: "gemini" # Use a different model for best QA results!
 ```
 
-### 3. Run Your Mission
-Define your goals in `mission.yaml` and launch the overlord.
+### 3. Define Your Mission (`mission.yaml`)
+```yaml
+goal:
+  - "Design a MessageBus class."
+  - "Implement unit tests."
+persona: "architect"
+parallel: false # Set to true for SQUAD power
+```
+
+### 4. Launch the Overlord
 ```bash
 python3 night_shift.py mission.yaml
 ```
@@ -55,22 +59,21 @@ python3 night_shift.py mission.yaml
 ## 📂 The New Folder Structure
 
 *   `night_shift.py`: The command center.
-*   `.night_shift/brain_env`: The Brain’s private quarters (session data is isolated here).
-*   `logs/`: The secret diaries of both entities.
-    *   `night_shift_log_...`: Overall runtime logs.
-    *   `brain_log_...`: Detailed logs of the Brain’s strategic thinking.
-    *   `night_shift_history_...`: A full report of the session history.
+*   `.night_shift/brain_env`: Brain's private quarters & isolated sessions.
+*   `.night_shift/memories.md`: The Brain's long-term memory vault.
+*   `.night_shift/squad/`: Temporary isolated workspaces for parallel tasks.
+*   `logs/`: Strategic and runtime logs.
 
 ---
 
-## ⚠️ Safety Notice (The "Adults Only" Rule)
+## ⚠️ Safety Notice
 
-This tool automatically executes AI agents with **file modification and deletion permissions**.
-*   **Backups are mandatory.** Night Shift loves your code, but sometimes it shows its love a bit too aggressively.
-*   The `--dangerously-skip-permissions` flag is often enabled by default. Double-check your `mission.yaml` before hitting start.
+This tool executes AI agents with **file modification and deletion permissions**.
+*   **Backups are mandatory.** Night Shift is powerful but autonomous.
+*   Automatic Git snapshots are enabled by default—make sure you're in a Git repo!
 
 ---
 
 ## 🤝 Contribution
 
-If you like this toy project, feel free to tinker with it and make it better. After all, Night Shift can take the night shift for you! 😴✨
+If you like this toy project, feel free to contribute. Night Shift is here to take the night shift for you! 😴✨
