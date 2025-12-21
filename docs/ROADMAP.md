@@ -44,6 +44,15 @@ Currently, the Brain issues commands and Hassan executes them without a second o
 - **How it works**: Integrate with the [Model Context Protocol](https://modelcontextprotocol.io/). This allows the Brain to directly query databases, search the web, or post to Slack without needing Hassan to run terminal commands.
 - **Goal**: Expand the Brain's capabilities beyond the local terminal.
 
+## 🎭 8. Dynamic Specialist Personas
+- **Concept**: Transform the generic "Director" Brain into a specialized expert based on the task type.
+- **How it works**: The Brain auto-detects or receives a specific "Persona" (e.g., Architect, System Designer, Documenter, or Troubleshooter). It then switches its internal system prompt to match that persona's expertise.
+- **Personas**:
+    - **Architect**: Best for initial project scaffolding and design patterns.
+    - **Troubleshooter**: Specialized in analyzing error logs and hunting bugs.
+    - **Documenter**: Focuses on READMEs, API docs, and code comments.
+- **Goal**: Improve command precision by narrowing the LLM's focus to a specific professional domain (similar to the "SuperClaude" pattern).
+
 ---
 
 *Got a new idea? Feel free to add it to the list!*
