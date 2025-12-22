@@ -9,7 +9,7 @@ BRAIN_WORKSPACE_DIR = os.path.join(".night_shift", "brain_env")
 SQUAD_WORKSPACE_DIR = os.path.join(".night_shift", "squad")
 IGNORE_FILE = ".night_shiftignore"
 
-MAX_CONTEXT_CHARS = 3000
-MAX_HISTORY_CHARS = 4000
+MAX_CONTEXT_CHARS = 1000
+MAX_HISTORY_CHARS = 2000
 MAX_TOKENS = 1024
 RATE_LIMIT_SLEEP = 2
