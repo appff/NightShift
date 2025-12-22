@@ -14,6 +14,7 @@ All notable changes to Night Shift will be documented in this file.
 - **Persona Names**: Renamed `documenter` to `document` and `troubleshooter` to `troubleshoot`.
 - **Local Checks**: Read-only validation commands run locally instead of via Hassan.
 - **Codex Permissions**: Only `body.codex` uses `--dangerously-bypass-approvals-and-sandbox` by default.
+- **Driver Defaults**: Roles can omit explicit driver blocks and rely on built-in CLI presets with optional `approval`/`sandbox` overrides.
 
 ### Fixed
 - **Context Reduction**: Initialize `context_reduction` before history compaction.

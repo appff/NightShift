@@ -1,8 +1,12 @@
 brain:
   # 메인으로 사용할 두뇌(Director)를 선택합니다.
   # API 호출이 아닌 CLI 도구를 사용하여 비정형 미션 해석과 명령 생성을 수행합니다.
+  # 드라이버 블록이 없으면 NightShift 기본 프리셋을 사용합니다.
   active_driver: "gemini" # options: claude, codex, gemini
   output_format: "text" # text | json
+  # Codex CLI 전용 승인/샌드박스 옵션 (옵션)
+  approval: "on-request" # untrusted | on-failure | on-request | never
+  sandbox: "read-only" # read-only | workspace-write | danger-full-access
   home_dir: ".night_shift/brain_env"
   link_auth: true
 
@@ -32,6 +36,9 @@ critic:
   active_driver: "codex"
   strictness: "lenient" # lenient | balanced | strict
   enabled: false
+  # Codex CLI 전용 승인/샌드박스 옵션 (옵션)
+  approval: "on-request"
+  sandbox: "read-only"
   home_dir: ".night_shift/critic_env"
   link_auth: true
   claude:
@@ -56,6 +63,9 @@ critic:
 body:
   # 작업을 수행할 주체(Worker/Hassan)를 선택합니다.
   active_driver: "claude"
+  # Codex CLI 전용 승인/샌드박스 옵션 (옵션)
+  approval: "on-request"
+  sandbox: "workspace-write"
   claude:
     # Claude Code CLI (requires 'claude' in PATH)
     command: "claude"

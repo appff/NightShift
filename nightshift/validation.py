@@ -45,6 +45,12 @@ def validate_settings_schema(settings):
         output_format = settings.get("brain", {}).get("output_format")
         if output_format is not None and output_format not in ("text", "json"):
             errors.append("'brain.output_format' must be 'text' or 'json'")
+        approval = settings.get("brain", {}).get("approval")
+        if approval is not None and not isinstance(approval, str):
+            errors.append("'brain.approval' must be a string")
+        sandbox = settings.get("brain", {}).get("sandbox")
+        if sandbox is not None and not isinstance(sandbox, str):
+            errors.append("'brain.sandbox' must be a string")
         home_dir = settings.get("brain", {}).get("home_dir")
         if home_dir is not None and not isinstance(home_dir, str):
             errors.append("'brain.home_dir' must be a string")
@@ -64,6 +70,12 @@ def validate_settings_schema(settings):
         voting = critic.get("voting")
         if voting is not None and voting not in ("all", "majority"):
             errors.append("'critic.voting' must be 'all' or 'majority'")
+        approval = critic.get("approval")
+        if approval is not None and not isinstance(approval, str):
+            errors.append("'critic.approval' must be a string")
+        sandbox = critic.get("sandbox")
+        if sandbox is not None and not isinstance(sandbox, str):
+            errors.append("'critic.sandbox' must be a string")
         home_dir = critic.get("home_dir")
         if home_dir is not None and not isinstance(home_dir, str):
             errors.append("'critic.home_dir' must be a string")
@@ -72,6 +84,12 @@ def validate_settings_schema(settings):
             errors.append("'critic.link_auth' must be a boolean")
     if "body" in settings:
         validate_driver_block("body", settings.get("body"))
+        approval = settings.get("body", {}).get("approval")
+        if approval is not None and not isinstance(approval, str):
+            errors.append("'body.approval' must be a string")
+        sandbox = settings.get("body", {}).get("sandbox")
+        if sandbox is not None and not isinstance(sandbox, str):
+            errors.append("'body.sandbox' must be a string")
         home_dir = settings.get("body", {}).get("home_dir")
         if home_dir is not None and not isinstance(home_dir, str):
             errors.append("'body.home_dir' must be a string")
