@@ -87,6 +87,10 @@ body:
     args:
       - "-p"
       - "{query}"
+      - "--allowed-tools"
+      - "write_file"
+      - "--allowed-tools"
+      - "run_shell_command"
   codex:
     # OpenAI Codex CLI (@openai/codex)
     command: "codex"
