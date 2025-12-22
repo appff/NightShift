@@ -95,7 +95,7 @@ brain:
     args: ["-p", "{prompt}"]
   codex:
     command: "codex"
-    args: ["exec", "--dangerously-bypass-approvals-and-sandbox", "{query}"]
+    args: ["exec", "--full-auto", "{query}"]
 
 critic:
   active_driver: "gemini"

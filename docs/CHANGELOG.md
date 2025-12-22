@@ -13,7 +13,7 @@ All notable changes to Night Shift will be documented in this file.
 - **Critic Toggle**: Explicit `critic.enabled` flag with disabled logging.
 - **Persona Names**: Renamed `documenter` to `document` and `troubleshooter` to `troubleshoot`.
 - **Local Checks**: Read-only validation commands run locally instead of via Hassan.
-- **Codex Permissions**: Codex defaults to `--dangerously-bypass-approvals-and-sandbox` for full access.
+- **Codex Permissions**: Only `body.codex` uses `--dangerously-bypass-approvals-and-sandbox` by default.
 
 ### Fixed
 - **Context Reduction**: Initialize `context_reduction` before history compaction.

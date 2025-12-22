@@ -50,7 +50,7 @@ critic:
     command: "codex"
     args:
       - "exec"
-      - "--dangerously-bypass-approvals-and-sandbox"
+      - "--full-auto"
       - "{query}"
 
 body:
@@ -76,7 +76,7 @@ body:
     command: "codex"
     args:
       - "exec"
-      - "--dangerously-bypass-approvals-and-sandbox"
+      - "--full-auto"
       - "{query}"
 
 # Safety & Snapshot Settings
