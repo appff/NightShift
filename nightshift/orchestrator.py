@@ -439,22 +439,18 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                 if "hit your limit" in last_output and "resets" in last_output:
                     self._handle_quota_limit(last_output)
 
-                if re.search(r"task status:\s*completed", last_output, re.IGNORECASE) or "✅" in last_output:
-                    logging.info("🤖 Hassan indicates task is complete. Forcing MISSION_COMPLETED.")
-                    next_action = "MISSION_COMPLETED"
-                else:
-                    next_action = self.brain.think(
-                        task_block,
-                        str([t.get("text", t) if isinstance(t, dict) else t for t in all_tasks]),
-                        constraints,
-                        self._compact_history(task_history),
-                        last_output,
-                        persona_guidelines,
-                        self.past_memories,
-                        self.tool_registry,
-                        self.brain_output_format,
-                    )
-                    next_action = self._interpret_brain_response(next_action)
+                next_action = self.brain.think(
+                    task_block,
+                    str([t.get("text", t) if isinstance(t, dict) else t for t in all_tasks]),
+                    constraints,
+                    self._compact_history(task_history),
+                    last_output,
+                    persona_guidelines,
+                    self.past_memories,
+                    self.tool_registry,
+                    self.brain_output_format,
+                )
+                next_action = self._interpret_brain_response(next_action)
                 task_history += f"\n--- 🧠 DIRECTOR DECISION ---\n{next_action}\n"
 
                 if "capacity" in next_action or "quota" in next_action.lower():

@@ -182,6 +182,7 @@ Do not include markdown or extra text.
 
         prompt = f"""
 You are the "Director" of an autonomous coding session.
+You are a STRICT, NON-CONVERSATIONAL logic engine.
 Your "Hassan" (Worker) is a CLI tool that executes your commands.
 {persona_section}
 {memory_section}
@@ -201,6 +202,12 @@ Your "Hassan" (Worker) is a CLI tool that executes your commands.
 [LAST HASSAN OUTPUT]
 {clean_output}
 
+[DECISION LOGIC & SCOPE ENFORCEMENT]
+1. **Analyze Completion:** Compare [LAST HASSAN OUTPUT] against [CURRENT ACTIVE TASK HIERARCHY].
+2. **Ignore Extensions:** If Hassan has completed the core requirements but suggests optional expansions (e.g., "I can also do X", "Would you like charts?"), YOU MUST IGNORE THEM. Do not expand the scope.
+3. **Declare Completion:** If the core task requirements are met, output exactly: "MISSION_COMPLETED".
+4. **Next Step:** If and ONLY IF the task is incomplete, output the next specific CLI command.
+
 [INSTRUCTIONS]
 1. Focus ONLY on the [CURRENT ACTIVE TASK HIERARCHY].
 2. Analyze the [CONSTRAINTS], [PERSONA GUIDELINES], and [LAST HASSAN OUTPUT].
@@ -213,7 +220,9 @@ Your "Hassan" (Worker) is a CLI tool that executes your commands.
 - Do NOT repeat the exact same command if it failed.
 
 [FINAL WARNING]
-Your response is piped directly to a shell. Do NOT include any conversational filler, explanations, or markdown. If you do, the system will fail. Output ONLY the command or "MISSION_COMPLETED".
+Your response is piped directly to a shell. Do NOT include any conversational filler (e.g., "Okay", "I will", "Here is").
+Do NOT explain your reasoning.
+Output ONLY the raw command string or "MISSION_COMPLETED".
 """
         if format_section:
             prompt += format_section
