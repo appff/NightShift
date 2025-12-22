@@ -19,9 +19,6 @@ brain:
     args:
       - "exec"
       - "--full-auto"
-      - "--search"
-      - "-a"
-      - "always"
       - "{query}"
   gemini:
     # Gemini CLI (Official/Community)
@@ -54,9 +51,6 @@ critic:
     args:
       - "exec"
       - "--full-auto"
-      - "--search"
-      - "-a"
-      - "always"
       - "{query}"
 
 body:
@@ -83,9 +77,6 @@ body:
     args:
       - "exec"
       - "--full-auto"
-      - "--search"
-      - "-a"
-      - "always"
       - "{query}"
 
 # Safety & Snapshot Settings
