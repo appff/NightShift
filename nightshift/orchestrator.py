@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import time
 import sys
+import shlex
 from datetime import datetime, timedelta
 from concurrent.futures import ThreadPoolExecutor
 
@@ -404,6 +405,9 @@ You are a code reviewer. Provide a concise review plan and key changes you would
         self.hassan.mission_config["project_path"] = work_dir
 
         task_completed = False
+        last_check_command = None
+        last_check_output = None
+        repeat_check_count = 0
         try:
             hassan_output = self.hassan.run(initial_query)
             task_history = f"\n=== TASK {i} START ===\nDirector Init: {initial_query}\nHassan Output:\n{hassan_output}\n"
@@ -449,7 +453,11 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                                 if self.hassan.last_returncode != 0:
                                     last_output = f"Tests failed: {test_output}"
                                     continue
-                    verification = self.critic.evaluate(task_block, self._compact_history(task_history), last_output)
+                    if self.critic.critic_config.get("enabled") is False:
+                        logging.info("🧠 Critic disabled; Brain approving completion.")
+                        verification = "APPROVED"
+                    else:
+                        verification = self.critic.evaluate(task_block, self._compact_history(task_history), last_output)
                     if verification.strip().upper() == "APPROVED":
                         logging.info(f"✅ Task {i} Verified and Completed!")
                         break
@@ -475,6 +483,21 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                         }
                     )
                     return f"TASK_{i}_FAILED: {next_action}"
+
+                if self._is_local_check_command(next_action):
+                    local_output = self._run_local_check(next_action, work_dir)
+                    task_history += f"\n--- 🔍 LOCAL CHECK OUTPUT ---\n{local_output}\n"
+                    if next_action == last_check_command and local_output == last_check_output:
+                        repeat_check_count += 1
+                    else:
+                        repeat_check_count = 0
+                    last_check_command = next_action
+                    last_check_output = local_output
+                    last_output = local_output
+                    if self.critic.critic_config.get("enabled") is False and repeat_check_count >= 1:
+                        logging.info(f"✅ Task {i} completed after repeated local checks.")
+                        break
+                    continue
 
                 if safety_config.get("require_approval_for_destructive") and self._requires_approval(next_action) and not self.auto_approve_actions:
                     approval = input("Destructive action detected. Approve? [y/N]: ").strip().lower()
@@ -640,3 +663,26 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                 logging.info(f"🧾 Summary saved: {summary_path}")
             except Exception as e:
                 logging.error(f"❌ Failed to write summary: {e}")
+
+    def _is_local_check_command(self, command):
+        if any(token in command for token in ["|", "&", ";", ">", "<"]):
+            return False
+        try:
+            parts = shlex.split(command)
+        except ValueError:
+            return False
+        if not parts:
+            return False
+        allowed = {"ls", "cat", "rg", "sed", "head", "tail", "stat", "wc"}
+        return parts[0] in allowed
+
+    def _run_local_check(self, command, cwd):
+        try:
+            parts = shlex.split(command)
+            result = subprocess.run(parts, capture_output=True, text=True, cwd=cwd)
+            output = result.stdout.strip()
+            if result.stderr:
+                output = (output + "\n" + result.stderr.strip()).strip()
+            return output if output else "(no output)"
+        except Exception as e:
+            return f"LOCAL_CHECK_ERROR: {e}"
