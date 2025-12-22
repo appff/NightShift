@@ -3,9 +3,48 @@ import logging
 import os
 import re
 import shutil
+import subprocess
 from datetime import datetime
 
 from .constants import IGNORE_FILE, LOG_DIR
+
+DEFAULT_DRIVER_PRESETS = {
+    "claude": {
+        "command": "claude",
+        "roles": {
+            "brain": ["-p", "{prompt}", "--dangerously-skip-permissions"],
+            "critic": ["-p", "{prompt}", "--dangerously-skip-permissions"],
+            "body": [
+                "--system-prompt-file",
+                "{system_prompt_file}",
+                "-p",
+                "{query}",
+                "-c",
+                "--dangerously-skip-permissions",
+                "--allowedTools",
+                "Write",
+            ],
+        },
+    },
+    "gemini": {
+        "command": "gemini",
+        "roles": {
+            "brain": ["-p", "{prompt}"],
+            "critic": ["-p", "{prompt}"],
+            "body": ["-p", "{query}"],
+        },
+    },
+    "codex": {
+        "command": "codex",
+        "roles": {
+            "brain": ["exec", "--full-auto", "{prompt}"],
+            "critic": ["exec", "--full-auto", "{prompt}"],
+            "body": ["exec", "--dangerously-bypass-approvals-and-sandbox", "{query}"],
+        },
+    },
+}
+
+_CODEX_HELP_CACHE = {}
 
 
 def setup_logging(log_dir=LOG_DIR, log_level=logging.INFO):
@@ -52,6 +91,8 @@ def _extract_driver_block(block):
         "link_auth",
         "strictness",
         "enabled",
+        "approval",
+        "sandbox",
     }
     flat_drivers = {k: v for k, v in block.items() if k not in reserved_keys}
     return active, flat_drivers
@@ -76,6 +117,92 @@ def _redact_cmd(cmd_list):
             continue
         redacted.append(arg)
     return redacted
+
+
+def _merge_dict(base, override):
+    if not isinstance(base, dict) or not isinstance(override, dict):
+        return override
+    merged = dict(base)
+    for key, value in override.items():
+        if isinstance(value, dict) and isinstance(merged.get(key), dict):
+            merged[key] = _merge_dict(merged[key], value)
+        else:
+            merged[key] = value
+    return merged
+
+
+def _get_driver_presets(settings):
+    presets = DEFAULT_DRIVER_PRESETS
+    overrides = settings.get("driver_presets")
+    if isinstance(overrides, dict):
+        presets = _merge_dict(presets, overrides)
+    return presets
+
+
+def _build_default_drivers(role, settings):
+    presets = _get_driver_presets(settings)
+    drivers = {}
+    for name, preset in presets.items():
+        if not isinstance(preset, dict):
+            continue
+        role_args = (preset.get("roles") or {}).get(role)
+        if not role_args:
+            continue
+        drivers[name] = {
+            "command": preset.get("command", name),
+            "args": list(role_args),
+            "env": {},
+        }
+    return drivers
+
+
+def _get_codex_help(command):
+    cached = _CODEX_HELP_CACHE.get(command)
+    if cached is not None:
+        return cached
+    try:
+        result = subprocess.run(
+            [command, "exec", "--help"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        help_text = (result.stdout or "") + (result.stderr or "")
+    except Exception:
+        help_text = ""
+    _CODEX_HELP_CACHE[command] = help_text
+    return help_text
+
+
+def _codex_supports_flag(command, flag_name):
+    help_text = _get_codex_help(command)
+    return flag_name in help_text
+
+
+def _apply_codex_policy(command, args_template, role_config):
+    if not isinstance(args_template, list):
+        return args_template
+    args = list(args_template)
+    if "--dangerously-bypass-approvals-and-sandbox" in args:
+        return args
+
+    approval = None
+    sandbox = None
+    if isinstance(role_config, dict):
+        approval = role_config.get("approval")
+        sandbox = role_config.get("sandbox")
+
+    if approval and "-a" not in args and "--ask-for-approval" not in args:
+        if _codex_supports_flag(command, "--ask-for-approval") or _codex_supports_flag(command, "-a"):
+            args.extend(["--ask-for-approval", str(approval)])
+        else:
+            logging.warning("⚠️ Codex CLI does not support approval flags; skipping 'approval' setting.")
+    if sandbox and "--sandbox" not in args:
+        if _codex_supports_flag(command, "--sandbox"):
+            args.extend(["--sandbox", str(sandbox)])
+        else:
+            logging.warning("⚠️ Codex CLI does not support sandbox flags; skipping 'sandbox' setting.")
+    return args
 
 
 def _load_ignore_patterns(root_path):

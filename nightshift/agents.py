@@ -13,7 +13,13 @@ from .constants import (
     MAX_CONTEXT_CHARS,
     MAX_HISTORY_CHARS,
 )
-from .utils import _extract_driver_block, _link_auth_folders, _redact_cmd
+from .utils import (
+    _apply_codex_policy,
+    _build_default_drivers,
+    _extract_driver_block,
+    _link_auth_folders,
+    _redact_cmd,
+)
 
 
 class Brain:
@@ -29,6 +35,8 @@ class Brain:
         self.active_driver_name, self.drivers = _extract_driver_block(self.brain_config)
         if not self.active_driver_name:
             self.active_driver_name = "claude"
+        if not self.drivers:
+            self.drivers = _build_default_drivers("brain", self.settings)
         self.link_auth = self.brain_config.get("link_auth", True)
 
         configured_home = self.brain_config.get("home_dir")
@@ -87,6 +95,8 @@ class Brain:
         """Executes the CLI command for the Brain."""
         base_cmd = self.driver_config.get("command", "claude")
         args_template = self.driver_config.get("args", [])
+        if base_cmd == "codex":
+            args_template = _apply_codex_policy(base_cmd, args_template, self.brain_config)
 
         cmd_list = [base_cmd]
         for arg in args_template:
@@ -281,6 +291,8 @@ class Critic:
         self.active_driver_name, self.drivers = _extract_driver_block(self.critic_config)
         if not self.active_driver_name:
             self.active_driver_name = "gemini"
+        if not self.drivers:
+            self.drivers = _build_default_drivers("critic", self.settings)
         self.active_driver_names = self.critic_config.get("active_drivers", [])
         if isinstance(self.active_driver_names, str):
             self.active_driver_names = [self.active_driver_names]
@@ -336,7 +348,10 @@ class Critic:
         while True:
             try:
                 cmd_list = [driver_config["command"]]
-                for arg in driver_config.get("args", []):
+                args_template = driver_config.get("args", [])
+                if driver_config.get("command") == "codex":
+                    args_template = _apply_codex_policy(driver_config.get("command"), args_template, self.critic_config)
+                for arg in args_template:
                     val = arg.replace("{prompt}", prompt)
                     if val:
                         cmd_list.append(val)
@@ -420,6 +435,8 @@ class Hassan:
         self.active_driver_name, self.drivers = _extract_driver_block(self.hassan_config)
         if not self.active_driver_name:
             self.active_driver_name = "claude"
+        if not self.drivers:
+            self.drivers = _build_default_drivers("body", settings)
         self.mission_config = mission_config
         self.system_prompt_file = None
         self.home_dir = None
@@ -474,6 +491,14 @@ class Hassan:
         if current_task_text:
             self.system_prompt_file = os.path.abspath(".night_shift_system_prompt.txt")
             with open(self.system_prompt_file, "w", encoding="utf-8") as f:
+                if self.active_driver_name == "gemini":
+                    f.write(
+                        "GEMINI TOOLING NOTE:\n"
+                        "- Use only tools that are explicitly available in this runtime.\n"
+                        "- If a tool is missing, do NOT call it. Ask for an alternative or provide manual steps.\n"
+                        "- Prefer these when relevant: read_file, glob, search_file_content, write_todos, save_memory.\n"
+                        "- If file edits are required, provide exact edit instructions instead of calling non-existent tools.\n\n"
+                    )
                 if persona_guidelines:
                     f.write(f"PERSONA GUIDELINES:\n{persona_guidelines}\n\n")
                 if tool_registry:
@@ -491,6 +516,17 @@ class Hassan:
 
         base_cmd = self.driver_config.get("command", "claude")
         args_template = self.driver_config.get("args", [])
+        if base_cmd == "codex":
+            args_template = _apply_codex_policy(base_cmd, args_template, self.hassan_config)
+        if self.active_driver_name == "gemini":
+            query_placeholders = {"{query}", "{system_prompt_file}"}
+            has_query_placeholder = any(
+                any(placeholder in arg for placeholder in query_placeholders)
+                for arg in args_template
+                if isinstance(arg, str)
+            )
+            if not has_query_placeholder:
+                return "ERROR: Gemini args must include '{query}' so the task is passed to the CLI."
         cmd_list = [base_cmd]
 
         for arg in args_template:

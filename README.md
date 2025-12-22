@@ -77,6 +77,8 @@ safety:
 - `link_auth`: Automatically links authentication files from your home directory
 - `auto_commit_and_push`: Disabled by default for safety; enable only if you trust the autonomous workflow
 - `context_reduction`: Trims long history to reduce token usage
+- `approval` / `sandbox`: Optional Codex-only flags; applied only if your Codex CLI supports these flags
+- Driver blocks are optional: if omitted, built-in defaults are used per role (brain/critic/body)
 
 ### Full Settings Reference
 
@@ -84,6 +86,8 @@ safety:
 brain:
   active_driver: "claude" # claude | gemini | codex
   output_format: "text" # text | json
+  approval: "on-request" # Codex-only: untrusted | on-failure | on-request | never
+  sandbox: "read-only" # Codex-only: read-only | workspace-write | danger-full-access
   home_dir: ".night_shift/brain_env" # Isolated environment directory
   link_auth: true # Link ~/.claude, ~/.gemini auth to isolated env
 
@@ -103,6 +107,8 @@ critic:
   link_auth: true
   strictness: "lenient" # lenient | balanced | strict
   enabled: true # Set false to disable critic checks
+  approval: "on-request" # Codex-only
+  sandbox: "read-only" # Codex-only
 
   # Advanced: Multi-Critic Voting (requires multiple models)
   active_drivers: ["gemini", "codex"] # Enable multi-critic consensus
@@ -117,6 +123,8 @@ critic:
 
 body:
   active_driver: "claude"
+  approval: "on-request" # Codex-only
+  sandbox: "workspace-write" # Codex-only
   claude:
     command: "claude"
     args: ["--system-prompt-file", "{system_prompt_file}", "-p", "{query}"]
