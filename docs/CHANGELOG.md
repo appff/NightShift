@@ -3,6 +3,17 @@
 All notable changes to Night Shift will be documented in this file.
 
 ## [Unreleased]
+### Added
+- **Docs**: New architecture and feature manuals in `docs/`.
+- **Resume**: Automatic resume support via `.night_shift/state.json` (default on).
+- **Context Reduction**: Optional history trimming to reduce tokens.
+
+### Changed
+- **Mission Overrides**: `brain`, `body`, `critic`, `hassan` can be overridden per mission.
+- **Critic Toggle**: Explicit `critic.enabled` flag with disabled logging.
+- **Persona Names**: Renamed `documenter` to `document` and `troubleshooter` to `troubleshoot`.
+- **Local Checks**: Read-only validation commands run locally instead of via Hassan.
+- **Codex Search**: Codex body now uses `--search -a on-request`.
 
 ## [4.3.1] - 2025-12-22
 
