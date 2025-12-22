@@ -18,7 +18,7 @@ brain:
     command: "codex"
     args:
       - "exec"
-      - "--full-auto"
+      - "--dangerously-bypass-approvals-and-sandbox"
       - "{query}"
   gemini:
     # Gemini CLI (Official/Community)
@@ -50,7 +50,7 @@ critic:
     command: "codex"
     args:
       - "exec"
-      - "--full-auto"
+      - "--dangerously-bypass-approvals-and-sandbox"
       - "{query}"
 
 body:
@@ -76,7 +76,7 @@ body:
     command: "codex"
     args:
       - "exec"
-      - "--full-auto"
+      - "--dangerously-bypass-approvals-and-sandbox"
       - "{query}"
 
 # Safety & Snapshot Settings
