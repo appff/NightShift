@@ -1,0 +1,20 @@
+mission_name: "Hierarchical Task Example"
+project_path: "."
+persona: "architect"
+parallel: false
+
+goal:
+  - title: "Core Logic Refactor"
+    sub_tasks:
+      - "Identify long functions in night_shift.py"
+      - "Extract task execution into helpers"
+      - "Ensure error handling is preserved"
+
+  - title: "Documentation Update"
+    persona: "documenter"
+    sub_tasks:
+      - "Update README with new config examples"
+      - "Add notes about reviewer mode and planner"
+
+constraints:
+  - "Keep backward compatibility."
