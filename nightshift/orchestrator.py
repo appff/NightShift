@@ -448,7 +448,7 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                     persona_guidelines,
                     self.past_memories,
                     self.tool_registry,
-                    self.brain_output_format,
+                    output_format="json",
                 )
                 next_action = self._interpret_brain_response(next_action)
                 task_history += f"\n--- 🧠 DIRECTOR DECISION ---\n{next_action}\n"
