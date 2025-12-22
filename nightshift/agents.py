@@ -83,10 +83,42 @@ class Brain:
         # Remove ANSI escape codes
         text = ANSI_ESCAPE_PATTERN.sub("", text)
         
-        # Filter out Codex/CLI noise
+        # Strategy: Tail-based extraction for Codex
+        # Codex outputs often end with a summary after "codex" or "tokens used".
+        # We want to discard the noisy execution logs before that.
+        
+        lines = text.splitlines()
+        
+        # 1. Try to find the start of the final response
+        cutoff_index = -1
+        
+        # Search from the end to find the last occurrence of markers
+        for i in range(len(lines) - 1, -1, -1):
+            line_stripped = lines[i].strip()
+            
+            # Marker: "codex" on its own line
+            if re.match(r"^codex\s*$", line_stripped, re.IGNORECASE):
+                cutoff_index = i + 1
+                break
+                
+            # Marker: "tokens used" followed by a number
+            if re.match(r"^tokens used\s*$", line_stripped, re.IGNORECASE):
+                # Skip the "tokens used" line AND the number line following it
+                if i + 1 < len(lines) and re.match(r"^\d{1,3}(?:,\d{3})*$", lines[i+1].strip()):
+                    cutoff_index = i + 2
+                else:
+                    cutoff_index = i + 1
+                break
+
+        # If a marker was found, keep only content after it
+        if cutoff_index != -1 and cutoff_index < len(lines):
+            lines = lines[cutoff_index:]
+
+        # 2. Apply standard line-based filtering to whatever remains
+        # (This handles other noise like "thinking", "mcp startup", etc. if they appear in the tail)
         noise_patterns = [
             r"^tokens used\s*$",
-            r"^\d{1,3}(?:,\d{3})*$",  # Numbers on their own line (often token counts)
+            r"^\d{1,3}(?:,\d{3})*$",
             r"^thinking\s*$",
             r"^\*\*Preparing.*$",
             r"^codex\s*$",
@@ -100,14 +132,15 @@ class Brain:
             r"^reasoning.*$",
             r"^session id:.*$",
             r"^OpenAI Codex.*$",
+            # Add execution success logs
+            r".*succeeded in \d+ms:$",
         ]
         
-        lines = text.splitlines()
         cleaned_lines = []
         for line in lines:
             line_stripped = line.strip()
             
-            # Stop processing if we hit a git diff, as it consumes too many tokens
+            # Stop processing if we hit a git diff
             if line_stripped.startswith("diff --git"):
                 cleaned_lines.append("\n[... file diff content trimmed for brevity ...]")
                 break
