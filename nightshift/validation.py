@@ -54,6 +54,9 @@ def validate_settings_schema(settings):
     if "critic" in settings:
         validate_driver_block("critic", settings.get("critic"))
         critic = settings.get("critic", {})
+        enabled = critic.get("enabled")
+        if enabled is not None and not isinstance(enabled, bool):
+            errors.append("'critic.enabled' must be a boolean")
         active_drivers = critic.get("active_drivers")
         if active_drivers is not None:
             if not isinstance(active_drivers, list) or not all(isinstance(d, str) for d in active_drivers):

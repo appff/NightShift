@@ -302,7 +302,10 @@ class Critic:
         self.retries = int(self.critic_config.get("retries", 0))
         self.retry_backoff = float(self.critic_config.get("retry_backoff", 1.5))
 
-        logging.info(f"🕵️‍♂️ Critic Initialized: {', '.join([n.upper() for n in self.active_driver_names])} CLI Mode")
+        if self.critic_config.get("enabled") is False:
+            logging.info("🕵️‍♂️ Critic Disabled")
+        else:
+            logging.info(f"🕵️‍♂️ Critic Initialized: {', '.join([n.upper() for n in self.active_driver_names])} CLI Mode")
 
     def _filter_available_drivers(self, names):
         available = []
@@ -364,6 +367,8 @@ class Critic:
 
     def evaluate(self, task_block, history, last_output):
         """Evaluates Hassan's work against the task hierarchy."""
+        if self.critic_config.get("enabled") is False:
+            return "APPROVED"
         prompt = f"""
 You are the "Quality Assurance Critic".
 A worker (Hassan) has just completed a task. Your job is to verify if the work is actually complete and high quality.

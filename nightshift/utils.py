@@ -51,6 +51,7 @@ def _extract_driver_block(block):
         "home_dir",
         "link_auth",
         "strictness",
+        "enabled",
     }
     flat_drivers = {k: v for k, v in block.items() if k not in reserved_keys}
     return active, flat_drivers

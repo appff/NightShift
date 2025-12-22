@@ -59,6 +59,7 @@ critic:
   home_dir: ".night_shift/critic_env" # Isolated environment for Critic
   link_auth: true
   strictness: "lenient" # lenient | balanced | strict
+  enabled: true # Set false to disable critic checks
 
 safety:
   auto_rollback_on_failure: false
@@ -96,6 +97,7 @@ critic:
   home_dir: ".night_shift/critic_env"
   link_auth: true
   strictness: "lenient" # lenient | balanced | strict
+  enabled: true # Set false to disable critic checks
 
   # Advanced: Multi-Critic Voting (requires multiple models)
   active_drivers: ["gemini", "codex"] # Enable multi-critic consensus
