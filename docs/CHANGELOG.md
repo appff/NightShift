@@ -4,6 +4,8 @@ All notable changes to Night Shift will be documented in this file.
 
 ## [Unreleased]
 
+## [4.3.0] - 2025-12-22
+
 ### Changed
 - **Safety Defaults**: Added `auto_commit_and_push` and clarified safer defaults in `settings.yaml`.
 - **Rollback Safety**: Automatic rollback now stashes uncommitted changes before resetting.
