@@ -237,7 +237,7 @@ Return ONLY valid JSON:
                 if remaining <= 0:
                     break
                 logging.info(f"💤 Waiting for quota reset... {remaining/60:.1f} minutes left.")
-                time.sleep(min(60, remaining))
+                time.sleep(min(1800, remaining))
         except Exception:
             time.sleep(3600)
 
