@@ -3,6 +3,8 @@ brain:
   # API 호출이 아닌 CLI 도구를 사용하여 비정형 미션 해석과 명령 생성을 수행합니다.
   active_driver: "gemini" # options: claude, codex, gemini
   output_format: "text" # text | json
+  home_dir: ".night_shift/brain_env"
+  link_auth: true
 
   claude:
     # Claude Code CLI (requires 'claude' in PATH)
@@ -28,6 +30,8 @@ brain:
 critic:
   # 브레인과 다른 드라이버를 사용하는 것을 권장합니다 (Cross-verification)
   active_driver: "codex"
+  home_dir: ".night_shift/critic_env"
+  link_auth: true
   claude:
     command: "claude"
     args:

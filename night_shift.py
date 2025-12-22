@@ -12,17 +12,27 @@ Core Features:
 5. Sequential Tasking: Processes a list of goals one by one.
 """
 
-import subprocess
-import sys
-import time
-import yaml
-import re
 import os
+import sys
+
+# Auto-reexec with venv if PyYAML isn't available in system Python.
+try:
+    import yaml  # noqa: F401
+except Exception:
+    venv_python = os.path.join(os.getcwd(), ".venv", "bin", "python3")
+    if os.path.exists(venv_python) and os.path.abspath(sys.executable) != os.path.abspath(venv_python):
+        os.execv(venv_python, [venv_python] + sys.argv)
+    raise
+
+import subprocess
+import time
+import re
 import argparse
 import logging
 import shutil
 import json
 import fnmatch
+import yaml
 from datetime import datetime, timedelta
 import copy
 from concurrent.futures import ThreadPoolExecutor
@@ -78,7 +88,7 @@ def _extract_driver_block(block):
     if isinstance(drivers, dict):
         return active, drivers
     # Flat schema: treat all non-reserved keys as driver definitions.
-    reserved_keys = {"active_driver", "active_drivers", "voting", "timeout", "retries", "retry_backoff", "output_format"}
+    reserved_keys = {"active_driver", "active_drivers", "voting", "timeout", "retries", "retry_backoff", "output_format", "home_dir", "link_auth"}
     flat_drivers = {k: v for k, v in block.items() if k not in reserved_keys}
     return active, flat_drivers
 
@@ -117,6 +127,27 @@ def _load_ignore_patterns(root_path):
     except Exception:
         return []
     return patterns
+
+def _link_auth_folders(target_home):
+    real_home = os.path.expanduser("~")
+    auth_folders = [".claude", ".gemini", ".codex", ".config"]
+    auth_files = [".claude.json", ".gemini.json", ".codex.json"]
+    for folder in auth_folders:
+        src = os.path.join(real_home, folder)
+        dst = os.path.join(target_home, folder)
+        if os.path.exists(src) and not os.path.exists(dst):
+            try:
+                os.symlink(src, dst)
+            except Exception:
+                pass
+    for fname in auth_files:
+        src = os.path.join(real_home, fname)
+        dst = os.path.join(target_home, fname)
+        if os.path.exists(src):
+            try:
+                shutil.copy2(src, dst)
+            except Exception:
+                pass
 
 def _is_ignored(path, root_path, patterns):
     rel_path = os.path.relpath(path, root_path)
@@ -167,6 +198,12 @@ def validate_settings_schema(settings):
         output_format = settings.get("brain", {}).get("output_format")
         if output_format is not None and output_format not in ("text", "json"):
             errors.append("'brain.output_format' must be 'text' or 'json'")
+        home_dir = settings.get("brain", {}).get("home_dir")
+        if home_dir is not None and not isinstance(home_dir, str):
+            errors.append("'brain.home_dir' must be a string")
+        link_auth = settings.get("brain", {}).get("link_auth")
+        if link_auth is not None and not isinstance(link_auth, bool):
+            errors.append("'brain.link_auth' must be a boolean")
     if "critic" in settings:
         validate_driver_block("critic", settings.get("critic"))
         critic = settings.get("critic", {})
@@ -177,8 +214,20 @@ def validate_settings_schema(settings):
         voting = critic.get("voting")
         if voting is not None and voting not in ("all", "majority"):
             errors.append("'critic.voting' must be 'all' or 'majority'")
+        home_dir = critic.get("home_dir")
+        if home_dir is not None and not isinstance(home_dir, str):
+            errors.append("'critic.home_dir' must be a string")
+        link_auth = critic.get("link_auth")
+        if link_auth is not None and not isinstance(link_auth, bool):
+            errors.append("'critic.link_auth' must be a boolean")
     if "body" in settings:
         validate_driver_block("body", settings.get("body"))
+        home_dir = settings.get("body", {}).get("home_dir")
+        if home_dir is not None and not isinstance(home_dir, str):
+            errors.append("'body.home_dir' must be a string")
+        link_auth = settings.get("body", {}).get("link_auth")
+        if link_auth is not None and not isinstance(link_auth, bool):
+            errors.append("'body.link_auth' must be a boolean")
     if "hassan" in settings:
         validate_driver_block("hassan", settings.get("hassan"))
 
@@ -330,9 +379,14 @@ class Brain:
         self.active_driver_name, self.drivers = _extract_driver_block(self.brain_config)
         if not self.active_driver_name:
             self.active_driver_name = 'claude'
+        self.link_auth = self.brain_config.get("link_auth", True)
         
         # Setup Brain Workspace (Metadata Isolation)
-        self.brain_env_dir = os.path.join(self.project_path, BRAIN_WORKSPACE_DIR)
+        configured_home = self.brain_config.get("home_dir")
+        if configured_home:
+            self.brain_env_dir = os.path.abspath(os.path.expanduser(configured_home))
+        else:
+            self.brain_env_dir = os.path.join(self.project_path, BRAIN_WORKSPACE_DIR)
         if not os.path.exists(self.brain_env_dir):
             os.makedirs(self.brain_env_dir, exist_ok=True)
             
@@ -345,25 +399,31 @@ class Brain:
                 "command": "claude",
                 "args": ["-p", "{prompt}"]
             }
+        self._select_available_driver()
         self.timeout = int(self.driver_config.get("timeout", 300))
         self.retries = int(self.driver_config.get("retries", 0))
         self.retry_backoff = float(self.driver_config.get("retry_backoff", 1.5))
             
         logging.info(f"🧠 Brain Initialized: [{self.active_driver_name.upper()}] CLI Mode")
 
+    def _select_available_driver(self):
+        command = self.driver_config.get("command")
+        if command and shutil.which(command):
+            return
+        for name, cfg in self.drivers.items():
+            cmd = cfg.get("command")
+            if cmd and shutil.which(cmd):
+                logging.warning(f"⚠️ Brain Driver '{self.active_driver_name}' unavailable. Falling back to '{name}'.")
+                self.active_driver_name = name
+                self.driver_config = cfg
+                return
+        logging.error(f"❌ No available Brain driver found (last command: {command}).")
+
     def _setup_auth_links(self):
         """Symlinks common AI CLI auth folders from real HOME to Brain's isolated HOME."""
-        real_home = os.path.expanduser("~")
-        auth_folders = [".claude", ".gemini", ".codex", ".config"]
-        
-        for folder in auth_folders:
-            src = os.path.join(real_home, folder)
-            dst = os.path.join(self.brain_env_dir, folder)
-            if os.path.exists(src) and not os.path.exists(dst):
-                try:
-                    os.symlink(src, dst)
-                except Exception:
-                    pass
+        if not self.link_auth:
+            return
+        _link_auth_folders(self.brain_env_dir)
 
     def clean_ansi(self, text):
         return ANSI_ESCAPE_PATTERN.sub('', text)
@@ -562,13 +622,40 @@ class Critic:
             self.active_driver_names = [self.active_driver_names]
         if not self.active_driver_names:
             self.active_driver_names = [self.active_driver_name]
+        self.active_driver_names = self._filter_available_drivers(self.active_driver_names)
         self.voting_mode = self.critic_config.get("voting", "all")
-        self.brain_env_dir = os.path.join(self.project_path, BRAIN_WORKSPACE_DIR)
+        configured_home = self.critic_config.get("home_dir")
+        if configured_home:
+            self.brain_env_dir = os.path.abspath(os.path.expanduser(configured_home))
+        else:
+            self.brain_env_dir = os.path.join(self.project_path, BRAIN_WORKSPACE_DIR)
+        self.link_auth = self.critic_config.get("link_auth", True)
+        if self.brain_env_dir:
+            os.makedirs(self.brain_env_dir, exist_ok=True)
+            if self.link_auth:
+                _link_auth_folders(self.brain_env_dir)
         self.timeout = int(self.critic_config.get("timeout", 300))
         self.retries = int(self.critic_config.get("retries", 0))
         self.retry_backoff = float(self.critic_config.get("retry_backoff", 1.5))
 
         logging.info(f"🕵️‍♂️ Critic Initialized: {', '.join([n.upper() for n in self.active_driver_names])} CLI Mode")
+
+    def _filter_available_drivers(self, names):
+        available = []
+        for name in names:
+            cfg = self.drivers.get(name, {})
+            cmd = cfg.get("command")
+            if cmd and shutil.which(cmd):
+                available.append(name)
+        if not available:
+            for name, cfg in self.drivers.items():
+                cmd = cfg.get("command")
+                if cmd and shutil.which(cmd):
+                    available.append(name)
+        if not available:
+            logging.error("❌ No available Critic drivers found.")
+            return []
+        return available
 
     def _run_with_driver(self, driver_name, prompt):
         driver_config = self.drivers.get(driver_name)
@@ -664,6 +751,15 @@ class Hassan:
             self.active_driver_name = 'claude'
         self.mission_config = mission_config
         self.system_prompt_file = None
+        self.home_dir = None
+        configured_home = self.hassan_config.get("home_dir")
+        if configured_home:
+            self.home_dir = os.path.abspath(os.path.expanduser(configured_home))
+        self.link_auth = self.hassan_config.get("link_auth", True)
+        if self.home_dir:
+            os.makedirs(self.home_dir, exist_ok=True)
+            if self.link_auth:
+                _link_auth_folders(self.home_dir)
         
         self.driver_config = self.drivers.get(self.active_driver_name)
         if not self.driver_config:
@@ -672,12 +768,26 @@ class Hassan:
                 "args": ["--system-prompt-file", "{system_prompt_file}", "-p", "{query}", "-c", "--dangerously-skip-permissions", "--allowedTools", "Write"],
                 "env": {}
             }
+        self._select_available_driver()
         self.timeout = int(self.driver_config.get("timeout", 0))
         self.retries = int(self.driver_config.get("retries", 0))
         self.retry_backoff = float(self.driver_config.get("retry_backoff", 1.5))
         self.last_returncode = 0
             
         logging.info(f"🦾 Hassan Initialized: [{self.active_driver_name.upper()}] Driver")
+
+    def _select_available_driver(self):
+        command = self.driver_config.get("command")
+        if command and shutil.which(command):
+            return
+        for name, cfg in self.drivers.items():
+            cmd = cfg.get("command")
+            if cmd and shutil.which(cmd):
+                logging.warning(f"⚠️ Hassan Driver '{self.active_driver_name}' unavailable. Falling back to '{name}'.")
+                self.active_driver_name = name
+                self.driver_config = cfg
+                return
+        logging.error(f"❌ No available Hassan driver found (last command: {command}).")
 
     def prepare(self, current_task_text, persona_guidelines="", tool_registry=""):
         """Prepares system prompt files with the task block and persona."""
@@ -711,6 +821,8 @@ class Hassan:
         current_env = os.environ.copy()
         for key, value in env_config.items():
             current_env[key] = str(value)
+        if self.home_dir:
+            current_env["HOME"] = self.home_dir
 
         logging.info(f"\n--- 🚀 Running Hassan ({self.active_driver_name}) ---")
         logging.debug(f"🦾 Hassan Command: {' '.join(_redact_cmd(cmd_list))}")
@@ -759,6 +871,7 @@ class NightShiftAgent:
         self.auto_approve_actions = auto_approve_actions
         self.reviewer_mode = reviewer_mode
         self.persona_map = persona_map or []
+        self.driver_availability_checked = False
         
         if not os.path.exists(mission_path):
             sys.exit(1)
@@ -782,6 +895,11 @@ class NightShiftAgent:
         self.brain = Brain(self.settings, self.mission_config, log_dir=self.log_dir)
         self.critic = Critic(self.settings, self.mission_config)
         self.hassan = Hassan(self.settings, self.mission_config)
+
+        if not self.brain.driver_config.get("command") or not shutil.which(self.brain.driver_config.get("command")):
+            logging.error("❌ Brain driver not available. Check settings.yaml and PATH.")
+        if not self.hassan.driver_config.get("command") or not shutil.which(self.hassan.driver_config.get("command")):
+            logging.error("❌ Hassan driver not available. Check settings.yaml and PATH.")
         
         # Load Long-term Memories
         self.past_memories = self.memory_manager.load_memories()
@@ -850,7 +968,7 @@ You are a planning assistant. Break the mission into a concise list of actionabl
 
 [OUTPUT]
 Return ONLY valid JSON:
-{"tasks": ["task 1", "task 2", "..."]}
+{{"tasks": ["task 1", "task 2", "..."]}}
 """
         response = self.brain._run_cli_command(prompt)
         if response.startswith("MISSION_FAILED"):
@@ -1165,6 +1283,10 @@ You are a code reviewer. Provide a concise review plan and key changes you would
 
     def start(self):
         logging.info(f"🌙 Night Shift (v4.2) Starting with default persona: {self.default_persona_name}")
+        if self.brain.driver_config.get("command") and not shutil.which(self.brain.driver_config.get("command")):
+            logging.error("❌ Brain driver command not found in PATH.")
+        if self.hassan.driver_config.get("command") and not shutil.which(self.hassan.driver_config.get("command")):
+            logging.error("❌ Hassan driver command not found in PATH.")
         
         safety_config = self.settings.get('safety', {})
         mission_start_commit = self._get_git_head()

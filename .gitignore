@@ -1,6 +1,7 @@
 # Configuration files (contain sensitive API keys)
 settings.yaml
 mission.yaml
+APOL.yaml
 
 # Python cache
 __pycache__/
