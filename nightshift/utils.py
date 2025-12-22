@@ -45,6 +45,7 @@ DEFAULT_DRIVER_PRESETS = {
 }
 
 _CODEX_HELP_CACHE = {}
+_CODEX_FLAG_SUPPORT = {}
 
 
 def setup_logging(log_dir=LOG_DIR, log_level=logging.INFO):
@@ -175,8 +176,35 @@ def _get_codex_help(command):
 
 
 def _codex_supports_flag(command, flag_name):
-    help_text = _get_codex_help(command)
-    return flag_name in help_text
+    cache_key = (command, flag_name)
+    cached = _CODEX_FLAG_SUPPORT.get(cache_key)
+    if cached is not None:
+        return cached
+
+    test_args = None
+    if flag_name == "--ask-for-approval":
+        test_args = ["exec", "--full-auto", "--ask-for-approval", "on-request", "--help"]
+    elif flag_name == "--sandbox":
+        test_args = ["exec", "--full-auto", "--sandbox", "workspace-write", "--help"]
+
+    supported = False
+    if test_args:
+        try:
+            result = subprocess.run(
+                [command] + test_args,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            supported = result.returncode == 0
+        except Exception:
+            supported = False
+    else:
+        help_text = _get_codex_help(command)
+        supported = flag_name in help_text
+
+    _CODEX_FLAG_SUPPORT[cache_key] = supported
+    return supported
 
 
 def _apply_codex_policy(command, args_template, role_config):
@@ -193,7 +221,7 @@ def _apply_codex_policy(command, args_template, role_config):
         sandbox = role_config.get("sandbox")
 
     if approval and "-a" not in args and "--ask-for-approval" not in args:
-        if _codex_supports_flag(command, "--ask-for-approval") or _codex_supports_flag(command, "-a"):
+        if _codex_supports_flag(command, "--ask-for-approval"):
             args.extend(["--ask-for-approval", str(approval)])
         else:
             logging.warning("⚠️ Codex CLI does not support approval flags; skipping 'approval' setting.")
