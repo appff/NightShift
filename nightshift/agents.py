@@ -80,7 +80,41 @@ class Brain:
         _link_auth_folders(self.brain_env_dir)
 
     def clean_ansi(self, text):
-        return ANSI_ESCAPE_PATTERN.sub("", text)
+        # Remove ANSI escape codes
+        text = ANSI_ESCAPE_PATTERN.sub("", text)
+        
+        # Filter out Codex/CLI noise
+        noise_patterns = [
+            r"^tokens used\s*$",
+            r"^\d{1,3}(?:,\d{3})*$",  # Numbers on their own line (often token counts)
+            r"^thinking\s*$",
+            r"^\*\*Preparing.*$",
+            r"^codex\s*$",
+            r"^mcp startup.*$",
+            r"^--------\s*$",
+            r"^workdir:.*$",
+            r"^model:.*$",
+            r"^provider:.*$",
+            r"^approval:.*$",
+            r"^sandbox:.*$",
+            r"^reasoning.*$",
+            r"^session id:.*$",
+            r"^OpenAI Codex.*$",
+        ]
+        
+        lines = text.splitlines()
+        cleaned_lines = []
+        for line in lines:
+            line_stripped = line.strip()
+            is_noise = False
+            for pattern in noise_patterns:
+                if re.match(pattern, line_stripped, re.IGNORECASE):
+                    is_noise = True
+                    break
+            if not is_noise:
+                cleaned_lines.append(line)
+                
+        return "\n".join(cleaned_lines).strip()
 
     def _log_brain_activity(self, message):
         """Logs detailed brain activity to a separate debug log file."""
