@@ -7,6 +7,6 @@ Run:
 python3 night_shift.py docs/hello_world/mission.yaml
 ```
 
-Expected outputs:
+Expected outputs (created automatically):
 - `docs/hello_world/output/hello.txt`
 - `docs/hello_world/output/README.md`

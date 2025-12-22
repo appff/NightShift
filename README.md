@@ -17,132 +17,182 @@ v4.3.1 is a major leap forward, moving away from API SDKs to **Pure CLI Tools** 
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Quick Start (30 seconds)
 
-### 1. Preparation
-Log in to your preferred CLI tools beforehand.
-```bash
-claude login  # or gemini login, codex login
-```
+1.  **Install & Login**: Ensure you have a CLI tool installed and logged in.
+    ```bash
+    claude login  # or gemini login
+    ```
+2.  **Create a Mission**:
+    ```bash
+    cp docs/templates/mission_docs.yaml mission.yaml
+    ```
+3.  **Run Night Shift**:
+    ```bash
+    python3 night_shift.py mission.yaml
+    ```
 
-### 2. Configuration (`settings.yaml`)
+That's it! See detailed configuration below.
+
+---
+
+## ⚙️ Configuration (`settings.yaml`)
+
 Configure your drivers and personas. See `docs/templates/` for examples.
+
+### Basic Configuration
 
 ```yaml
 brain:
   active_driver: "claude"
+  home_dir: ".night_shift/brain_env" # Isolated environment for Brain
+  link_auth: true # Link authentication from ~/.claude, ~/.gemini, etc.
   claude:
     command: "claude"
     args: ["-p", "{prompt}", "--dangerously-skip-permissions"]
-body: # or "hassan" for backward compatibility
+
+body: # Configuration key is "body" (Hassan is the nickname for the worker)
   active_driver: "claude"
+
 critic:
   active_driver: "gemini" # Use a different model for best QA results!
+  home_dir: ".night_shift/critic_env" # Isolated environment for Critic
+  link_auth: true
   strictness: "lenient" # lenient | balanced | strict
 
 safety:
   auto_rollback_on_failure: false
   create_backup_branch: true
-  auto_commit_and_push: false
+  auto_commit_and_push: false # Opt-in feature; leave false for manual review
 ```
-Note: `drivers:` is no longer required; driver configs sit directly under each block.
 
-Optional additions:
-- `tools`: shared tool registry inserted into Brain/Hassan prompts.
-- `planner.enabled`: auto-expands goals into a task list (approval optional).
-- `qa.run_tests`: runs tests after tasks or per task.
-- `memory.scope`: `project`, `global`, or `both`.
-- `parallel.max_workers` + `parallel.use_worktrees`: control parallel execution.
-- `context_reduction`: trims long history to reduce token usage.
+**Notes:**
+- `home_dir`: Creates an isolated environment directory for Brain/Critic sessions
+- `link_auth`: Automatically links authentication files from your home directory
+- `auto_commit_and_push`: Disabled by default for safety; enable only if you trust the autonomous workflow
 
-Notes:
-- `auto_commit_and_push` is opt-in; leave false for manual review.
-- `create_backup_branch` creates a backup branch without switching to it.
+### Full Settings Reference
 
-Full settings reference:
 ```yaml
 brain:
   active_driver: "claude" # claude | gemini | codex
   output_format: "text" # text | json
+  home_dir: ".night_shift/brain_env" # Isolated environment directory
+  link_auth: true # Link ~/.claude, ~/.gemini auth to isolated env
+
   claude:
     command: "claude"
     args: ["-p", "{prompt}"]
-    timeout: 300
-    retries: 0
-    retry_backoff: 1.5
-
-critic:
-  active_driver: "gemini"
-  active_drivers: ["gemini", "codex"] # optional multi-critic voting
-  voting: "all" # all | majority
-  strictness: "lenient" # lenient | balanced | strict
   gemini:
     command: "gemini"
     args: ["-p", "{prompt}"]
+  codex:
+    command: "codex"
+    args: ["exec", "--full-auto", "{prompt}"]
+
+critic:
+  active_driver: "gemini"
+  home_dir: ".night_shift/critic_env"
+  link_auth: true
+  strictness: "lenient" # lenient | balanced | strict
+
+  # Advanced: Multi-Critic Voting (requires multiple models)
+  active_drivers: ["gemini", "codex"] # Enable multi-critic consensus
+  voting: "all" # all = unanimous | majority = 50%+ agreement
+
+  gemini:
+    command: "gemini"
+    args: ["-p", "{prompt}"]
+  codex:
+    command: "codex"
+    args: ["exec", "--full-auto", "{prompt}"]
 
 body:
   active_driver: "claude"
   claude:
     command: "claude"
     args: ["--system-prompt-file", "{system_prompt_file}", "-p", "{query}"]
-    timeout: 0
-    retries: 0
-    retry_backoff: 1.5
+    env: {} # Optional environment variables
 
 safety:
-  auto_rollback_on_failure: false
-  create_backup_branch: false
-  auto_commit_and_push: false
-  require_approval_for_destructive: true
-  preview_changes: false
-  use_worktrees: false
+  auto_rollback_on_failure: false # Auto-rollback on task failure
+  create_backup_branch: false # Create backup branch before mission
+  auto_commit_and_push: false # Auto-commit and push after completion
+  require_approval_for_destructive: true # Prompt before rm -rf, git reset, etc.
+  preview_changes: false # Run tasks in worktree and preview before applying
+  use_worktrees: false # Use git worktrees for task isolation
 
 tools:
-  - "rg -n <pattern> <path>"
+  - "rg -n <pattern> <path>" # Shared tool registry for Brain/Hassan prompts
+  - "python3 night_shift.py --dry-run"
 
 planner:
-  enabled: false
-  require_approval: true
+  enabled: false # Auto-expand goals into detailed task lists
+  require_approval: true # Prompt before accepting planner output
 
 qa:
-  run_tests: false
-  test_on_each_task: true
-  test_command: "" # e.g. "pytest -q"
+  run_tests: false # Run tests after tasks
+  test_on_each_task: true # Run tests after each task (vs. only at end)
+  test_command: "" # e.g. "pytest -q" or "npm test"
 
 memory:
   scope: "project" # project | global | both
 
 parallel:
-  max_workers: 4
-  use_worktrees: false
+  max_workers: 4 # Maximum parallel Hassan workers
+  use_worktrees: false # Use git worktrees for parallel tasks
 
 context_reduction:
-  enabled: true
+  enabled: true # Trim long history to reduce tokens
   head_chars: 800
   tail_chars: 2000
 
 personas:
   architect: |
-    - ...
+    - Focus on high-level structure, scalability, and design patterns.
+    - Avoid quick hacks; prioritize maintainability.
+
+  troubleshooter: |
+    - Prioritize root cause analysis (RCA).
+    - Always analyze logs and tracebacks before proposing fixes.
+
+  documenter: |
+    - Write professional, clear, and concise technical documentation.
+    - Focus on the "Why" and "How to use" rather than just the "What".
+
+  general: |
+    - Act as a balanced, professional software engineer.
 
 persona_rules:
   - pattern: "docs|readme|document"
     persona: "documenter"
+    flags: "i" # Case-insensitive regex matching
+  - pattern: "bug|error|traceback|fix"
+    persona: "troubleshooter"
     flags: "i"
 ```
 
-### 3. Define Your Mission (`mission.yaml`)
+---
+
+## 📋 Define Your Mission (`mission.yaml`)
+
 ```yaml
 mission_name: "Example Mission"
+project_path: "."
+persona: "architect"
+parallel: false # Set to true for parallel task execution
+
 goal:
   - "Design a MessageBus class."
   - "Implement unit tests."
-persona: "architect"
-parallel: false # Set to true for SQUAD power
-```
-Note: `task` is still supported for backward compatibility, but `goal` is preferred.
 
-Full mission reference:
+constraints:
+  - "Use only standard libraries."
+```
+
+**Note**: `task` is still supported for backward compatibility, but `goal` is preferred.
+
+### Full Mission Reference
 ```yaml
 mission_name: "Example Mission"
 project_path: "."
@@ -164,12 +214,20 @@ constraints:
   - "Use only standard libraries."
 ```
 
-Reviewer-only mode (no execution):
+### Reviewer Mode
+
+Set `reviewer_mode: true` in `mission.yaml` or use the `--reviewer` flag to run Night Shift in **review-only mode**. The Brain will analyze your code and provide feedback **without executing any changes**.
+
 ```yaml
 reviewer_mode: true
+
+goal:
+  - "Review the security of the auth module."
+  - "Analyze performance bottlenecks in the API."
 ```
 
-Per-task persona (optional):
+### Per-Task Personas
+
 ```yaml
 goal:
   - task: "Design the architecture and modules."
@@ -178,7 +236,10 @@ goal:
     persona: "documenter"
 ```
 
-Automatic persona selection (optional, in settings.yaml):
+### Automatic Persona Selection
+
+Define patterns in `settings.yaml` to automatically select personas:
+
 ```yaml
 persona_rules:
   - pattern: "docs|readme|document"
@@ -189,44 +250,89 @@ persona_rules:
     flags: "i"
 ```
 
-### 4. Launch the Overlord
+---
+
+## 🏃 Launch the Overlord
 ```bash
 python3 night_shift.py mission.yaml
 ```
 
-Init is no longer supported. Use templates instead.
+**Note**: The `--init` command was removed in v4.3.0. Use the template files in `docs/templates/` to get started quickly instead.
 
-Common flags:
-- `--reviewer` review-only mode (no execution)
-- `--auto-approve-plan` auto-approve planner output without prompting
-- `--auto-approve` auto-approve destructive actions and preview changes
-- `--persona-map "pattern:persona"` quick persona rules (regex patterns)
-- `--log-level DEBUG` and `--log-dir logs` for debugging
-- `--dry-run` validate config files and exit
+### Common Flags
 
-Common workflows:
-- Planner with approval: set `planner.enabled: true` and `planner.require_approval: true`
-- Safety preview: set `safety.preview_changes: true` (runs tasks in worktrees, asks to apply changes)
-- Destructive action gate: keep `safety.require_approval_for_destructive: true`
-- Tests after each task: set `qa.run_tests: true` and `qa.test_on_each_task: true`
+- `--reviewer`: Review-only mode (no execution)
+- `--auto-approve-plan`: Auto-approve planner output without prompting
+- `--auto-approve`: Auto-approve destructive actions and preview changes
+- `--persona-map "pattern:persona"`: Quick persona rules (regex patterns)
+- `--log-level DEBUG`: Set logging verbosity (DEBUG, INFO, WARNING, ERROR)
+- `--log-dir logs`: Specify log directory
+- `--dry-run`: Validate config files and exit
 
-Templates & examples:
-- `docs/templates/` for common mission types
-- `docs/hello_world/` for a minimal working example
+### Common Workflows
+
+- **Planner with approval**: Set `planner.enabled: true` and `planner.require_approval: true`
+- **Safety preview**: Set `safety.preview_changes: true` (runs tasks in worktrees, asks to apply changes)
+- **Destructive action gate**: Keep `safety.require_approval_for_destructive: true`
+- **Tests after each task**: Set `qa.run_tests: true` and `qa.test_on_each_task: true`
+
+### Templates & Examples
+
+- `docs/templates/`: Common mission types (bugfix, refactor, documentation, subtasks)
+- `docs/hello_world/`: Minimal working example
 
 ---
 
-## 📂 The New Folder Structure
+## 📂 Folder Structure
 
 *   `night_shift.py`: The command center.
 *   `.night_shift/brain_env`: Brain's private quarters & isolated sessions.
+*   `.night_shift/critic_env`: Critic's isolated analysis environment.
 *   `.night_shift/memories.md`: The Brain's long-term memory vault.
 *   `.night_shift/squad/`: Temporary isolated workspaces for parallel tasks.
 *   `logs/`: Strategic and runtime logs.
 *   `logs/night_shift_summary_...`: JSON summary of tasks, personas, and timings.
 
-Optional:
-- `.night_shiftignore` to exclude directories from workspace cloning.
+**Optional:**
+- `.night_shiftignore`: Exclude directories from workspace cloning (similar to `.gitignore`)
+
+---
+
+## ❓ FAQ
+
+**Q: Do I need API keys?**
+A: No! Night Shift uses CLI tools that you log into separately (`claude login`, `gemini login`, etc.). No API keys needed.
+
+**Q: What's the difference between Brain and Hassan?**
+A: **Brain** = Strategic planner and director. **Hassan** = Code executor and worker.
+
+**Q: Can I use multiple AI models?**
+A: Yes! Use different models for Brain, Critic, and Hassan for best results. Example: Claude for Brain, Gemini for Critic.
+
+**Q: What is Multi-Critic Voting?**
+A: Enable `active_drivers: ["gemini", "codex"]` under `critic` to have multiple AI models review each task. Use `voting: "all"` for unanimous consensus or `voting: "majority"` for 50%+ agreement.
+
+**Q: How does parallel execution work?**
+A: Set `parallel: true` in your mission. Night Shift spawns multiple Hassan workers in isolated workspaces to execute independent tasks simultaneously.
+
+---
+
+## 🔧 Troubleshooting
+
+**"Command not found: claude"**
+→ Install the CLI tool and ensure it's in your system PATH. Try running `claude --version` manually.
+
+**"Quota exceeded" error**
+→ Night Shift automatically waits and retries when quotas are hit. You'll see a countdown timer.
+
+**"Git not initialized" error**
+→ Safety features require a Git repository. Run `git init` in your project root.
+
+**Authentication issues**
+→ Ensure you've logged in to the CLI tool (`claude login`) before running Night Shift. Set `link_auth: true` to share authentication with isolated environments.
+
+**"Uncommitted changes" warning during rollback**
+→ Night Shift automatically stashes uncommitted changes before rolling back. Your work is safe.
 
 ---
 
