@@ -60,6 +60,72 @@ Notes:
 - `auto_commit_and_push` is opt-in; leave false for manual review.
 - `create_backup_branch` creates a backup branch without switching to it.
 
+Full settings reference:
+```yaml
+brain:
+  active_driver: "claude" # claude | gemini | codex
+  output_format: "text" # text | json
+  claude:
+    command: "claude"
+    args: ["-p", "{prompt}"]
+    timeout: 300
+    retries: 0
+    retry_backoff: 1.5
+
+critic:
+  active_driver: "gemini"
+  active_drivers: ["gemini", "codex"] # optional multi-critic voting
+  voting: "all" # all | majority
+  gemini:
+    command: "gemini"
+    args: ["-p", "{prompt}"]
+
+body:
+  active_driver: "claude"
+  claude:
+    command: "claude"
+    args: ["--system-prompt-file", "{system_prompt_file}", "-p", "{query}"]
+    timeout: 0
+    retries: 0
+    retry_backoff: 1.5
+
+safety:
+  auto_rollback_on_failure: false
+  create_backup_branch: false
+  auto_commit_and_push: false
+  require_approval_for_destructive: true
+  preview_changes: false
+  use_worktrees: false
+
+tools:
+  - "rg -n <pattern> <path>"
+
+planner:
+  enabled: false
+  require_approval: true
+
+qa:
+  run_tests: false
+  test_on_each_task: true
+  test_command: "" # e.g. "pytest -q"
+
+memory:
+  scope: "project" # project | global | both
+
+parallel:
+  max_workers: 4
+  use_worktrees: false
+
+personas:
+  architect: |
+    - ...
+
+persona_rules:
+  - pattern: "docs|readme|document"
+    persona: "documenter"
+    flags: "i"
+```
+
 ### 3. Define Your Mission (`mission.yaml`)
 ```yaml
 mission_name: "Example Mission"
@@ -70,6 +136,28 @@ persona: "architect"
 parallel: false # Set to true for SQUAD power
 ```
 Note: `task` is still supported for backward compatibility, but `goal` is preferred.
+
+Full mission reference:
+```yaml
+mission_name: "Example Mission"
+project_path: "."
+persona: "general"
+parallel: false
+reviewer_mode: false
+
+goal:
+  - "Simple string task"
+  - task: "Task with persona"
+    persona: "architect"
+  - title: "Hierarchical Task"
+    persona: "documenter"
+    sub_tasks:
+      - "Sub task A"
+      - "Sub task B"
+
+constraints:
+  - "Use only standard libraries."
+```
 
 Reviewer-only mode (no execution):
 ```yaml
@@ -107,6 +195,12 @@ Common flags:
 - `--reviewer` review-only mode
 - `--persona-map "pattern:persona"` quick persona rules
 - `--log-level DEBUG` and `--log-dir logs`
+
+Common workflows:
+- Planner with approval: set `planner.enabled: true` and `planner.require_approval: true`
+- Safety preview: set `safety.preview_changes: true` (runs tasks in worktrees, asks to apply changes)
+- Destructive action gate: keep `safety.require_approval_for_destructive: true`
+- Tests after each task: set `qa.run_tests: true` and `qa.test_on_each_task: true`
 
 Templates & examples:
 - `docs/templates/` for common mission types
