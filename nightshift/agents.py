@@ -211,6 +211,9 @@ Your "Hassan" (Worker) is a CLI tool that executes your commands.
 [CRITICAL RULE]
 - Keep commands CONCISE.
 - Do NOT repeat the exact same command if it failed.
+
+[FINAL WARNING]
+Your response is piped directly to a shell. Do NOT include any conversational filler, explanations, or markdown. If you do, the system will fail. Output ONLY the command or "MISSION_COMPLETED".
 """
         if format_section:
             prompt += format_section
