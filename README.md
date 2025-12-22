@@ -29,7 +29,7 @@ claude login  # or gemini login, codex login
 ```
 
 ### 2. Configuration (`settings.yaml`)
-Configure your drivers and personas. See `settings.sample.yaml` for a full template.
+Configure your drivers and personas. See `docs/templates/` for examples.
 
 ```yaml
 brain:
@@ -101,10 +101,7 @@ persona_rules:
 python3 night_shift.py mission.yaml
 ```
 
-Init files quickly:
-```bash
-python3 night_shift.py --init
-```
+Init is no longer supported. Use templates instead.
 
 Common flags:
 - `--reviewer` review-only mode

@@ -1272,8 +1272,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Night Shift: Brain & Hassan")
     parser.add_argument("mission_file", nargs="?", default="mission.yaml")
     parser.add_argument("--dry-run", action="store_true", help="Validate config files and exit")
-    parser.add_argument("--init", action="store_true", help="Initialize settings.yaml and mission.yaml from samples")
-    parser.add_argument("--force", action="store_true", help="Overwrite existing files when using --init")
     parser.add_argument("--log-dir", default=LOG_DIR, help="Directory for log files")
     parser.add_argument("--log-level", default="INFO", help="Logging level (DEBUG, INFO, WARNING, ERROR)")
     parser.add_argument("--reviewer", action="store_true", help="Review-only mode (no execution)")
@@ -1281,17 +1279,6 @@ if __name__ == "__main__":
     parser.add_argument("--auto-approve", action="store_true", help="Auto-approve destructive actions and previews")
     parser.add_argument("--persona-map", action="append", default=[], help="Persona rule mapping: pattern:persona (regex)")
     args = parser.parse_args()
-    if args.init:
-        for src, dst in [("settings.sample.yaml", "settings.yaml"), ("mission.sample.yaml", "mission.yaml")]:
-            if not os.path.exists(src):
-                continue
-            if os.path.exists(dst) and not args.force:
-                print(f"{dst} exists. Use --force to overwrite.")
-                continue
-            shutil.copy2(src, dst)
-            print(f"Wrote {dst}")
-        sys.exit(0)
-
     persona_map = []
     for mapping in args.persona_map:
         if ":" in mapping:

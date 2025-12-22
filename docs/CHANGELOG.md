@@ -16,6 +16,7 @@ All notable changes to Night Shift will be documented in this file.
 - **QA**: Optional test enforcement per task or after mission completion.
 - **Observability**: JSON run summaries and configurable log level/dir.
 - **Docs**: Added mission templates and a hello world example.
+- **CLI**: Removed `--init`; use templates instead.
 
 ### Removed
 - **Dependencies**: Removed `pexpect` from `requirements.txt` (no longer used).
