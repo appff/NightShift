@@ -20,6 +20,8 @@ brain:
       - "exec"
       - "--full-auto"
       - "--search"
+      - "-a"
+      - "on-request"
       - "{query}"
   gemini:
     # Gemini CLI (Official/Community)
@@ -119,6 +121,9 @@ memory:
 parallel:
   max_workers: 4
   use_worktrees: false
+
+# Resume (optional)
+resume: true
 
 # Context reduction (optional)
 context_reduction:

@@ -144,6 +144,10 @@ def validate_settings_schema(settings):
         if "max_workers" in parallel and not isinstance(parallel.get("max_workers"), int):
             errors.append("'parallel.max_workers' must be an integer")
 
+    resume = settings.get("resume")
+    if resume is not None and not isinstance(resume, bool):
+        errors.append("'resume' must be a boolean")
+
     context_reduction = settings.get("context_reduction")
     if context_reduction is not None and not isinstance(context_reduction, dict):
         errors.append("'context_reduction' must be a dictionary")

@@ -36,6 +36,11 @@ That's it! See detailed configuration below.
 
 ---
 
+## 📚 Documentation
+
+- `docs/architecture.md` for system structure and data flow
+- `docs/features.md` for capability overview and key settings
+
 ## ⚙️ Configuration (`settings.yaml`)
 
 Configure your drivers and personas. See `docs/templates/` for examples.
@@ -149,6 +154,8 @@ context_reduction:
   enabled: true # Trim long history to reduce tokens
   head_chars: 800
   tail_chars: 2000
+
+resume: true # Resume unfinished missions after interruption
 
 personas:
   architect: |

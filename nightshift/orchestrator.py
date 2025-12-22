@@ -87,6 +87,8 @@ class NightShiftAgent:
         self.brain_output_format = (self.settings.get("brain") or {}).get("output_format", "text")
         self.task_summaries = []
         self.run_start_time = datetime.now()
+        self.resume_enabled = self.settings.get("resume", True)
+        self.state_file = os.path.join(self.mission_config.get("project_path", os.getcwd()), ".night_shift", "state.json")
 
     def _merge_dict(self, base, override):
         if not isinstance(base, dict) or not isinstance(override, dict):
@@ -103,6 +105,26 @@ class NightShiftAgent:
         for key in ["brain", "critic", "body", "hassan"]:
             if key in self.mission_config:
                 self.settings[key] = self._merge_dict(self.settings.get(key, {}), self.mission_config.get(key, {}))
+
+    def _load_state(self):
+        if not self.resume_enabled or not os.path.exists(self.state_file):
+            return {}
+        try:
+            with open(self.state_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            return data if isinstance(data, dict) else {}
+        except Exception:
+            return {}
+
+    def _save_state(self, state):
+        if not self.resume_enabled:
+            return
+        os.makedirs(os.path.dirname(self.state_file), exist_ok=True)
+        try:
+            with open(self.state_file, "w", encoding="utf-8") as f:
+                json.dump(state, f, indent=2)
+        except Exception:
+            pass
         self.context_reduction = self.settings.get("context_reduction", {})
 
     def _select_persona(self, task_text, override_persona=None):
@@ -460,6 +482,11 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                         verification = self.critic.evaluate(task_block, self._compact_history(task_history), last_output)
                     if verification.strip().upper() == "APPROVED":
                         logging.info(f"✅ Task {i} Verified and Completed!")
+                        state = self._load_state()
+                        completed = set(state.get("completed_indices", []))
+                        completed.add(i)
+                        state["completed_indices"] = sorted(completed)
+                        self._save_state(state)
                         break
                     logging.info(f"🕵️‍♂️ Critic Rejected Task {i}: {verification}")
                     task_history += (
@@ -518,6 +545,11 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                     "duration_seconds": (datetime.now() - task_start_time).total_seconds(),
                 }
             )
+            state = self._load_state()
+            completed = set(state.get("completed_indices", []))
+            completed.add(i)
+            state["completed_indices"] = sorted(completed)
+            self._save_state(state)
             task_completed = True
             return task_history
         finally:
@@ -574,6 +606,9 @@ You are a code reviewer. Provide a concise review plan and key changes you would
             else:
                 tasks = planned
 
+        state = self._load_state()
+        completed_indices = set(state.get("completed_indices", []))
+
         normalized_tasks = []
         for task_item in tasks:
             normalized = self._normalize_task_item(task_item)
@@ -606,6 +641,9 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                     self.conversation_history += res
             else:
                 for i, task_item in enumerate(normalized_tasks, 1):
+                    if i in completed_indices:
+                        logging.info(f"⏭️ Skipping completed task {i} (resume enabled).")
+                        continue
                     res = self._execute_single_task(i, task_item, normalized_tasks, constraints, safety_config, reviewer_mode)
                     self.conversation_history += res
 
@@ -640,6 +678,11 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                     logging.info("ℹ️ Auto commit/push disabled. Review and commit changes manually.")
             else:
                 logging.info(f"🏁 Parallel tasks finished. Check isolated workspaces in {SQUAD_WORKSPACE_DIR}")
+            if self.resume_enabled and os.path.exists(self.state_file):
+                try:
+                    os.remove(self.state_file)
+                except Exception:
+                    pass
         finally:
             self.hassan.cleanup()
             history_file = self.log_file_path.replace("night_shift_log", "night_shift_history")
