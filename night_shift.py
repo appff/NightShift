@@ -714,11 +714,12 @@ A worker (Hassan) has just completed a task. Your job is to verify if the work i
 {last_output[-MAX_CONTEXT_CHARS:]}
 
 [INSTRUCTIONS]
-1. Verify if ALL sub-tasks in the [TASK HIERARCHY TO REVIEW] are fulfilled.
-2. Check for code quality, logic errors, or missing requirements.
-3. If everything is perfect, reply exactly: "APPROVED".
-4. If there are issues, provide a CONCISE list of what needs to be fixed.
-5. Output ONLY "APPROVED" or your feedback.
+1. Verify if all key parts of the [TASK HIERARCHY TO REVIEW] are fulfilled.
+2. Focus on major issues (functional failures, missing core requirements).
+3. Ignore minor style nits or optional improvements.
+4. If everything is acceptable, reply exactly: "APPROVED".
+5. If there are blocking issues, provide a CONCISE list of fixes.
+6. Output ONLY "APPROVED" or your feedback.
 """
         responses = []
         approvals = 0
