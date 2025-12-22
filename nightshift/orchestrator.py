@@ -51,6 +51,7 @@ class NightShiftAgent:
         else:
             with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
                 self.settings = yaml.safe_load(f) or {}
+        self._apply_mission_overrides()
         validate_settings_schema(self.settings)
 
         memory_scope = (self.settings.get("memory") or {}).get("scope", "project")
@@ -85,6 +86,22 @@ class NightShiftAgent:
         self.brain_output_format = (self.settings.get("brain") or {}).get("output_format", "text")
         self.task_summaries = []
         self.run_start_time = datetime.now()
+
+    def _merge_dict(self, base, override):
+        if not isinstance(base, dict) or not isinstance(override, dict):
+            return override
+        merged = dict(base)
+        for key, value in override.items():
+            if isinstance(value, dict) and isinstance(merged.get(key), dict):
+                merged[key] = self._merge_dict(merged[key], value)
+            else:
+                merged[key] = value
+        return merged
+
+    def _apply_mission_overrides(self):
+        for key in ["brain", "critic", "body", "hassan"]:
+            if key in self.mission_config:
+                self.settings[key] = self._merge_dict(self.settings.get(key, {}), self.mission_config.get(key, {}))
         self.context_reduction = self.settings.get("context_reduction", {})
 
     def _select_persona(self, task_text, override_persona=None):

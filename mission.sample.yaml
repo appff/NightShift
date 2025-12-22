@@ -1,0 +1,19 @@
+mission_name: "Project-Specific Overrides Example"
+project_path: "."
+persona: "architect"
+parallel: false
+
+# Per-project overrides (optional)
+brain:
+  active_driver: "gemini"
+body:
+  active_driver: "claude"
+critic:
+  active_driver: "codex"
+
+goal:
+  - "Review the codebase and propose a refactor plan."
+  - "Implement the refactor with tests."
+
+constraints:
+  - "Keep changes minimal and well-tested."

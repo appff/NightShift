@@ -70,6 +70,7 @@ safety:
 - `home_dir`: Creates an isolated environment directory for Brain/Critic sessions
 - `link_auth`: Automatically links authentication files from your home directory
 - `auto_commit_and_push`: Disabled by default for safety; enable only if you trust the autonomous workflow
+- `context_reduction`: Trims long history to reduce token usage
 
 ### Full Settings Reference
 
@@ -172,6 +173,22 @@ persona_rules:
     flags: "i"
 ```
 
+Supported personas:
+- architect
+- troubleshooter
+- documenter
+- brainstorm
+- research
+- analyze
+- general
+- security
+- performance
+- testing
+- ops
+- researcher
+- refactor
+- ux_writer
+
 ---
 
 ## 📋 Define Your Mission (`mission.yaml`)
@@ -191,6 +208,18 @@ constraints:
 ```
 
 **Note**: `task` is still supported for backward compatibility, but `goal` is preferred.
+
+### Per-Project Overrides
+
+You can override `brain`, `body`, and `critic` per mission. If omitted, `settings.yaml` is used.
+```yaml
+brain:
+  active_driver: "gemini"
+body:
+  active_driver: "claude"
+critic:
+  active_driver: "codex"
+```
 
 ### Full Mission Reference
 ```yaml

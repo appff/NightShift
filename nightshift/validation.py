@@ -229,3 +229,7 @@ def validate_mission_schema(mission_config):
 
     if "reviewer_mode" in mission_config and not isinstance(mission_config.get("reviewer_mode"), bool):
         raise ValueError("'reviewer_mode' must be a boolean")
+
+    for key in ["brain", "critic", "body", "hassan"]:
+        if key in mission_config and not isinstance(mission_config.get(key), dict):
+            raise ValueError(f"'{key}' must be a dictionary when provided")
