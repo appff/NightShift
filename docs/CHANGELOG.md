@@ -4,6 +4,12 @@ All notable changes to Night Shift will be documented in this file.
 
 ## [Unreleased]
 
+## [4.3.1] - 2025-12-22
+
+### Changed
+- **Auth Handling**: Auto venv re-exec, auth file linking, and more robust home directory handling.
+- **Critic**: Strictness setting support and validation fixes.
+
 ## [4.3.0] - 2025-12-22
 
 ### Changed
