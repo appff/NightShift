@@ -181,7 +181,7 @@ class Brain:
         logging.debug(f"🧠 Brain Command: {' '.join(_redact_cmd(cmd_list))}")
 
         brain_env = os.environ.copy()
-        brain_env["HOME"] = self.brain_env_dir
+        # brain_env["HOME"] = self.brain_env_dir  <-- DISABLED: Inherit real HOME for auth
 
         attempt = 0
         while True:
