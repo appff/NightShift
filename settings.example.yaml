@@ -55,7 +55,7 @@ critic:
 
 body:
   # 작업을 수행할 주체(Worker/Hassan)를 선택합니다.
-  active_driver: "codex"
+  active_driver: "claude"
   claude:
     # Claude Code CLI (requires 'claude' in PATH)
     command: "claude"
