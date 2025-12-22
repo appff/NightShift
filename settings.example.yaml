@@ -18,8 +18,8 @@ brain:
     command: "codex"
     args:
       - "exec"
-      - "--dangerously-bypass-approvals-and-sandbox"
-      - "{query}"
+      - "--full-auto"
+      - "{prompt}"
   gemini:
     # Gemini CLI (Official/Community)
     command: "gemini"
@@ -51,7 +51,7 @@ critic:
     args:
       - "exec"
       - "--full-auto"
-      - "{query}"
+      - "{prompt}"
 
 body:
   # 작업을 수행할 주체(Worker/Hassan)를 선택합니다.
@@ -71,12 +71,18 @@ body:
       - "--allowedTools"
       - "Write"
     env: {}
+  gemini:
+    # Gemini CLI (Official/Community)
+    command: "gemini"
+    args:
+      - "-p"
+      - "{query}"
   codex:
     # OpenAI Codex CLI (@openai/codex)
     command: "codex"
     args:
       - "exec"
-      - "--full-auto"
+      - "--dangerously-bypass-approvals-and-sandbox"
       - "{query}"
 
 # Safety & Snapshot Settings
