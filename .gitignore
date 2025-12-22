@@ -10,6 +10,7 @@ __pycache__/
 
 # Logs and temporary files
 logs/
+jobs/
 *.log
 .night_shift_system_prompt.txt
 
