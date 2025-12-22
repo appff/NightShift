@@ -88,7 +88,7 @@ def _extract_driver_block(block):
     if isinstance(drivers, dict):
         return active, drivers
     # Flat schema: treat all non-reserved keys as driver definitions.
-    reserved_keys = {"active_driver", "active_drivers", "voting", "timeout", "retries", "retry_backoff", "output_format", "home_dir", "link_auth"}
+    reserved_keys = {"active_driver", "active_drivers", "voting", "timeout", "retries", "retry_backoff", "output_format", "home_dir", "link_auth", "strictness"}
     flat_drivers = {k: v for k, v in block.items() if k not in reserved_keys}
     return active, flat_drivers
 
