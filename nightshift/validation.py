@@ -141,6 +141,17 @@ def validate_settings_schema(settings):
         if "max_workers" in parallel and not isinstance(parallel.get("max_workers"), int):
             errors.append("'parallel.max_workers' must be an integer")
 
+    context_reduction = settings.get("context_reduction")
+    if context_reduction is not None and not isinstance(context_reduction, dict):
+        errors.append("'context_reduction' must be a dictionary")
+    elif isinstance(context_reduction, dict):
+        if "enabled" in context_reduction and not isinstance(context_reduction.get("enabled"), bool):
+            errors.append("'context_reduction.enabled' must be a boolean")
+        if "head_chars" in context_reduction and not isinstance(context_reduction.get("head_chars"), int):
+            errors.append("'context_reduction.head_chars' must be an integer")
+        if "tail_chars" in context_reduction and not isinstance(context_reduction.get("tail_chars"), int):
+            errors.append("'context_reduction.tail_chars' must be an integer")
+
     persona_rules = settings.get("persona_rules")
     if persona_rules is not None:
         if not isinstance(persona_rules, list):

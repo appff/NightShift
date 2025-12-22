@@ -85,6 +85,7 @@ class NightShiftAgent:
         self.brain_output_format = (self.settings.get("brain") or {}).get("output_format", "text")
         self.task_summaries = []
         self.run_start_time = datetime.now()
+        self.context_reduction = self.settings.get("context_reduction", {})
 
     def _select_persona(self, task_text, override_persona=None):
         if override_persona:
@@ -112,6 +113,21 @@ class NightShiftAgent:
             r"\breboot\b",
         ]
         return any(re.search(pat, command, re.IGNORECASE) for pat in destructive_patterns)
+
+    def _compact_history(self, history):
+        if not self.context_reduction.get("enabled"):
+            return history
+        head_chars = self.context_reduction.get("head_chars", 800)
+        tail_chars = self.context_reduction.get("tail_chars", 2000)
+        if not isinstance(head_chars, int) or head_chars < 0:
+            head_chars = 800
+        if not isinstance(tail_chars, int) or tail_chars < 0:
+            tail_chars = 2000
+        if len(history) <= (head_chars + tail_chars):
+            return history
+        head = history[:head_chars].rstrip()
+        tail = history[-tail_chars:].lstrip()
+        return f"{head}\n\n...[context trimmed]...\n\n{tail}"
 
     def _plan_tasks(self, raw_goal, constraints):
         planner_config = self.settings.get("planner", {})
@@ -384,7 +400,7 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                     task_block,
                     str([t.get("text", t) if isinstance(t, dict) else t for t in all_tasks]),
                     constraints,
-                    task_history,
+                    self._compact_history(task_history),
                     last_output,
                     persona_guidelines,
                     self.past_memories,
@@ -416,7 +432,7 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                                 if self.hassan.last_returncode != 0:
                                     last_output = f"Tests failed: {test_output}"
                                     continue
-                    verification = self.critic.evaluate(task_block, task_history, last_output)
+                    verification = self.critic.evaluate(task_block, self._compact_history(task_history), last_output)
                     if verification.strip().upper() == "APPROVED":
                         logging.info(f"✅ Task {i} Verified and Completed!")
                         break

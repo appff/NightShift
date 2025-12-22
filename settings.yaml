@@ -111,6 +111,12 @@ parallel:
   max_workers: 4
   use_worktrees: false
 
+# Context reduction (optional)
+context_reduction:
+  enabled: true
+  head_chars: 800
+  tail_chars: 2000
+
 # 페르소나 정의: Brain과 Hassan이 공유할 전문적 가이드라인
 personas:
   architect: |
