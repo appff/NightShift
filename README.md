@@ -95,7 +95,7 @@ brain:
     args: ["-p", "{prompt}"]
   codex:
     command: "codex"
-    args: ["exec", "--full-auto", "{prompt}"]
+    args: ["exec", "--full-auto", "--search", "-a", "always", "{query}"]
 
 critic:
   active_driver: "gemini"
@@ -121,6 +121,9 @@ body:
     command: "claude"
     args: ["--system-prompt-file", "{system_prompt_file}", "-p", "{query}"]
     env: {} # Optional environment variables
+  codex:
+    command: "codex"
+    args: ["exec", "--full-auto", "--search", "-a", "always", "{query}"]
 
 safety:
   auto_rollback_on_failure: false # Auto-rollback on task failure

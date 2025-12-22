@@ -13,7 +13,10 @@ All notable changes to Night Shift will be documented in this file.
 - **Critic Toggle**: Explicit `critic.enabled` flag with disabled logging.
 - **Persona Names**: Renamed `documenter` to `document` and `troubleshooter` to `troubleshoot`.
 - **Local Checks**: Read-only validation commands run locally instead of via Hassan.
-- **Codex Search**: Codex body now uses `--search -a on-request`.
+- **Codex Search**: Codex defaults to `--search -a always` for automatic approval.
+
+### Fixed
+- **Context Reduction**: Initialize `context_reduction` before history compaction.
 
 ## [4.3.1] - 2025-12-22
 
