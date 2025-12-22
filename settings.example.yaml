@@ -84,9 +84,14 @@ body:
   gemini:
     # Gemini CLI (Official/Community)
     command: "gemini"
+    # NOTE: The --enable-tools flag is a placeholder. 
+    # Please check your Gemini CLI's documentation for the correct flag 
+    # to enable 'write_file' and 'run_shell_command' tools.
     args:
       - "-p"
       - "{query}"
+      - "--enable-tools"
+      - "write_file,run_shell_command"
   codex:
     # OpenAI Codex CLI (@openai/codex)
     command: "codex"
