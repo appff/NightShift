@@ -1,8 +1,8 @@
-# 🌙 Night Shift: The Autonomous Overlord (v4.3.1)
+# 🌙 Night Shift: The Autonomous Overlord (v4.4)
 
 **Night Shift** is an **Autonomous Agent Orchestrator** where the **Brain (Director)** and **Hassan (Worker)** collaborate to finish your projects while you're away. 
 
-v4.3.1 is a major leap forward, moving away from API SDKs to **Pure CLI Tools** and introducing advanced agentic features like Cross-verification, Long-term Memory, and Parallel Execution.
+v4.4 is a major leap forward, moving away from API SDKs to **Pure CLI Tools** and introducing advanced agentic features like Cross-verification, Long-term Memory, and Parallel Execution.
 
 ---
 
