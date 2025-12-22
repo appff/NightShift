@@ -53,6 +53,7 @@ Optional additions:
 - `qa.run_tests`: runs tests after tasks or per task.
 - `memory.scope`: `project`, `global`, or `both`.
 - `parallel.max_workers` + `parallel.use_worktrees`: control parallel execution.
+- `context_reduction`: trims long history to reduce token usage.
 
 Notes:
 - `auto_commit_and_push` is opt-in; leave false for manual review.
@@ -114,6 +115,11 @@ memory:
 parallel:
   max_workers: 4
   use_worktrees: false
+
+context_reduction:
+  enabled: true
+  head_chars: 800
+  tail_chars: 2000
 
 personas:
   architect: |
