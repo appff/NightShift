@@ -3,19 +3,20 @@ project_path: "."
 parallel: false
 persona: "architect"
 
-# [NEW] Hierarchical Task Structure
-task:
+# Hierarchical Task Structure (supports goal list items as objects)
+goal:
   - title: "Core Logic Refactoring"
     sub_tasks:
       - "Identify long functions in night_shift.py"
       - "Extract task execution logic into a separate class or method"
       - "Ensure proper error handling during extraction"
-  
+
   - title: "Documentation Update"
+    persona: "documenter"
     sub_tasks:
-      - "Update README.md with the new 'task' schema"
+      - "Update README.md with the new 'goal' schema"
       - "Translate any remaining Korean comments to English"
-  
+
   - title: "Cleanup"
     sub_tasks:
       - "Remove obsolete goal-based code paths"

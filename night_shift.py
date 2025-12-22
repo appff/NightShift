@@ -129,24 +129,59 @@ def validate_settings_schema(settings):
             if not isinstance(value, str):
                 errors.append(f"'personas.{name}' must be a string")
 
+    persona_rules = settings.get("persona_rules")
+    if persona_rules is not None:
+        if not isinstance(persona_rules, list):
+            errors.append("'persona_rules' must be a list of rules")
+        else:
+            for idx, rule in enumerate(persona_rules):
+                if not isinstance(rule, dict):
+                    errors.append(f"'persona_rules[{idx}]' must be a dictionary")
+                    continue
+                pattern = rule.get("pattern")
+                persona = rule.get("persona")
+                flags = rule.get("flags")
+                if not isinstance(pattern, str) or not pattern.strip():
+                    errors.append(f"'persona_rules[{idx}].pattern' must be a non-empty string")
+                if not isinstance(persona, str) or not persona.strip():
+                    errors.append(f"'persona_rules[{idx}].persona' must be a non-empty string")
+                if flags is not None and not isinstance(flags, str):
+                    errors.append(f"'persona_rules[{idx}].flags' must be a string")
+
     if errors:
         raise ValueError("Settings validation errors:\n- " + "\n- ".join(errors))
     
 def validate_mission_schema(mission_config):
     if not isinstance(mission_config, dict):
         raise ValueError("Mission must be a dictionary")
-    if 'goal' not in mission_config or not mission_config['goal']:
+    has_goal = bool(mission_config.get('goal'))
+    has_task = bool(mission_config.get('task'))
+    if not has_goal and not has_task:
         raise ValueError("Mission must have a 'goal'")
 
-    goal = mission_config['goal']
+    goal = mission_config.get('goal') or mission_config.get('task')
     if not isinstance(goal, (str, list)):
-        raise ValueError("'goal' must be a string or a list of strings")
+        raise ValueError("'goal' must be a string or a list of strings/objects")
 
     if isinstance(goal, list):
-        if not all(isinstance(item, str) for item in goal):
-            raise ValueError("All items in 'goal' list must be strings")
         if len(goal) == 0:
             raise ValueError("'goal' list cannot be empty")
+        for idx, item in enumerate(goal):
+            if isinstance(item, str):
+                continue
+            if isinstance(item, dict):
+                task_text = item.get("task") or item.get("goal") or item.get("title")
+                if not isinstance(task_text, str) or not task_text.strip():
+                    raise ValueError(f"'goal[{idx}]' must include a non-empty 'task' or 'title' string")
+                persona = item.get("persona")
+                if persona is not None and not isinstance(persona, str):
+                    raise ValueError(f"'goal[{idx}].persona' must be a string")
+                sub_tasks = item.get("sub_tasks")
+                if sub_tasks is not None:
+                    if not isinstance(sub_tasks, list) or not all(isinstance(st, str) for st in sub_tasks):
+                        raise ValueError(f"'goal[{idx}].sub_tasks' must be a list of strings")
+                continue
+            raise ValueError("'goal' list items must be strings or objects with 'task'")
 
     if "project_path" in mission_config:
         project_path = mission_config.get("project_path")
@@ -503,15 +538,31 @@ class NightShiftAgent:
         
         # Load Persona Guidelines
         self.personas = self.settings.get('personas', {})
-        self.active_persona_name = self.mission_config.get('persona', 'general')
-        self.active_persona_guidelines = self.personas.get(self.active_persona_name, "")
-        
-        if self.active_persona_guidelines:
-            logging.info(f"🎭 Active Persona: [{self.active_persona_name.upper()}]")
+        self.default_persona_name = self.mission_config.get('persona', 'general')
+        self.default_persona_guidelines = self.personas.get(self.default_persona_name, "")
+        self.persona_rules = self.settings.get("persona_rules", [])
+
+        if self.default_persona_guidelines:
+            logging.info(f"🎭 Default Persona: [{self.default_persona_name.upper()}]")
 
         self.conversation_history = ""
         self.last_hassan_query = ""
         self.last_hassan_output = ""
+
+    def _select_persona(self, task_text, override_persona=None):
+        if override_persona:
+            return override_persona, self.personas.get(override_persona, "")
+        for rule in self.persona_rules:
+            try:
+                flags = 0
+                if isinstance(rule.get("flags"), str) and "i" in rule.get("flags").lower():
+                    flags |= re.IGNORECASE
+                if re.search(rule.get("pattern", ""), task_text, flags=flags):
+                    persona_name = rule.get("persona")
+                    return persona_name, self.personas.get(persona_name, "")
+            except re.error:
+                continue
+        return self.default_persona_name, self.default_persona_guidelines
 
     def _handle_quota_limit(self, error_message):
         try:
@@ -576,13 +627,13 @@ class NightShiftAgent:
             logging.error(f"❌ Rollback failed: {e}")
 
     def _format_task_block(self, task_item):
-        """Formats a task object (with title and sub_tasks) into a readable block."""
+        """Formats a task object (with title/task and sub_tasks) into a readable block."""
         if isinstance(task_item, str):
             return f"Task: {task_item}"
         
-        title = task_item.get('title', 'Untitled Task')
-        sub_tasks = task_item.get('sub_tasks', [])
-        
+        title = task_item.get('task') or task_item.get('goal') or task_item.get('title', 'Untitled Task')
+        sub_tasks = task_item.get('sub_tasks', []) or []
+
         block = f"MAIN TASK: {title}\n"
         if sub_tasks:
             block += "SUB-TASKS:\n"
@@ -590,11 +641,24 @@ class NightShiftAgent:
                 block += f"  - {sub}\n"
         return block
 
+    def _normalize_task_item(self, task_item):
+        if isinstance(task_item, str):
+            return {"text": f"Task: {task_item}", "persona": None}
+        if isinstance(task_item, dict):
+            text = task_item.get("task") or task_item.get("goal") or task_item.get("title")
+            if not text:
+                text = "Untitled Task"
+            if task_item.get("sub_tasks"):
+                block = self._format_task_block(task_item)
+                return {"text": block, "persona": task_item.get("persona")}
+            return {"text": text, "persona": task_item.get("persona")}
+        return {"text": str(task_item), "persona": None}
+
     def _execute_single_task(self, i, task_item, all_tasks, constraints, safety_config):
         """Executes a single task item (supports strings or dicts with sub_tasks)."""
         # Task-level checkpoint
         task_start_commit = self._get_git_head()
-        task_block = self._format_task_block(task_item)
+        task_block = task_item.get("text") if isinstance(task_item, dict) else self._format_task_block(task_item)
         
         # Isolated workspace for parallel execution
         is_parallel = self.mission_config.get('parallel', False)
@@ -614,9 +678,13 @@ class NightShiftAgent:
                 if os.path.isdir(s): shutil.copytree(s, d)
                 else: shutil.copy2(s, d)
         
-        logging.info(f"\n{'='*60}\n🚀 STARTING TASK {i} (Persona: {self.active_persona_name})\n{task_block}\n{'='*60}\n")
+        task_text = task_item.get("text", task_block) if isinstance(task_item, dict) else task_block
+        persona_name = task_item.get("persona_name") if isinstance(task_item, dict) else self.default_persona_name
+        persona_guidelines = task_item.get("persona_guidelines") if isinstance(task_item, dict) else self.default_persona_guidelines
+
+        logging.info(f"\n{'='*60}\n🚀 STARTING TASK {i} (Persona: {persona_name})\n{task_block}\n{'='*60}\n")
         
-        self.hassan.prepare(current_task_text=task_block, persona_guidelines=self.active_persona_guidelines)
+        self.hassan.prepare(current_task_text=task_block, persona_guidelines=persona_guidelines)
         initial_query = f"Start Task {i}: {task_block}"
         
         # Note: If parallel, hassan needs to know the correct work_dir
@@ -633,12 +701,12 @@ class NightShiftAgent:
                     self._handle_quota_limit(last_output)
                 
                 next_action = self.brain.think(
-                    task_block, 
-                    str(all_tasks), 
-                    constraints, 
-                    task_history, 
-                    last_output, 
-                    self.active_persona_guidelines,
+                    task_block,
+                    str([t.get("text", t) if isinstance(t, dict) else t for t in all_tasks]),
+                    constraints,
+                    task_history,
+                    last_output,
+                    persona_guidelines,
                     self.past_memories
                 )
                 task_history += f"\n--- 🧠 DIRECTOR DECISION ---\n{next_action}\n"
@@ -675,7 +743,7 @@ class NightShiftAgent:
             self.hassan.mission_config['project_path'] = orig_path
 
     def start(self):
-        logging.info(f"🌙 Night Shift (v4.2) Starting with persona: {self.active_persona_name}")
+        logging.info(f"🌙 Night Shift (v4.2) Starting with default persona: {self.default_persona_name}")
         
         safety_config = self.settings.get('safety', {})
         mission_start_commit = self._get_git_head()
@@ -685,27 +753,38 @@ class NightShiftAgent:
             subprocess.run(["git", "branch", branch_name, mission_start_commit], cwd=self.mission_config.get('project_path', os.getcwd()))
             logging.info(f"🛡️ Created backup branch (no checkout): {branch_name}")
 
-        tasks = self.mission_config.get('task', [])
+        raw_tasks = self.mission_config.get('goal')
+        if raw_tasks is None:
+            raw_tasks = self.mission_config.get('task', [])
+        tasks = raw_tasks if isinstance(raw_tasks, list) else [raw_tasks]
         constraints = self.mission_config.get('constraints', [])
         is_parallel = self.mission_config.get('parallel', False)
+
+        normalized_tasks = []
+        for task_item in tasks:
+            normalized = self._normalize_task_item(task_item)
+            persona_name, persona_guidelines = self._select_persona(normalized["text"], normalized.get("persona"))
+            normalized["persona_name"] = persona_name
+            normalized["persona_guidelines"] = persona_guidelines
+            normalized_tasks.append(normalized)
         
-        logging.info(f"📋 Mission loaded with {len(tasks)} task(s). Mode: {'PARALLEL' if is_parallel else 'SEQUENTIAL'}")
+        logging.info(f"📋 Mission loaded with {len(normalized_tasks)} task(s). Mode: {'PARALLEL' if is_parallel else 'SEQUENTIAL'}")
         
         try:
             if is_parallel:
                 if os.path.exists(SQUAD_WORKSPACE_DIR): shutil.rmtree(SQUAD_WORKSPACE_DIR)
-                with ThreadPoolExecutor(max_workers=len(tasks)) as executor:
-                    results = list(executor.map(lambda x: self._execute_single_task(x[0], x[1], tasks, constraints, safety_config), enumerate(tasks, 1)))
+                with ThreadPoolExecutor(max_workers=len(normalized_tasks)) as executor:
+                    results = list(executor.map(lambda x: self._execute_single_task(x[0], x[1], normalized_tasks, constraints, safety_config), enumerate(normalized_tasks, 1)))
                 for res in results:
                     self.conversation_history += res
             else:
-                for i, task_item in enumerate(tasks, 1):
-                    res = self._execute_single_task(i, task_item, tasks, constraints, safety_config)
+                for i, task_item in enumerate(normalized_tasks, 1):
+                    res = self._execute_single_task(i, task_item, normalized_tasks, constraints, safety_config)
                     self.conversation_history += res
 
             # --- Mission Reflection ---
             logging.info("🧠 Reflecting on mission to store memories...")
-            reflection_prompt = f"Based on this mission: {str(tasks)}, provide 2-3 concise 'Lessons Learned' for future similar tasks. Output only the bullets."
+            reflection_prompt = f"Based on this mission: {str([t.get('text', t) if isinstance(t, dict) else t for t in normalized_tasks])}, provide 2-3 concise 'Lessons Learned' for future similar tasks. Output only the bullets."
             insights = self.brain._run_cli_command(reflection_prompt)
             if not insights.startswith("MISSION_FAILED"):
                 self.memory_manager.save_memory(insights)

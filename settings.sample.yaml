@@ -107,3 +107,13 @@ personas:
   general: |
     - Act as a balanced, professional software engineer.
     - Focus on delivering functional, clean, and tested code.
+
+# Optional: automatic persona selection rules (first match wins).
+# flags: "i" enables case-insensitive matching.
+persona_rules:
+  - pattern: "docs|readme|document"
+    persona: "documenter"
+    flags: "i"
+  - pattern: "bug|error|traceback|fix"
+    persona: "troubleshooter"
+    flags: "i"

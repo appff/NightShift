@@ -58,6 +58,27 @@ goal:
 persona: "architect"
 parallel: false # Set to true for SQUAD power
 ```
+Note: `task` is still supported for backward compatibility, but `goal` is preferred.
+
+Per-task persona (optional):
+```yaml
+goal:
+  - task: "Design the architecture and modules."
+    persona: "architect"
+  - task: "Write README and usage docs."
+    persona: "documenter"
+```
+
+Automatic persona selection (optional, in settings.yaml):
+```yaml
+persona_rules:
+  - pattern: "docs|readme|document"
+    persona: "documenter"
+    flags: "i"
+  - pattern: "bug|error|fix"
+    persona: "troubleshooter"
+    flags: "i"
+```
 
 ### 4. Launch the Overlord
 ```bash
