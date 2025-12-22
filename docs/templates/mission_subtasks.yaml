@@ -11,7 +11,7 @@ goal:
       - "Ensure error handling is preserved"
 
   - title: "Documentation Update"
-    persona: "documenter"
+    persona: "document"
     sub_tasks:
       - "Update README with new config examples"
       - "Add notes about reviewer mode and planner"

@@ -19,7 +19,8 @@ brain:
     args:
       - "exec"
       - "--full-auto"
-      - "{prompt}"
+      - "--search"
+      - "{query}"
   gemini:
     # Gemini CLI (Official/Community)
     command: "gemini"
@@ -51,11 +52,11 @@ critic:
     args:
       - "exec"
       - "--full-auto"
-      - "{prompt}"
+      - "{query}"
 
 body:
   # 작업을 수행할 주체(Worker/Hassan)를 선택합니다.
-  active_driver: "claude"
+  active_driver: "codex"
   claude:
     # Claude Code CLI (requires 'claude' in PATH)
     command: "claude"
@@ -71,6 +72,13 @@ body:
       - "--allowedTools"
       - "Write"
     env: {}
+  codex:
+    # OpenAI Codex CLI (@openai/codex)
+    command: "codex"
+    args:
+      - "exec"
+      - "--full-auto"
+      - "{query}"
 
 # Safety & Snapshot Settings
 safety:
@@ -126,13 +134,13 @@ personas:
     - Ensure all components are modular and well-interfaced.
     - Prefer clear boundaries, minimal coupling, and stable interfaces.
 
-  troubleshooter: |
+  troubleshoot: |
     - Prioritize root cause analysis (RCA).
     - Always analyze logs, tracebacks, and environment state before proposing a fix.
     - Explain the logic behind the fix and verify it with tests.
     - Prefer minimal, targeted changes with evidence-backed reasoning.
 
-  documenter: |
+  document: |
     - Write professional, clear, and concise technical documentation.
     - Ensure READMEs, API docs, and code comments follow standard conventions.
     - Focus on the "Why" and "How to use" rather than just the "What".
@@ -206,8 +214,8 @@ personas:
 # flags: "i" enables case-insensitive matching.
 persona_rules:
   - pattern: "docs|readme|document"
-    persona: "documenter"
+    persona: "document"
     flags: "i"
   - pattern: "bug|error|traceback|fix"
-    persona: "troubleshooter"
+    persona: "troubleshoot"
     flags: "i"

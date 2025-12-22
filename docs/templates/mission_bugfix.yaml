@@ -1,6 +1,6 @@
 mission_name: "Bugfix & RCA"
 project_path: "."
-persona: "troubleshooter"
+persona: "troubleshoot"
 parallel: false
 
 goal:

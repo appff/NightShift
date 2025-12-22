@@ -1,6 +1,6 @@
 mission_name: "Documentation Update"
 project_path: "."
-persona: "documenter"
+persona: "document"
 parallel: false
 
 goal:

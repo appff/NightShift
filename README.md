@@ -155,11 +155,11 @@ personas:
     - Focus on high-level structure, scalability, and design patterns.
     - Avoid quick hacks; prioritize maintainability.
 
-  troubleshooter: |
+  troubleshoot: |
     - Prioritize root cause analysis (RCA).
     - Always analyze logs and tracebacks before proposing fixes.
 
-  documenter: |
+  document: |
     - Write professional, clear, and concise technical documentation.
     - Focus on the "Why" and "How to use" rather than just the "What".
 
@@ -168,17 +168,17 @@ personas:
 
 persona_rules:
   - pattern: "docs|readme|document"
-    persona: "documenter"
+    persona: "document"
     flags: "i" # Case-insensitive regex matching
   - pattern: "bug|error|traceback|fix"
-    persona: "troubleshooter"
+    persona: "troubleshoot"
     flags: "i"
 ```
 
 Supported personas:
 - architect
-- troubleshooter
-- documenter
+- troubleshoot
+- document
 - brainstorm
 - research
 - analyze
@@ -236,7 +236,7 @@ goal:
   - task: "Task with persona"
     persona: "architect"
   - title: "Hierarchical Task"
-    persona: "documenter"
+    persona: "document"
     sub_tasks:
       - "Sub task A"
       - "Sub task B"
@@ -264,7 +264,7 @@ goal:
   - task: "Design the architecture and modules."
     persona: "architect"
   - task: "Write README and usage docs."
-    persona: "documenter"
+    persona: "document"
 ```
 
 ### Automatic Persona Selection
@@ -274,10 +274,10 @@ Define patterns in `settings.yaml` to automatically select personas:
 ```yaml
 persona_rules:
   - pattern: "docs|readme|document"
-    persona: "documenter"
+    persona: "document"
     flags: "i"
   - pattern: "bug|error|fix"
-    persona: "troubleshooter"
+    persona: "troubleshoot"
     flags: "i"
 ```
 
