@@ -8,6 +8,11 @@ brain:
   active_driver: "gemini"
 body:
   active_driver: "claude"
+  codex:
+    args:
+      - "exec"
+      - "--dangerously-bypass-approvals-and-sandbox"
+      - "{query}"
 critic:
   active_driver: "codex"
 
