@@ -29,7 +29,7 @@ All notable changes to Night Shift will be documented in this file.
 ### Removed
 - **Dependencies**: Removed `pexpect` from `requirements.txt` (no longer used).
 
-## [4.2.0] - 2024-12-19
+## [4.2.0] - 2025-12-19
 
 ### 🚀 Pure CLI & Shadow Workspace (Current)
 

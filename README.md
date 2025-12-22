@@ -1,22 +1,19 @@
-# 🌙 Night Shift: The Autonomous Overlord (v4.2)
+# 🌙 Night Shift: The Autonomous Overlord (v4.3.1)
 
 **Night Shift** is an **Autonomous Agent Orchestrator** where the **Brain (Director)** and **Hassan (Worker)** collaborate to finish your projects while you're away. 
 
-v4.2 is a major leap forward, moving away from API SDKs to **Pure CLI Tools** and introducing advanced agentic features like Cross-verification, Long-term Memory, and Parallel Execution.
+v4.3.1 is a major leap forward, moving away from API SDKs to **Pure CLI Tools** and introducing advanced agentic features like Cross-verification, Long-term Memory, and Parallel Execution.
 
 ---
 
-## ✨ Why Night Shift? (Advanced Features)
+## ✨ Why Night Shift?
 
-*   **🧠 Pure CLI Brain (Director)**: No more API SDKs. Night Shift uses your installed `claude`, `gemini`, or `codex` CLIs directly as its "intellect."
-*   **🏘️ Brain's Own Room (Shadow Workspace)**: The Brain thinks inside its own private sanctuary (`.night_shift/brain_env`). Your actual workspace and the Brain's internal monologues never mix.
-*   **🦾 The Hassan (Worker)**: World-class execution using CLI drivers like `Claude Code` to modify code and run tests.
-*   **🕵️‍♂️ The Critic (Dual-Brain QA)**: Every completed task is cross-verified by a separate AI persona (the Critic). If it's not perfect, Hassan goes back to work.
-*   **📚 Memories of the Night**: Brain now stores "Lessons Learned" in `.night_shift/memories.md` after every mission, ensuring it avoids past mistakes and gets smarter over time.
-*   **⚡ The Squad (Parallel Mode)**: Need speed? Enable `parallel: true` in your mission to spawn multiple Hassans in isolated workspaces to tackle independent goals simultaneously.
-*   **⏪ Safety Net (Auto-Rollback)**: Before every task, Night Shift creates a Git checkpoint. If a task fails, it automatically rolls back to a clean state.
-*   **🎭 Dynamic Personas**: Switch between **Architect, Troubleshooter, Brainstormer, Researcher, or Documenter**. Both the Brain and Hassan adopt the same professional identity for maximum synergy.
-*   **⏳ The Patient Waiter**: Automatically handles quota limits with a live countdown—it waits persistently until the API resets.
+*   **🧠 Pure CLI Brain**: Uses your installed `claude`, `gemini`, or `codex` CLIs directly—no API SDKs required.
+*   **🕵️‍♂️ Dual-Brain QA**: Every task is cross-verified by the Critic (a separate AI persona). If imperfect, Hassan iterates automatically.
+*   **📚 Long-Term Memory**: Stores lessons learned in `.night_shift/memories.md` to avoid repeating past mistakes across missions.
+*   **⚡ Parallel Execution**: Enable `parallel: true` to spawn multiple Hassans in isolated workspaces for simultaneous task completion.
+*   **⏪ Safety Net**: Automatic Git checkpoints before each task with auto-rollback on failure.
+*   **🎭 Dynamic Personas**: Architect, Troubleshooter, Documenter modes—synchronized across Brain and Hassan for consistent execution.
 
 ---
 
@@ -194,9 +191,12 @@ python3 night_shift.py mission.yaml
 Init is no longer supported. Use templates instead.
 
 Common flags:
-- `--reviewer` review-only mode
-- `--persona-map "pattern:persona"` quick persona rules
-- `--log-level DEBUG` and `--log-dir logs`
+- `--reviewer` review-only mode (no execution)
+- `--auto-approve-plan` auto-approve planner output without prompting
+- `--auto-approve` auto-approve destructive actions and preview changes
+- `--persona-map "pattern:persona"` quick persona rules (regex patterns)
+- `--log-level DEBUG` and `--log-dir logs` for debugging
+- `--dry-run` validate config files and exit
 
 Common workflows:
 - Planner with approval: set `planner.enabled: true` and `planner.require_approval: true`
