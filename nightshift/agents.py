@@ -106,6 +106,12 @@ class Brain:
         cleaned_lines = []
         for line in lines:
             line_stripped = line.strip()
+            
+            # Stop processing if we hit a git diff, as it consumes too many tokens
+            if line_stripped.startswith("diff --git"):
+                cleaned_lines.append("\n[... file diff content trimmed for brevity ...]")
+                break
+                
             is_noise = False
             for pattern in noise_patterns:
                 if re.match(pattern, line_stripped, re.IGNORECASE):
