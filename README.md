@@ -34,6 +34,9 @@ Configure your drivers and personas. See `settings.sample.yaml` for a full templ
 ```yaml
 brain:
   active_driver: "claude"
+  claude:
+    command: "claude"
+    args: ["-p", "{prompt}", "--dangerously-skip-permissions"]
 body: # or "hassan" for backward compatibility
   active_driver: "claude"
 critic:
@@ -44,6 +47,7 @@ safety:
   create_backup_branch: true
   auto_commit_and_push: false
 ```
+Note: `drivers:` is no longer required; driver configs sit directly under each block.
 
 Notes:
 - `auto_commit_and_push` is opt-in; leave false for manual review.

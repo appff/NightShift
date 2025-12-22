@@ -66,6 +66,19 @@ def setup_logging():
     
     return logger, log_file_path
 
+def _extract_driver_block(block):
+    """Returns (active_driver, drivers_dict) supporting flat or nested schemas."""
+    if not isinstance(block, dict):
+        return None, {}
+    active = block.get("active_driver")
+    drivers = block.get("drivers")
+    if isinstance(drivers, dict):
+        return active, drivers
+    # Flat schema: treat all non-reserved keys as driver definitions.
+    reserved_keys = {"active_driver"}
+    flat_drivers = {k: v for k, v in block.items() if k not in reserved_keys}
+    return active, flat_drivers
+
 def validate_settings_schema(settings):
     """Simple validation for critical settings keys."""
     if settings is None:
@@ -79,8 +92,7 @@ def validate_settings_schema(settings):
         if not isinstance(block, dict):
             errors.append(f"'{block_name}' must be a dictionary")
             return
-        active = block.get("active_driver")
-        drivers = block.get("drivers", {})
+        active, drivers = _extract_driver_block(block)
         if active and (not isinstance(active, str) or not active.strip()):
             errors.append(f"'{block_name}.active_driver' must be a non-empty string")
         if drivers is not None and not isinstance(drivers, dict):
@@ -214,8 +226,9 @@ class Brain:
         self.project_path = os.path.abspath(self.mission_config.get('project_path', os.getcwd()))
         
         self.brain_config = self.settings.get('brain', {})
-        self.active_driver_name = self.brain_config.get('active_driver', 'claude')
-        self.drivers = self.brain_config.get('drivers', {})
+        self.active_driver_name, self.drivers = _extract_driver_block(self.brain_config)
+        if not self.active_driver_name:
+            self.active_driver_name = 'claude'
         
         # Setup Brain Workspace (Metadata Isolation)
         self.brain_env_dir = os.path.join(self.project_path, BRAIN_WORKSPACE_DIR)
@@ -381,8 +394,9 @@ class Critic:
         self.project_path = os.path.abspath(self.mission_config.get('project_path', os.getcwd()))
         
         self.critic_config = self.settings.get('critic', {})
-        self.active_driver_name = self.critic_config.get('active_driver', 'gemini')
-        self.drivers = self.critic_config.get('drivers', {})
+        self.active_driver_name, self.drivers = _extract_driver_block(self.critic_config)
+        if not self.active_driver_name:
+            self.active_driver_name = 'gemini'
         self.brain_env_dir = os.path.join(self.project_path, BRAIN_WORKSPACE_DIR)
         
         self.driver_config = self.drivers.get(self.active_driver_name)
@@ -439,8 +453,9 @@ class Hassan:
     
     def __init__(self, settings, mission_config):
         self.hassan_config = settings.get('body', {}) or settings.get('hassan', {})
-        self.active_driver_name = self.hassan_config.get('active_driver', 'claude')
-        self.drivers = self.hassan_config.get('drivers', {})
+        self.active_driver_name, self.drivers = _extract_driver_block(self.hassan_config)
+        if not self.active_driver_name:
+            self.active_driver_name = 'claude'
         self.mission_config = mission_config
         self.system_prompt_file = None
         

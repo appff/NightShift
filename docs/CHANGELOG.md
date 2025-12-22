@@ -8,6 +8,7 @@ All notable changes to Night Shift will be documented in this file.
 - **Safety Defaults**: Added `auto_commit_and_push` and clarified safer defaults in `settings.yaml`.
 - **Rollback Safety**: Automatic rollback now stashes uncommitted changes before resetting.
 - **Per-Task Personas**: Goals can set `persona` per task, and optional `persona_rules` can auto-select a persona.
+- **Settings Schema**: Driver configs can be defined directly under `brain`, `critic`, and `body` without a `drivers` block (backward compatible).
 
 ### Removed
 - **Dependencies**: Removed `pexpect` from `requirements.txt` (no longer used).
