@@ -41,6 +41,7 @@ body: # or "hassan" for backward compatibility
   active_driver: "claude"
 critic:
   active_driver: "gemini" # Use a different model for best QA results!
+  strictness: "lenient" # lenient | balanced | strict
 
 safety:
   auto_rollback_on_failure: false
@@ -76,6 +77,7 @@ critic:
   active_driver: "gemini"
   active_drivers: ["gemini", "codex"] # optional multi-critic voting
   voting: "all" # all | majority
+  strictness: "lenient" # lenient | balanced | strict
   gemini:
     command: "gemini"
     args: ["-p", "{prompt}"]
