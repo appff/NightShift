@@ -89,6 +89,7 @@ class NightShiftAgent:
         self.run_start_time = datetime.now()
         self.resume_enabled = self.settings.get("resume", True)
         self.state_file = os.path.join(self.mission_config.get("project_path", os.getcwd()), ".night_shift", "state.json")
+        self.context_reduction = self.settings.get("context_reduction", {})
 
     def _merge_dict(self, base, override):
         if not isinstance(base, dict) or not isinstance(override, dict):
@@ -125,7 +126,6 @@ class NightShiftAgent:
                 json.dump(state, f, indent=2)
         except Exception:
             pass
-        self.context_reduction = self.settings.get("context_reduction", {})
 
     def _select_persona(self, task_text, override_persona=None):
         if override_persona:
