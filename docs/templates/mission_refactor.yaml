@@ -1,0 +1,13 @@
+mission_name: "Refactor Pass"
+project_path: "."
+persona: "architect"
+parallel: false
+
+goal:
+  - "Identify tight coupling and propose module boundaries."
+  - "Refactor core modules while preserving tests."
+  - "Update README with new structure and rationale."
+
+constraints:
+  - "Keep changes minimal and well-tested."
+  - "Avoid breaking public APIs."

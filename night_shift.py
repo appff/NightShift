@@ -21,6 +21,8 @@ import os
 import argparse
 import logging
 import shutil
+import json
+import fnmatch
 from datetime import datetime, timedelta
 import copy
 from concurrent.futures import ThreadPoolExecutor
@@ -32,6 +34,7 @@ LOG_FILE_TEMPLATE = os.path.join(LOG_DIR, "night_shift_log_{timestamp}.txt")
 SETTINGS_FILE = "settings.yaml"
 BRAIN_WORKSPACE_DIR = os.path.join(".night_shift", "brain_env")
 SQUAD_WORKSPACE_DIR = os.path.join(".night_shift", "squad")
+IGNORE_FILE = ".night_shiftignore"
 
 # LLM Limits
 MAX_CONTEXT_CHARS = 3000
@@ -40,26 +43,26 @@ MAX_TOKENS = 1024
 RATE_LIMIT_SLEEP = 2
 
 # --- Utils ---
-def setup_logging():
-    if not os.path.exists(LOG_DIR):
-        os.makedirs(LOG_DIR)
+def setup_logging(log_dir=LOG_DIR, log_level=logging.INFO):
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
     
-    log_file_path = LOG_FILE_TEMPLATE.format(timestamp=datetime.now().strftime("%Y%m%d_%H%M%S"))
+    log_file_path = os.path.join(log_dir, f"night_shift_log_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt")
     
     # Create logger
     logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
+    logger.setLevel(log_level)
     
     # File Handler
     file_handler = logging.FileHandler(log_file_path, encoding='utf-8')
-    file_handler.setLevel(logging.INFO)
+    file_handler.setLevel(log_level)
     file_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
     file_handler.setFormatter(file_formatter)
     logger.addHandler(file_handler)
     
     # Console Handler
     console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(logging.INFO)
+    console_handler.setLevel(log_level)
     console_formatter = logging.Formatter('%(message)s') # Keep console output clean
     console_handler.setFormatter(console_formatter)
     logger.addHandler(console_handler)
@@ -75,9 +78,52 @@ def _extract_driver_block(block):
     if isinstance(drivers, dict):
         return active, drivers
     # Flat schema: treat all non-reserved keys as driver definitions.
-    reserved_keys = {"active_driver"}
+    reserved_keys = {"active_driver", "active_drivers", "voting", "timeout", "retries", "retry_backoff", "output_format"}
     flat_drivers = {k: v for k, v in block.items() if k not in reserved_keys}
     return active, flat_drivers
+
+def _redact_cmd(cmd_list):
+    sensitive_flags = {"--api-key", "--token", "--password", "--key"}
+    redacted = []
+    redact_next = False
+    for arg in cmd_list:
+        if redact_next:
+            redacted.append("<redacted>")
+            redact_next = False
+            continue
+        if arg in sensitive_flags:
+            redacted.append(arg)
+            redact_next = True
+            continue
+        if re.search(r"(api_key|token|password|secret)=", arg, re.IGNORECASE):
+            key, _sep, _val = arg.partition("=")
+            redacted.append(f"{key}=<redacted>")
+            continue
+        redacted.append(arg)
+    return redacted
+
+def _load_ignore_patterns(root_path):
+    ignore_path = os.path.join(root_path, IGNORE_FILE)
+    if not os.path.exists(ignore_path):
+        return []
+    patterns = []
+    try:
+        with open(ignore_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                patterns.append(line)
+    except Exception:
+        return []
+    return patterns
+
+def _is_ignored(path, root_path, patterns):
+    rel_path = os.path.relpath(path, root_path)
+    for pattern in patterns:
+        if fnmatch.fnmatch(rel_path, pattern) or fnmatch.fnmatch(os.path.basename(rel_path), pattern):
+            return True
+    return False
 
 def validate_settings_schema(settings):
     """Simple validation for critical settings keys."""
@@ -118,8 +164,19 @@ def validate_settings_schema(settings):
 
     if "brain" in settings:
         validate_driver_block("brain", settings.get("brain"))
+        output_format = settings.get("brain", {}).get("output_format")
+        if output_format is not None and output_format not in ("text", "json"):
+            errors.append("'brain.output_format' must be 'text' or 'json'")
     if "critic" in settings:
         validate_driver_block("critic", settings.get("critic"))
+        critic = settings.get("critic", {})
+        active_drivers = critic.get("active_drivers")
+        if active_drivers is not None:
+            if not isinstance(active_drivers, list) or not all(isinstance(d, str) for d in active_drivers):
+                errors.append("'critic.active_drivers' must be a list of strings")
+        voting = critic.get("voting")
+        if voting is not None and voting not in ("all", "majority"):
+            errors.append("'critic.voting' must be 'all' or 'majority'")
     if "body" in settings:
         validate_driver_block("body", settings.get("body"))
     if "hassan" in settings:
@@ -129,7 +186,7 @@ def validate_settings_schema(settings):
     if safety is not None and not isinstance(safety, dict):
         errors.append("'safety' must be a dictionary")
     elif isinstance(safety, dict):
-        for key in ["auto_rollback_on_failure", "create_backup_branch", "auto_commit_and_push"]:
+        for key in ["auto_rollback_on_failure", "create_backup_branch", "auto_commit_and_push", "require_approval_for_destructive", "preview_changes", "use_worktrees"]:
             if key in safety and not isinstance(safety.get(key), bool):
                 errors.append(f"'safety.{key}' must be a boolean")
 
@@ -140,6 +197,46 @@ def validate_settings_schema(settings):
         for name, value in personas.items():
             if not isinstance(value, str):
                 errors.append(f"'personas.{name}' must be a string")
+
+    tools = settings.get("tools")
+    if tools is not None and not isinstance(tools, list):
+        errors.append("'tools' must be a list of strings")
+    elif isinstance(tools, list) and not all(isinstance(t, str) for t in tools):
+        errors.append("'tools' must be a list of strings")
+
+    planner = settings.get("planner")
+    if planner is not None and not isinstance(planner, dict):
+        errors.append("'planner' must be a dictionary")
+    elif isinstance(planner, dict):
+        if "enabled" in planner and not isinstance(planner.get("enabled"), bool):
+            errors.append("'planner.enabled' must be a boolean")
+        if "require_approval" in planner and not isinstance(planner.get("require_approval"), bool):
+            errors.append("'planner.require_approval' must be a boolean")
+
+    qa = settings.get("qa")
+    if qa is not None and not isinstance(qa, dict):
+        errors.append("'qa' must be a dictionary")
+    elif isinstance(qa, dict):
+        if "run_tests" in qa and not isinstance(qa.get("run_tests"), bool):
+            errors.append("'qa.run_tests' must be a boolean")
+        if "test_on_each_task" in qa and not isinstance(qa.get("test_on_each_task"), bool):
+            errors.append("'qa.test_on_each_task' must be a boolean")
+        if "test_command" in qa and not isinstance(qa.get("test_command"), str):
+            errors.append("'qa.test_command' must be a string")
+
+    memory = settings.get("memory")
+    if memory is not None and not isinstance(memory, dict):
+        errors.append("'memory' must be a dictionary")
+    elif isinstance(memory, dict):
+        if "scope" in memory and memory.get("scope") not in ("project", "global", "both"):
+            errors.append("'memory.scope' must be one of: project, global, both")
+
+    parallel = settings.get("parallel")
+    if parallel is not None and not isinstance(parallel, dict):
+        errors.append("'parallel' must be a dictionary")
+    elif isinstance(parallel, dict):
+        if "max_workers" in parallel and not isinstance(parallel.get("max_workers"), int):
+            errors.append("'parallel.max_workers' must be an integer")
 
     persona_rules = settings.get("persona_rules")
     if persona_rules is not None:
@@ -215,15 +312,19 @@ def validate_mission_schema(mission_config):
     if "persona" in mission_config and not isinstance(mission_config.get("persona"), str):
         raise ValueError("'persona' must be a string")
 
+    if "reviewer_mode" in mission_config and not isinstance(mission_config.get("reviewer_mode"), bool):
+        raise ValueError("'reviewer_mode' must be a boolean")
+
 # --- Core Classes ---
 
 class Brain:
     """The Intelligence Unit (Director). Decides what to do via CLI tools."""
     
-    def __init__(self, settings, mission_config):
+    def __init__(self, settings, mission_config, log_dir=LOG_DIR):
         self.settings = settings
         self.mission_config = mission_config
         self.project_path = os.path.abspath(self.mission_config.get('project_path', os.getcwd()))
+        self.log_dir = log_dir
         
         self.brain_config = self.settings.get('brain', {})
         self.active_driver_name, self.drivers = _extract_driver_block(self.brain_config)
@@ -244,6 +345,9 @@ class Brain:
                 "command": "claude",
                 "args": ["-p", "{prompt}"]
             }
+        self.timeout = int(self.driver_config.get("timeout", 300))
+        self.retries = int(self.driver_config.get("retries", 0))
+        self.retry_backoff = float(self.driver_config.get("retry_backoff", 1.5))
             
         logging.info(f"🧠 Brain Initialized: [{self.active_driver_name.upper()}] CLI Mode")
 
@@ -266,7 +370,7 @@ class Brain:
 
     def _log_brain_activity(self, message):
         """Logs detailed brain activity to a separate debug log file."""
-        brain_log_file = os.path.join(LOG_DIR, f"brain_log_{datetime.now().strftime('%Y%m%d')}.txt")
+        brain_log_file = os.path.join(self.log_dir, f"brain_log_{datetime.now().strftime('%Y%m%d')}.txt")
         try:
             with open(brain_log_file, "a", encoding="utf-8") as f:
                 f.write(message)
@@ -284,47 +388,76 @@ class Brain:
             if val: cmd_list.append(val)
         
         logging.info(f"🧠 Brain Thinking via {base_cmd}...")
+        logging.debug(f"🧠 Brain Command: {' '.join(_redact_cmd(cmd_list))}")
         
         brain_env = os.environ.copy()
         brain_env["HOME"] = self.brain_env_dir
         
-        try:
-            process = subprocess.run(
-                cmd_list,
-                capture_output=True,
-                text=True,
-                cwd=self.project_path, 
-                env=brain_env,
-                check=False,
-                timeout=300
-            )
-            
-            if process.returncode != 0:
-                error_msg = process.stderr.strip()
-                logging.error(f"🧠 Brain CLI Error ({process.returncode}): {error_msg}")
-                return f"MISSION_FAILED: Brain CLI Error - {error_msg}"
-                
-            return process.stdout.strip()
-            
-        except subprocess.TimeoutExpired:
-            logging.error("🧠 Brain CLI Timeout (300s expired).")
-            return "MISSION_FAILED: Brain CLI Timeout"
-        except Exception as e:
-            logging.error(f"🧠 Brain Execution Exception: {e}")
-            return f"MISSION_FAILED: {e}"
+        attempt = 0
+        while True:
+            try:
+                process = subprocess.run(
+                    cmd_list,
+                    capture_output=True,
+                    text=True,
+                    cwd=self.project_path,
+                    env=brain_env,
+                    check=False,
+                    timeout=self.timeout
+                )
 
-    def think(self, current_task_block, total_mission_context, constraints, conversation_history, last_hassan_output, persona_guidelines="", past_memories=""):
+                if process.returncode != 0:
+                    error_msg = process.stderr.strip()
+                    logging.error(f"🧠 Brain CLI Error ({process.returncode}): {error_msg}")
+                    if attempt < self.retries:
+                        attempt += 1
+                        time.sleep(self.retry_backoff ** attempt)
+                        continue
+                    return f"MISSION_FAILED: Brain CLI Error - {error_msg}"
+
+                return process.stdout.strip()
+
+            except subprocess.TimeoutExpired:
+                logging.error(f"🧠 Brain CLI Timeout ({self.timeout}s expired).")
+                if attempt < self.retries:
+                    attempt += 1
+                    time.sleep(self.retry_backoff ** attempt)
+                    continue
+                return "MISSION_FAILED: Brain CLI Timeout"
+            except Exception as e:
+                logging.error(f"🧠 Brain Execution Exception: {e}")
+                if attempt < self.retries:
+                    attempt += 1
+                    time.sleep(self.retry_backoff ** attempt)
+                    continue
+                return f"MISSION_FAILED: {e}"
+
+    def think(self, current_task_block, total_mission_context, constraints, conversation_history, last_hassan_output, persona_guidelines="", past_memories="", tool_registry="", output_format="text"):
         clean_output = self.clean_ansi(last_hassan_output)[-MAX_CONTEXT_CHARS:]
         constraints_text = '\n'.join(constraints) if isinstance(constraints, list) else str(constraints)
+        tools_section = f"\n[TOOL REGISTRY]\n{tool_registry}\n" if tool_registry else ""
+        format_section = ""
+        if output_format == "json":
+            format_section = """
+[OUTPUT FORMAT]
+Return ONLY valid JSON with:
+{"command": "<next action command>", "status": "continue"} OR {"command": "", "status": "completed"}.
+Do not include markdown or extra text.
+"""
         
         persona_section = f"\n[YOUR PERSONA GUIDELINES]\n{persona_guidelines}\n" if persona_guidelines else ""
         memory_section = f"\n[PAST MEMORIES / LESSONS LEARNED]\n{past_memories}\n" if past_memories else ""
+
+        output_instruction = "5. Output ONLY the command string."
+        if output_format == "json":
+            output_instruction = "5. Output ONLY valid JSON as specified in [OUTPUT FORMAT]."
 
         prompt = f"""
 You are the "Director" of an autonomous coding session.
 Your "Hassan" (Worker) is a CLI tool that executes your commands.
 {persona_section}
 {memory_section}
+{tools_section}
 [CURRENT ACTIVE TASK HIERARCHY]
 {current_task_block}
 
@@ -345,12 +478,14 @@ Your "Hassan" (Worker) is a CLI tool that executes your commands.
 2. Analyze the [CONSTRAINTS], [PERSONA GUIDELINES], and [LAST HASSAN OUTPUT].
 3. Determine the NEXT single, specific, and actionable command/query for Hassan.
 4. If ALL parts of the [CURRENT ACTIVE TASK HIERARCHY] are complete, reply exactly: "MISSION_COMPLETED".
-5. Output ONLY the command string.
+{output_instruction}
 
 [CRITICAL RULE]
 - Keep commands CONCISE.
 - Do NOT repeat the exact same command if it failed.
 """
+        if format_section:
+            prompt += format_section
         log_entry = f"\n{'='*80}\n[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] BRAIN REQUEST\n{'='*80}\n{prompt}\n"
         self._log_brain_activity(log_entry)
 
@@ -361,29 +496,54 @@ Your "Hassan" (Worker) is a CLI tool that executes your commands.
 
 class MemoryManager:
     """Handles long-term memory (lessons learned) for the Brain."""
-    def __init__(self, project_path):
-        self.memory_file = os.path.join(project_path, ".night_shift", "memories.md")
-        if not os.path.exists(os.path.dirname(self.memory_file)):
-            os.makedirs(os.path.dirname(self.memory_file), exist_ok=True)
+    def __init__(self, project_path, scope="project"):
+        self.scope = scope
+        self.project_memory_file = os.path.join(project_path, ".night_shift", "memories.md")
+        self.global_memory_file = os.path.expanduser("~/.night_shift/memories.md")
+        try:
+            if not os.path.exists(os.path.dirname(self.project_memory_file)):
+                os.makedirs(os.path.dirname(self.project_memory_file), exist_ok=True)
+        except Exception:
+            pass
+        try:
+            if not os.path.exists(os.path.dirname(self.global_memory_file)):
+                os.makedirs(os.path.dirname(self.global_memory_file), exist_ok=True)
+        except Exception:
+            pass
 
     def load_memories(self):
         """Returns the content of the memory file."""
-        if os.path.exists(self.memory_file):
-            try:
-                with open(self.memory_file, "r", encoding="utf-8") as f:
-                    return f.read().strip()
-            except Exception:
-                return ""
-        return ""
+        memories = []
+        files = []
+        if self.scope in ("project", "both"):
+            files.append(self.project_memory_file)
+        if self.scope in ("global", "both"):
+            files.append(self.global_memory_file)
+        for path in files:
+            if os.path.exists(path):
+                try:
+                    with open(path, "r", encoding="utf-8") as f:
+                        content = f.read().strip()
+                        if content:
+                            memories.append(content)
+                except Exception:
+                    continue
+        return "\n\n".join(memories).strip()
 
     def save_memory(self, new_insight):
         """Appends a new insight to the memory file."""
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        try:
-            with open(self.memory_file, "a", encoding="utf-8") as f:
-                f.write(f"\n### {timestamp}\n{new_insight}\n")
-        except Exception as e:
-            logging.error(f"❌ Failed to save memory: {e}")
+        targets = []
+        if self.scope in ("project", "both"):
+            targets.append(self.project_memory_file)
+        if self.scope in ("global", "both"):
+            targets.append(self.global_memory_file)
+        for path in targets:
+            try:
+                with open(path, "a", encoding="utf-8") as f:
+                    f.write(f"\n### {timestamp}\n{new_insight}\n")
+            except Exception as e:
+                logging.error(f"❌ Failed to save memory: {e}")
 
 class Critic:
     """The Quality Assurance Unit (Critic). Reviews the work of Hassan."""
@@ -397,13 +557,59 @@ class Critic:
         self.active_driver_name, self.drivers = _extract_driver_block(self.critic_config)
         if not self.active_driver_name:
             self.active_driver_name = 'gemini'
+        self.active_driver_names = self.critic_config.get('active_drivers', [])
+        if isinstance(self.active_driver_names, str):
+            self.active_driver_names = [self.active_driver_names]
+        if not self.active_driver_names:
+            self.active_driver_names = [self.active_driver_name]
+        self.voting_mode = self.critic_config.get("voting", "all")
         self.brain_env_dir = os.path.join(self.project_path, BRAIN_WORKSPACE_DIR)
-        
-        self.driver_config = self.drivers.get(self.active_driver_name)
-        if not self.driver_config:
-            self.driver_config = {"command": "gemini", "args": ["-p", "{prompt}"]}
-            
-        logging.info(f"🕵️‍♂️ Critic Initialized: [{self.active_driver_name.upper()}] CLI Mode")
+        self.timeout = int(self.critic_config.get("timeout", 300))
+        self.retries = int(self.critic_config.get("retries", 0))
+        self.retry_backoff = float(self.critic_config.get("retry_backoff", 1.5))
+
+        logging.info(f"🕵️‍♂️ Critic Initialized: {', '.join([n.upper() for n in self.active_driver_names])} CLI Mode")
+
+    def _run_with_driver(self, driver_name, prompt):
+        driver_config = self.drivers.get(driver_name)
+        if not driver_config:
+            driver_config = {"command": "gemini", "args": ["-p", "{prompt}"]}
+
+        brain_env = os.environ.copy()
+        brain_env["HOME"] = self.brain_env_dir
+
+        attempt = 0
+        while True:
+            try:
+                cmd_list = [driver_config['command']]
+                for arg in driver_config.get('args', []):
+                    val = arg.replace("{prompt}", prompt)
+                    if val:
+                        cmd_list.append(val)
+
+                logging.info(f"🕵️‍♂️ Critic is reviewing work via {driver_config['command']}...")
+                logging.debug(f"🕵️‍♂️ Critic Command: {' '.join(_redact_cmd(cmd_list))}")
+                process = subprocess.run(
+                    cmd_list,
+                    capture_output=True,
+                    text=True,
+                    cwd=self.project_path,
+                    env=brain_env,
+                    timeout=self.timeout
+                )
+                response = process.stdout.strip()
+                if process.returncode != 0 and attempt < self.retries:
+                    attempt += 1
+                    time.sleep(self.retry_backoff ** attempt)
+                    continue
+                return response
+            except Exception as e:
+                if attempt < self.retries:
+                    attempt += 1
+                    time.sleep(self.retry_backoff ** attempt)
+                    continue
+                logging.error(f"🕵️‍♂️ Critic Error: {e}")
+                return "APPROVED"
 
     def evaluate(self, task_block, history, last_output):
         """Evaluates Hassan's work against the task hierarchy."""
@@ -427,26 +633,26 @@ A worker (Hassan) has just completed a task. Your job is to verify if the work i
 4. If there are issues, provide a CONCISE list of what needs to be fixed.
 5. Output ONLY "APPROVED" or your feedback.
 """
-        logging.info(f"🕵️‍♂️ Critic is reviewing work via {self.driver_config['command']}...")
-        
-        # Reuse Brain's execution logic (simplified here)
-        brain_env = os.environ.copy()
-        brain_env["HOME"] = self.brain_env_dir
-        
-        try:
-            cmd_list = [self.driver_config['command']]
-            for arg in self.driver_config.get('args', []):
-                val = arg.replace("{prompt}", prompt)
-                if val: cmd_list.append(val)
-                
-            process = subprocess.run(cmd_list, capture_output=True, text=True, cwd=self.project_path, env=brain_env, timeout=300)
-            response = process.stdout.strip()
-            
-            logging.info(f"🕵️‍♂️ Critic Response: {response}")
-            return response
-        except Exception as e:
-            logging.error(f"🕵️‍♂️ Critic Error: {e}")
-            return "APPROVED" # Fallback to avoid deadlocks
+        responses = []
+        approvals = 0
+        for driver_name in self.active_driver_names:
+            response = self._run_with_driver(driver_name, prompt)
+            responses.append((driver_name, response))
+            if response.strip().upper() == "APPROVED":
+                approvals += 1
+
+        if self.voting_mode == "majority":
+            if approvals >= (len(self.active_driver_names) // 2 + 1):
+                return "APPROVED"
+        else:
+            if approvals == len(self.active_driver_names):
+                return "APPROVED"
+
+        feedback_lines = []
+        for driver_name, response in responses:
+            if response.strip().upper() != "APPROVED":
+                feedback_lines.append(f"[{driver_name}] {response}")
+        return "\n".join(feedback_lines) if feedback_lines else "APPROVED"
 
 class Hassan:
     """The Execution Unit (Worker/Slave). Abstraction for CLI tools."""
@@ -466,16 +672,22 @@ class Hassan:
                 "args": ["--system-prompt-file", "{system_prompt_file}", "-p", "{query}", "-c", "--dangerously-skip-permissions", "--allowedTools", "Write"],
                 "env": {}
             }
+        self.timeout = int(self.driver_config.get("timeout", 0))
+        self.retries = int(self.driver_config.get("retries", 0))
+        self.retry_backoff = float(self.driver_config.get("retry_backoff", 1.5))
+        self.last_returncode = 0
             
         logging.info(f"🦾 Hassan Initialized: [{self.active_driver_name.upper()}] Driver")
 
-    def prepare(self, current_task_text, persona_guidelines=""):
+    def prepare(self, current_task_text, persona_guidelines="", tool_registry=""):
         """Prepares system prompt files with the task block and persona."""
         if current_task_text:
             self.system_prompt_file = os.path.abspath(".night_shift_system_prompt.txt")
             with open(self.system_prompt_file, "w", encoding="utf-8") as f:
                 if persona_guidelines:
                     f.write(f"PERSONA GUIDELINES:\n{persona_guidelines}\n\n")
+                if tool_registry:
+                    f.write(f"TOOL REGISTRY:\n{tool_registry}\n\n")
                 f.write(f"CURRENT TASK BLOCK:\n{current_task_text}")
 
     def cleanup(self):
@@ -501,28 +713,52 @@ class Hassan:
             current_env[key] = str(value)
 
         logging.info(f"\n--- 🚀 Running Hassan ({self.active_driver_name}) ---")
-        try:
-            process = subprocess.Popen(
-                cmd_list,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT, 
-                text=True,
-                cwd=self.mission_config.get('project_path', os.getcwd()),
-                env=current_env,
-                bufsize=1 
-            )
-            output_lines = []
-            for line in process.stdout:
-                print(line, end='') 
-                output_lines.append(line)
-            process.wait()
-            return "".join(output_lines).strip()
-        except Exception as e:
-            return f"ERROR running Hassan: {e}"
+        logging.debug(f"🦾 Hassan Command: {' '.join(_redact_cmd(cmd_list))}")
+        attempt = 0
+        while True:
+            try:
+                process = subprocess.Popen(
+                    cmd_list,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                    cwd=self.mission_config.get('project_path', os.getcwd()),
+                    env=current_env,
+                    bufsize=1
+                )
+                output_lines = []
+                start_time = time.time()
+                for line in process.stdout:
+                    print(line, end='')
+                    output_lines.append(line)
+                    if self.timeout and (time.time() - start_time) > self.timeout:
+                        process.kill()
+                        self.last_returncode = 124
+                        return "ERROR running Hassan: Timeout"
+                process.wait()
+                self.last_returncode = process.returncode
+                if process.returncode != 0 and attempt < self.retries:
+                    attempt += 1
+                    time.sleep(self.retry_backoff ** attempt)
+                    continue
+                return "".join(output_lines).strip()
+            except Exception as e:
+                self.last_returncode = 1
+                if attempt < self.retries:
+                    attempt += 1
+                    time.sleep(self.retry_backoff ** attempt)
+                    continue
+                return f"ERROR running Hassan: {e}"
 
 class NightShiftAgent:
-    def __init__(self, mission_path="mission.yaml"):
-        self.logger, self.log_file_path = setup_logging()
+    def __init__(self, mission_path="mission.yaml", log_dir=LOG_DIR, log_level="INFO", persona_map=None, reviewer_mode=False, auto_approve_plan=False, auto_approve_actions=False):
+        level = getattr(logging, log_level.upper(), logging.INFO)
+        self.logger, self.log_file_path = setup_logging(log_dir=log_dir, log_level=level)
+        self.log_dir = log_dir
+        self.auto_approve_plan = auto_approve_plan
+        self.auto_approve_actions = auto_approve_actions
+        self.reviewer_mode = reviewer_mode
+        self.persona_map = persona_map or []
         
         if not os.path.exists(mission_path):
             sys.exit(1)
@@ -541,8 +777,9 @@ class NightShiftAgent:
         validate_settings_schema(self.settings)
 
         # Initialize Modules
-        self.memory_manager = MemoryManager(self.mission_config.get('project_path', os.getcwd()))
-        self.brain = Brain(self.settings, self.mission_config)
+        memory_scope = (self.settings.get("memory") or {}).get("scope", "project")
+        self.memory_manager = MemoryManager(self.mission_config.get('project_path', os.getcwd()), scope=memory_scope)
+        self.brain = Brain(self.settings, self.mission_config, log_dir=self.log_dir)
         self.critic = Critic(self.settings, self.mission_config)
         self.hassan = Hassan(self.settings, self.mission_config)
         
@@ -556,6 +793,8 @@ class NightShiftAgent:
         self.default_persona_name = self.mission_config.get('persona', 'general')
         self.default_persona_guidelines = self.personas.get(self.default_persona_name, "")
         self.persona_rules = self.settings.get("persona_rules", [])
+        for rule in self.persona_map:
+            self.persona_rules.insert(0, rule)
 
         if self.default_persona_guidelines:
             logging.info(f"🎭 Default Persona: [{self.default_persona_name.upper()}]")
@@ -563,6 +802,10 @@ class NightShiftAgent:
         self.conversation_history = ""
         self.last_hassan_query = ""
         self.last_hassan_output = ""
+        self.tool_registry = "\n".join(self.settings.get("tools", []))
+        self.brain_output_format = (self.settings.get("brain") or {}).get("output_format", "text")
+        self.task_summaries = []
+        self.run_start_time = datetime.now()
 
     def _select_persona(self, task_text, override_persona=None):
         if override_persona:
@@ -578,6 +821,61 @@ class NightShiftAgent:
             except re.error:
                 continue
         return self.default_persona_name, self.default_persona_guidelines
+
+    def _requires_approval(self, command):
+        destructive_patterns = [
+            r"\brm\s+-rf\b",
+            r"\bgit\s+reset\b",
+            r"\bgit\s+clean\b",
+            r"\bdel\s+/f\b",
+            r"\brmdir\b",
+            r"\bshutdown\b",
+            r"\breboot\b",
+        ]
+        return any(re.search(pat, command, re.IGNORECASE) for pat in destructive_patterns)
+
+    def _plan_tasks(self, raw_goal, constraints):
+        planner_config = self.settings.get("planner", {})
+        if not planner_config.get("enabled"):
+            return None
+        constraints_text = "\n".join(constraints or [])
+        prompt = f"""
+You are a planning assistant. Break the mission into a concise list of actionable tasks.
+
+[MISSION]
+{raw_goal}
+
+[CONSTRAINTS]
+{constraints_text}
+
+[OUTPUT]
+Return ONLY valid JSON:
+{"tasks": ["task 1", "task 2", "..."]}
+"""
+        response = self.brain._run_cli_command(prompt)
+        if response.startswith("MISSION_FAILED"):
+            return None
+        try:
+            data = json.loads(response)
+            tasks = data.get("tasks", [])
+            if isinstance(tasks, list) and all(isinstance(t, str) for t in tasks):
+                return tasks
+        except Exception:
+            return None
+        return None
+
+    def _interpret_brain_response(self, response):
+        if self.brain_output_format != "json":
+            return response
+        try:
+            data = json.loads(response)
+            status = data.get("status", "").lower()
+            command = data.get("command", "")
+            if status == "completed":
+                return "MISSION_COMPLETED"
+            return command
+        except Exception:
+            return response
 
     def _handle_quota_limit(self, error_message):
         try:
@@ -641,6 +939,32 @@ class NightShiftAgent:
         except Exception as e:
             logging.error(f"❌ Rollback failed: {e}")
 
+    def _git_worktree_add(self, work_dir, commit_hash):
+        try:
+            subprocess.run(["git", "worktree", "add", "--force", work_dir, commit_hash], cwd=self.mission_config.get('project_path', os.getcwd()))
+            return True
+        except Exception as e:
+            logging.error(f"❌ Failed to create worktree: {e}")
+            return False
+
+    def _git_worktree_remove(self, work_dir):
+        try:
+            subprocess.run(["git", "worktree", "remove", "--force", work_dir], cwd=self.mission_config.get('project_path', os.getcwd()))
+        except Exception as e:
+            logging.error(f"❌ Failed to remove worktree: {e}")
+
+    def _apply_worktree_patch(self, work_dir, project_root):
+        try:
+            diff = subprocess.run(["git", "-C", work_dir, "diff"], capture_output=True, text=True)
+            patch = diff.stdout
+            if not patch.strip():
+                return True
+            apply_res = subprocess.run(["git", "-C", project_root, "apply"], input=patch, text=True)
+            return apply_res.returncode == 0
+        except Exception as e:
+            logging.error(f"❌ Failed to apply worktree patch: {e}")
+            return False
+
     def _format_task_block(self, task_item):
         """Formats a task object (with title/task and sub_tasks) into a readable block."""
         if isinstance(task_item, str):
@@ -669,27 +993,43 @@ class NightShiftAgent:
             return {"text": text, "persona": task_item.get("persona")}
         return {"text": str(task_item), "persona": None}
 
-    def _execute_single_task(self, i, task_item, all_tasks, constraints, safety_config):
+    def _execute_single_task(self, i, task_item, all_tasks, constraints, safety_config, reviewer_mode=False):
         """Executes a single task item (supports strings or dicts with sub_tasks)."""
         # Task-level checkpoint
         task_start_commit = self._get_git_head()
         task_block = task_item.get("text") if isinstance(task_item, dict) else self._format_task_block(task_item)
+        task_start_time = datetime.now()
         
         # Isolated workspace for parallel execution
         is_parallel = self.mission_config.get('parallel', False)
         project_root = self.mission_config.get('project_path', os.getcwd())
         work_dir = project_root
+        use_worktrees = self.settings.get("parallel", {}).get("use_worktrees", False) or safety_config.get("use_worktrees", False) or safety_config.get("preview_changes", False)
+        created_worktree = False
 
-        if is_parallel:
+        if (is_parallel or safety_config.get("preview_changes")) and use_worktrees and task_start_commit:
+            work_dir = os.path.join(project_root, SQUAD_WORKSPACE_DIR, f"task_{i}")
+            logging.info(f"🧩 Using git worktree for Task {i}: {work_dir}")
+            if os.path.exists(work_dir):
+                shutil.rmtree(work_dir)
+            if self._git_worktree_add(work_dir, task_start_commit):
+                created_worktree = True
+            else:
+                work_dir = project_root
+
+        if is_parallel and work_dir == project_root:
             work_dir = os.path.join(project_root, SQUAD_WORKSPACE_DIR, f"task_{i}")
             logging.info(f"⚡ Creating isolated workspace for Task {i}: {work_dir}")
             if os.path.exists(work_dir): shutil.rmtree(work_dir)
             # Simple clone: copy current directory excluding .night_shift and logs
             os.makedirs(work_dir, exist_ok=True)
+            ignore_patterns = _load_ignore_patterns(project_root)
             for item in os.listdir(project_root):
                 if item in ['.night_shift', 'logs', '.git', '__pycache__']: continue
                 s = os.path.join(project_root, item)
                 d = os.path.join(work_dir, item)
+                if _is_ignored(s, project_root, ignore_patterns):
+                    continue
                 if os.path.isdir(s): shutil.copytree(s, d)
                 else: shutil.copy2(s, d)
         
@@ -699,13 +1039,34 @@ class NightShiftAgent:
 
         logging.info(f"\n{'='*60}\n🚀 STARTING TASK {i} (Persona: {persona_name})\n{task_block}\n{'='*60}\n")
         
-        self.hassan.prepare(current_task_text=task_block, persona_guidelines=persona_guidelines)
+        if reviewer_mode:
+            review_prompt = f"""
+You are a code reviewer. Provide a concise review plan and key changes you would make for the task.
+
+[TASK]
+{task_block}
+
+[CONSTRAINTS]
+{constraints}
+"""
+            review_output = self.brain._run_cli_command(review_prompt)
+            logging.info(f"🧑‍⚖️ Reviewer Mode Output:\n{review_output}")
+            self.task_summaries.append({
+                "task": task_block,
+                "persona": persona_name,
+                "status": "review_only",
+                "duration_seconds": (datetime.now() - task_start_time).total_seconds()
+            })
+            return f"\n=== TASK {i} REVIEW ===\n{review_output}\n"
+
+        self.hassan.prepare(current_task_text=task_block, persona_guidelines=persona_guidelines, tool_registry=self.tool_registry)
         initial_query = f"Start Task {i}: {task_block}"
         
         # Note: If parallel, hassan needs to know the correct work_dir
         orig_path = self.hassan.mission_config.get('project_path', os.getcwd())
         self.hassan.mission_config['project_path'] = work_dir
         
+        task_completed = False
         try:
             hassan_output = self.hassan.run(initial_query)
             task_history = f"\n=== TASK {i} START ===\nDirector Init: {initial_query}\nHassan Output:\n{hassan_output}\n"
@@ -722,14 +1083,30 @@ class NightShiftAgent:
                     task_history,
                     last_output,
                     persona_guidelines,
-                    self.past_memories
+                    self.past_memories,
+                    self.tool_registry,
+                    self.brain_output_format
                 )
+                next_action = self._interpret_brain_response(next_action)
                 task_history += f"\n--- 🧠 DIRECTOR DECISION ---\n{next_action}\n"
 
                 if "capacity" in next_action or "quota" in next_action.lower():
                     self._handle_quota_limit(next_action); continue
 
                 if next_action == "MISSION_COMPLETED":
+                    qa_config = self.settings.get("qa", {})
+                    if qa_config.get("run_tests"):
+                        if qa_config.get("test_on_each_task", True):
+                            test_command = qa_config.get("test_command")
+                            if not test_command:
+                                test_command = "pytest" if os.path.exists(os.path.join(self.hassan.mission_config.get('project_path', os.getcwd()), "tests")) else ""
+                            if test_command:
+                                logging.info(f"🧪 Running tests: {test_command}")
+                                test_output = self.hassan.run(test_command)
+                                task_history += f"\n--- 🧪 TEST OUTPUT ---\n{test_output}\n"
+                                if self.hassan.last_returncode != 0:
+                                    last_output = f"Tests failed: {test_output}"
+                                    continue
                     # Summon the Critic for verification
                     verification = self.critic.evaluate(task_block, task_history, last_output)
                     if verification.strip().upper() == "APPROVED":
@@ -746,15 +1123,44 @@ class NightShiftAgent:
                     logging.error(f"❌ Task {i} Failed: {next_action}")
                     if safety_config.get('auto_rollback_on_failure'):
                         self._git_rollback(task_start_commit)
+                    self.task_summaries.append({
+                        "task": task_block,
+                        "persona": persona_name,
+                        "status": "failed",
+                        "duration_seconds": (datetime.now() - task_start_time).total_seconds()
+                    })
                     return f"TASK_{i}_FAILED: {next_action}"
                 
+                if safety_config.get("require_approval_for_destructive") and self._requires_approval(next_action) and not self.auto_approve_actions:
+                    approval = input(f"Destructive action detected. Approve? [y/N]: ").strip().lower()
+                    if approval != "y":
+                        logging.info("❌ Destructive action rejected by user.")
+                        return f"TASK_{i}_FAILED: Destructive action rejected."
+
                 hassan_output = self.hassan.run(next_action)
                 task_history += f"\n--- 🦾 HASSAN OUTPUT ---\n{hassan_output}\n"
                 last_output = hassan_output
                 time.sleep(RATE_LIMIT_SLEEP)
             
+            self.task_summaries.append({
+                "task": task_block,
+                "persona": persona_name,
+                "status": "completed",
+                "duration_seconds": (datetime.now() - task_start_time).total_seconds()
+            })
+            task_completed = True
             return task_history
         finally:
+            if created_worktree:
+                if safety_config.get("preview_changes") and task_completed:
+                    approval = "y" if self.auto_approve_actions else input("Apply previewed changes to main workspace? [y/N]: ").strip().lower()
+                    if approval == "y":
+                        applied = self._apply_worktree_patch(work_dir, project_root)
+                        if applied:
+                            logging.info("✅ Applied worktree changes to main workspace.")
+                        else:
+                            logging.error("❌ Failed to apply worktree changes.")
+                self._git_worktree_remove(work_dir)
             self.hassan.mission_config['project_path'] = orig_path
 
     def start(self):
@@ -774,6 +1180,22 @@ class NightShiftAgent:
         tasks = raw_tasks if isinstance(raw_tasks, list) else [raw_tasks]
         constraints = self.mission_config.get('constraints', [])
         is_parallel = self.mission_config.get('parallel', False)
+        reviewer_mode = self.mission_config.get('reviewer_mode', False) or self.reviewer_mode
+
+        planned = self._plan_tasks(raw_tasks, constraints)
+        if planned:
+            logging.info("🧭 Planner produced a task list.")
+            if self.settings.get("planner", {}).get("require_approval", False) and not self.auto_approve_plan:
+                print("Proposed plan:")
+                for idx, task in enumerate(planned, 1):
+                    print(f"{idx}. {task}")
+                approval = input("Approve this plan? [y/N]: ").strip().lower()
+                if approval != "y":
+                    logging.info("❌ Plan rejected. Falling back to original tasks.")
+                else:
+                    tasks = planned
+            else:
+                tasks = planned
 
         normalized_tasks = []
         for task_item in tasks:
@@ -788,14 +1210,27 @@ class NightShiftAgent:
         try:
             if is_parallel:
                 if os.path.exists(SQUAD_WORKSPACE_DIR): shutil.rmtree(SQUAD_WORKSPACE_DIR)
-                with ThreadPoolExecutor(max_workers=len(normalized_tasks)) as executor:
-                    results = list(executor.map(lambda x: self._execute_single_task(x[0], x[1], normalized_tasks, constraints, safety_config), enumerate(normalized_tasks, 1)))
+                max_workers = self.settings.get("parallel", {}).get("max_workers", len(normalized_tasks))
+                if not isinstance(max_workers, int) or max_workers <= 0:
+                    max_workers = len(normalized_tasks)
+                with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                    results = list(executor.map(lambda x: self._execute_single_task(x[0], x[1], normalized_tasks, constraints, safety_config, reviewer_mode), enumerate(normalized_tasks, 1)))
                 for res in results:
                     self.conversation_history += res
             else:
                 for i, task_item in enumerate(normalized_tasks, 1):
-                    res = self._execute_single_task(i, task_item, normalized_tasks, constraints, safety_config)
+                    res = self._execute_single_task(i, task_item, normalized_tasks, constraints, safety_config, reviewer_mode)
                     self.conversation_history += res
+
+            qa_config = self.settings.get("qa", {})
+            if qa_config.get("run_tests") and not qa_config.get("test_on_each_task", True):
+                test_command = qa_config.get("test_command")
+                if not test_command:
+                    test_command = "pytest" if os.path.exists(os.path.join(self.hassan.mission_config.get('project_path', os.getcwd()), "tests")) else ""
+                if test_command:
+                    logging.info(f"🧪 Running tests: {test_command}")
+                    test_output = self.hassan.run(test_command)
+                    self.conversation_history += f"\n--- 🧪 TEST OUTPUT ---\n{test_output}\n"
 
             # --- Mission Reflection ---
             logging.info("🧠 Reflecting on mission to store memories...")
@@ -818,14 +1253,60 @@ class NightShiftAgent:
                 f.write(self.conversation_history)
             logging.info(f"📝 Full history saved: {history_file}")
             logging.info(f"📝 Runtime log saved: {self.log_file_path}")
+            summary = {
+                "started_at": self.run_start_time.isoformat(),
+                "ended_at": datetime.now().isoformat(),
+                "tasks": self.task_summaries,
+                "parallel": is_parallel,
+                "reviewer_mode": reviewer_mode
+            }
+            summary_path = os.path.join(self.log_dir, f"night_shift_summary_{self.run_start_time.strftime('%Y%m%d_%H%M%S')}.json")
+            try:
+                with open(summary_path, "w", encoding="utf-8") as f:
+                    json.dump(summary, f, indent=2)
+                logging.info(f"🧾 Summary saved: {summary_path}")
+            except Exception as e:
+                logging.error(f"❌ Failed to write summary: {e}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Night Shift: Brain & Hassan")
     parser.add_argument("mission_file", nargs="?", default="mission.yaml")
     parser.add_argument("--dry-run", action="store_true", help="Validate config files and exit")
+    parser.add_argument("--init", action="store_true", help="Initialize settings.yaml and mission.yaml from samples")
+    parser.add_argument("--force", action="store_true", help="Overwrite existing files when using --init")
+    parser.add_argument("--log-dir", default=LOG_DIR, help="Directory for log files")
+    parser.add_argument("--log-level", default="INFO", help="Logging level (DEBUG, INFO, WARNING, ERROR)")
+    parser.add_argument("--reviewer", action="store_true", help="Review-only mode (no execution)")
+    parser.add_argument("--auto-approve-plan", action="store_true", help="Auto-approve planner output")
+    parser.add_argument("--auto-approve", action="store_true", help="Auto-approve destructive actions and previews")
+    parser.add_argument("--persona-map", action="append", default=[], help="Persona rule mapping: pattern:persona (regex)")
     args = parser.parse_args()
+    if args.init:
+        for src, dst in [("settings.sample.yaml", "settings.yaml"), ("mission.sample.yaml", "mission.yaml")]:
+            if not os.path.exists(src):
+                continue
+            if os.path.exists(dst) and not args.force:
+                print(f"{dst} exists. Use --force to overwrite.")
+                continue
+            shutil.copy2(src, dst)
+            print(f"Wrote {dst}")
+        sys.exit(0)
+
+    persona_map = []
+    for mapping in args.persona_map:
+        if ":" in mapping:
+            pattern, persona = mapping.split(":", 1)
+            persona_map.append({"pattern": pattern, "persona": persona, "flags": "i"})
     try:
-        agent = NightShiftAgent(mission_path=args.mission_file)
+        agent = NightShiftAgent(
+            mission_path=args.mission_file,
+            log_dir=args.log_dir,
+            log_level=args.log_level,
+            persona_map=persona_map,
+            reviewer_mode=args.reviewer,
+            auto_approve_plan=args.auto_approve_plan,
+            auto_approve_actions=args.auto_approve
+        )
     except ValueError as exc:
         print(f"Configuration error: {exc}")
         sys.exit(1)

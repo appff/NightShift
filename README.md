@@ -49,6 +49,13 @@ safety:
 ```
 Note: `drivers:` is no longer required; driver configs sit directly under each block.
 
+Optional additions:
+- `tools`: shared tool registry inserted into Brain/Hassan prompts.
+- `planner.enabled`: auto-expands goals into a task list (approval optional).
+- `qa.run_tests`: runs tests after tasks or per task.
+- `memory.scope`: `project`, `global`, or `both`.
+- `parallel.max_workers` + `parallel.use_worktrees`: control parallel execution.
+
 Notes:
 - `auto_commit_and_push` is opt-in; leave false for manual review.
 - `create_backup_branch` creates a backup branch without switching to it.
@@ -63,6 +70,11 @@ persona: "architect"
 parallel: false # Set to true for SQUAD power
 ```
 Note: `task` is still supported for backward compatibility, but `goal` is preferred.
+
+Reviewer-only mode (no execution):
+```yaml
+reviewer_mode: true
+```
 
 Per-task persona (optional):
 ```yaml
@@ -89,6 +101,20 @@ persona_rules:
 python3 night_shift.py mission.yaml
 ```
 
+Init files quickly:
+```bash
+python3 night_shift.py --init
+```
+
+Common flags:
+- `--reviewer` review-only mode
+- `--persona-map "pattern:persona"` quick persona rules
+- `--log-level DEBUG` and `--log-dir logs`
+
+Templates & examples:
+- `docs/templates/` for common mission types
+- `docs/hello_world/` for a minimal working example
+
 ---
 
 ## 📂 The New Folder Structure
@@ -98,6 +124,10 @@ python3 night_shift.py mission.yaml
 *   `.night_shift/memories.md`: The Brain's long-term memory vault.
 *   `.night_shift/squad/`: Temporary isolated workspaces for parallel tasks.
 *   `logs/`: Strategic and runtime logs.
+*   `logs/night_shift_summary_...`: JSON summary of tasks, personas, and timings.
+
+Optional:
+- `.night_shiftignore` to exclude directories from workspace cloning.
 
 ---
 

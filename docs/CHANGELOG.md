@@ -9,6 +9,13 @@ All notable changes to Night Shift will be documented in this file.
 - **Rollback Safety**: Automatic rollback now stashes uncommitted changes before resetting.
 - **Per-Task Personas**: Goals can set `persona` per task, and optional `persona_rules` can auto-select a persona.
 - **Settings Schema**: Driver configs can be defined directly under `brain`, `critic`, and `body` without a `drivers` block (backward compatible).
+- **Planner**: Optional planner can expand a mission into tasks (with approval).
+- **Tool Registry**: Shared tools list injected into Brain/Hassan prompts.
+- **Reviewer Mode**: Added review-only mode for non-executing analysis.
+- **Safety Gates**: Optional approval for destructive actions and worktree preview before applying changes.
+- **QA**: Optional test enforcement per task or after mission completion.
+- **Observability**: JSON run summaries and configurable log level/dir.
+- **Docs**: Added mission templates and a hello world example.
 
 ### Removed
 - **Dependencies**: Removed `pexpect` from `requirements.txt` (no longer used).

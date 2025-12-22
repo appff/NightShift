@@ -1,0 +1,13 @@
+mission_name: "Bugfix & RCA"
+project_path: "."
+persona: "troubleshooter"
+parallel: false
+
+goal:
+  - "Reproduce the issue and identify root cause."
+  - "Implement a fix with tests."
+  - "Document the fix and any follow-ups."
+
+constraints:
+  - "Prefer small, targeted changes."
+  - "Add regression tests where possible."

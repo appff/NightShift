@@ -2,6 +2,7 @@ brain:
   # 메인으로 사용할 두뇌(Director)를 선택합니다.
   # API 호출이 아닌 CLI 도구를 사용하여 비정형 미션 해석과 명령 생성을 수행합니다.
   active_driver: "claude" # options: claude, codex, gemini
+  output_format: "text" # text | json
 
   claude:
     # Claude Code CLI (requires 'claude' in PATH)
@@ -68,6 +69,37 @@ safety:
   create_backup_branch: false
   # Automatically commit and push after all tasks complete
   auto_commit_and_push: false
+  # Require approval for destructive commands (rm -rf, git reset, etc.)
+  require_approval_for_destructive: true
+  # Run tasks in a worktree and preview changes before applying
+  preview_changes: false
+  # Use git worktrees for task isolation when possible
+  use_worktrees: false
+
+# Tool registry shared with Brain/Hassan (optional)
+tools:
+  - "rg -n <pattern> <path>"
+  - "python3 night_shift.py --dry-run"
+
+# Planner (optional)
+planner:
+  enabled: false
+  require_approval: true
+
+# QA (optional)
+qa:
+  run_tests: false
+  test_on_each_task: true
+  test_command: ""
+
+# Memory (optional)
+memory:
+  scope: "project" # project | global | both
+
+# Parallel execution (optional)
+parallel:
+  max_workers: 4
+  use_worktrees: false
 
 # 페르소나 정의: Brain과 Hassan이 공유할 전문적 가이드라인
 personas:

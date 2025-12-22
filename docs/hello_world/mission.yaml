@@ -1,0 +1,11 @@
+mission_name: "Hello World Output"
+project_path: "."
+persona: "general"
+parallel: false
+
+goal:
+  - "Create docs/hello_world/output/hello.txt with the text: Hello, Night Shift!"
+  - "Create docs/hello_world/output/README.md with a 3-line usage note."
+
+constraints:
+  - "Use only file edits; no external dependencies."
