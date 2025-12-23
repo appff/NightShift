@@ -1,4 +1,4 @@
-# 🌙 Night Shift: The Autonomous Overlord (v4.4)
+# 🌙 Night Shift: The Autonomous Overlord
 
 **Night Shift** is an **Autonomous Agent Orchestrator** where the **Brain (Director)** and **Hassan (Worker)** collaborate to finish your projects while you're away. 
 
