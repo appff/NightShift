@@ -2,22 +2,22 @@
 
 All notable changes to Night Shift will be documented in this file.
 
-## [Unreleased]
+## [4.4.2] - 2025-12-23
+### Changed
+- **Docs**: Updated architecture and features manuals to reflect v4.4.x robustness improvements.
+- **Maintenance**: Minor cleanup and version bump.
+
+## [4.4.1] - 2025-12-23
 ### Added
-- **Docs**: New architecture and feature manuals in `docs/`.
-- **Resume**: Automatic resume support via `.night_shift/state.json` (default on).
-- **Context Reduction**: Optional history trimming to reduce tokens.
+- **Structured Reasoning**: Brain is now forced to output JSON (`{"command": "...", "status": "..."}`) to prevent conversational loops and improve state tracking.
+- **Tail-based Filtering**: Hassan (especially Codex) output is filtered to remove execution logs, code blocks, and metadata, keeping only the final summary for the Brain.
+- **Scope Enforcement**: Brain's prompt updated to strictly ignore worker-suggested expansions and focus only on core mission goals.
 
 ### Changed
-- **Mission Overrides**: `brain`, `body`, `critic`, `hassan` can be overridden per mission.
-- **Critic Toggle**: Explicit `critic.enabled` flag with disabled logging.
-- **Persona Names**: Renamed `documenter` to `document` and `troubleshooter` to `troubleshoot`.
-- **Local Checks**: Read-only validation commands run locally instead of via Hassan.
-- **Codex Permissions**: Only `body.codex` uses `--dangerously-bypass-approvals-and-sandbox` by default.
-- **Driver Defaults**: Roles can omit explicit driver blocks and rely on built-in CLI presets with optional `approval`/`sandbox` overrides.
-
-### Fixed
-- **Context Reduction**: Initialize `context_reduction` before history compaction.
+- **Context Management**: Reduced `MAX_CONTEXT_CHARS` and `MAX_HISTORY_CHARS` to prevent "Argument list too long" errors in CLI drivers.
+- **Auth Fix**: Brain process now inherits system `HOME` to ensure stable access to authentication tokens (e.g., `.anthropic`, `.claude`).
+- **Git Diff Truncation**: Large diffs are automatically truncated in the Brain's context to maintain focus and save tokens.
+- **Prompt Engineering**: Overhauled Brain prompt with "Strict Director" persona and recency-bias optimization.
 
 ## [4.3.1] - 2025-12-22
 

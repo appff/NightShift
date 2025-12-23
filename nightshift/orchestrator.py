@@ -566,7 +566,7 @@ You are a code reviewer. Provide a concise review plan and key changes you would
             self.hassan.mission_config["project_path"] = orig_path
 
     def start(self):
-        logging.info(f"🌙 Night Shift (v4.4.1) Starting with default persona: {self.default_persona_name}")
+        logging.info(f"🌙 Night Shift (v4.4.2) Starting with default persona: {self.default_persona_name}")
         if self.brain.driver_config.get("command") and not shutil.which(self.brain.driver_config.get("command")):
             logging.error("❌ Brain driver command not found in PATH.")
         if self.hassan.driver_config.get("command") and not shutil.which(self.hassan.driver_config.get("command")):

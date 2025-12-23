@@ -10,8 +10,11 @@ This document lists Night Shift features and where they are configured.
 
 ## Agents
 
-- Brain: CLI LLM command generator.
+- Brain: Structured CLI LLM command generator.
+  - **Structured Reasoning**: Outputs JSON for unambiguous command and status tracking.
+  - **Scope Enforcement**: Prevents task creep by ignoring unnecessary follow-up suggestions.
 - Hassan: CLI LLM executor (Claude, Codex, Gemini).
+  - **Tail-based Filtering**: Automatically strips execution noise to keep the Brain focused.
 - Critic: optional QA gate with multi-critic voting.
 
 ## Safety
