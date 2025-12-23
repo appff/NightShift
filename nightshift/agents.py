@@ -306,6 +306,14 @@ Output ONLY the raw command string or "MISSION_COMPLETED".
         self._log_brain_activity(log_entry)
 
         response_text = self._run_cli_command(prompt)
+        
+        # Clean up code fences for output
+        if output_format == "json":
+            json_pattern = r"```(?:json)?\s*(\{.*?\})\s*```"
+            match = re.search(json_pattern, response_text, re.DOTALL)
+            if match:
+                response_text = match.group(1)
+
         logging.info(f"--- 🧠 BRAIN RESPONSE ---\n{response_text}\n--- END RESPONSE ---")
         self._log_brain_activity(
             f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] BRAIN RESPONSE\n{'-' * 80}\n{response_text}\n"

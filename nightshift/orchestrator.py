@@ -641,6 +641,14 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                     self.tool_registry,
                     output_format="json",
                 )
+                
+                # Pre-strip code fences for cleaner logging
+                if self.brain_output_format == "json":
+                    json_pattern = r"```(?:json)?\s*(\{.*?\})\s*```"
+                    match = re.search(json_pattern, next_action, re.DOTALL)
+                    if match:
+                        next_action = match.group(1)
+
                 next_action = self._interpret_brain_response(next_action)
                 task_history += f"\n--- 🧠 DIRECTOR DECISION ---\n{next_action}\n"
 
@@ -759,6 +767,9 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                         return f"TASK_{i}_FAILED: Destructive action rejected."
 
                 hassan_output = self.hassan.run(next_action)
+                if not hassan_output.strip():
+                    hassan_output = "SYSTEM ALERT: Hassan returned an empty response. If you were trying to create a file, it might have failed silently. Please verify using 'ls' or use a different method (like the write_file tool)."
+                
                 task_history += f"\n--- 🦾 HASSAN OUTPUT ---\n{hassan_output}\n"
                 last_output = hassan_output
                 time.sleep(RATE_LIMIT_SLEEP)
