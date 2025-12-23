@@ -37,7 +37,7 @@ The orchestrator coordinates these roles per mission task, writes logs, and mana
 
 3.  **Completion & Verification**:
     *   **Post-Flight**: Before marking "Mission Completed", **Self-Check Protocol** runs.
-        *   Did tests pass? Is there evidence? (The 4 Questions).
+        *   Did tests pass? Is there evidence? (The 4 Questions). See [Quality Gates](./quality_gates.md) for details.
     *   **Critic Review**: External Critic validates the work.
 
 4.  **Finalization**:
