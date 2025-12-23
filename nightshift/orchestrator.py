@@ -17,6 +17,13 @@ from .constants import LOG_DIR, RATE_LIMIT_SLEEP, SETTINGS_FILE, SQUAD_WORKSPACE
 from .utils import _is_ignored, _load_ignore_patterns, setup_logging
 from .validation import validate_mission_schema, validate_settings_schema
 
+# --- NEW MODULES ---
+from .memory import ReflexionMemory
+from .context import ContextLoader
+from .validation import ConfidenceChecker, SelfCheckProtocol
+from .optimizer import TokenOptimizer
+# -------------------
+
 
 class NightShiftAgent:
     def __init__(
@@ -55,8 +62,18 @@ class NightShiftAgent:
         self._apply_mission_overrides()
         validate_settings_schema(self.settings)
 
+        project_path = self.mission_config.get("project_path", os.getcwd())
         memory_scope = (self.settings.get("memory") or {}).get("scope", "project")
-        self.memory_manager = MemoryManager(self.mission_config.get("project_path", os.getcwd()), scope=memory_scope)
+        
+        # --- INITIALIZE NEW MODULES ---
+        self.memory_manager = MemoryManager(project_path, scope=memory_scope) # Original memory
+        self.reflexion_memory = ReflexionMemory(os.path.join(project_path, ".night_shift/reflexion.jsonl"))
+        self.context_loader = ContextLoader(os.path.join(project_path, "personas"))
+        self.confidence_checker = ConfidenceChecker(project_path)
+        self.self_checker = SelfCheckProtocol()
+        self.token_optimizer = TokenOptimizer(project_path)
+        # -----------------------------
+
         self.brain = Brain(self.settings, self.mission_config, log_dir=self.log_dir)
         self.critic = Critic(self.settings, self.mission_config)
         self.hassan = Hassan(self.settings, self.mission_config)
@@ -70,15 +87,17 @@ class NightShiftAgent:
         if self.past_memories:
             logging.info("📚 Long-term memories loaded. Brain is feeling experienced.")
 
-        self.personas = self.settings.get("personas", {})
+        # Updated Persona Handling using ContextLoader
         self.default_persona_name = self.mission_config.get("persona", "general")
-        self.default_persona_guidelines = self.personas.get(self.default_persona_name, "")
+        self.default_persona_guidelines = self.context_loader.load_persona(self.default_persona_name)
+        
+        # Keep regex rules from settings for mapping patterns to names
         self.persona_rules = self.settings.get("persona_rules", [])
         for rule in self.persona_map:
             self.persona_rules.insert(0, rule)
 
         if self.default_persona_guidelines:
-            logging.info(f"🎭 Default Persona: [{self.default_persona_name.upper()}]")
+            logging.info(f"🎭 Default Persona: [{self.default_persona_name.upper()}] loaded from file.")
 
         self.conversation_history = ""
         self.last_hassan_query = ""
@@ -88,7 +107,7 @@ class NightShiftAgent:
         self.task_summaries = []
         self.run_start_time = datetime.now()
         self.resume_enabled = self.settings.get("resume", True)
-        self.state_file = os.path.join(self.mission_config.get("project_path", os.getcwd()), ".night_shift", "state.json")
+        self.state_file = os.path.join(project_path, ".night_shift", "state.json")
         self.context_reduction = self.settings.get("context_reduction", {})
 
     def _merge_dict(self, base, override):
@@ -128,19 +147,25 @@ class NightShiftAgent:
             pass
 
     def _select_persona(self, task_text, override_persona=None):
+        persona_name = self.default_persona_name
+        
         if override_persona:
-            return override_persona, self.personas.get(override_persona, "")
-        for rule in self.persona_rules:
-            try:
-                flags = 0
-                if isinstance(rule.get("flags"), str) and "i" in rule.get("flags").lower():
-                    flags |= re.IGNORECASE
-                if re.search(rule.get("pattern", ""), task_text, flags=flags):
-                    persona_name = rule.get("persona")
-                    return persona_name, self.personas.get(persona_name, "")
-            except re.error:
-                continue
-        return self.default_persona_name, self.default_persona_guidelines
+            persona_name = override_persona
+        else:
+            for rule in self.persona_rules:
+                try:
+                    flags = 0
+                    if isinstance(rule.get("flags"), str) and "i" in rule.get("flags").lower():
+                        flags |= re.IGNORECASE
+                    if re.search(rule.get("pattern", ""), task_text, flags=flags):
+                        persona_name = rule.get("persona")
+                        break
+                except re.error:
+                    continue
+        
+        # Load content from file using ContextLoader
+        guidelines = self.context_loader.load_persona(persona_name)
+        return persona_name, guidelines
 
     def _requires_approval(self, command):
         destructive_patterns = [
@@ -174,8 +199,15 @@ class NightShiftAgent:
         if not planner_config.get("enabled"):
             return None
         constraints_text = "\n".join(constraints or [])
+        
+        # --- TOKEN OPTIMIZATION: Use Layer 0 Context ---
+        layer0_context = self.token_optimizer.get_layer0_context()
+        
         prompt = f"""
 You are a planning assistant. Break the mission into a concise list of actionable tasks.
+
+[PROJECT CONTEXT (LAYER 0)]
+{layer0_context}
 
 [MISSION]
 {raw_goal}
@@ -350,8 +382,22 @@ Return ONLY valid JSON:
         return {"text": str(task_item), "persona": None}
 
     def _execute_single_task(self, i, task_item, all_tasks, constraints, safety_config, reviewer_mode=False):
-        task_start_commit = self._get_git_head()
         task_block = task_item.get("text") if isinstance(task_item, dict) else self._format_task_block(task_item)
+        
+        # --- 1. PRE-FLIGHT CHECK (Confidence) ---
+        logging.info(f"🔎 Running Pre-Flight Check for Task {i}...")
+        confidence_result = self.confidence_checker.calculate_confidence(task_block)
+        logging.info(f"   Score: {confidence_result['score']} ({confidence_result['status']})")
+        for check in confidence_result['checks']:
+            logging.info(f"   - {check}")
+            
+        if confidence_result['status'] == "RED":
+            logging.warning("⚠️ Low confidence detected. Suggesting Deep Research...")
+            # Ideally, we would insert a research task here. For now, we prepend a research instruction.
+            task_block = f"[INSTRUCTION: Perform deep research/investigation first]\n{task_block}"
+        # ----------------------------------------
+
+        task_start_commit = self._get_git_head()
         task_start_time = datetime.now()
 
         is_parallel = self.mission_config.get("parallel", False)
@@ -420,8 +466,14 @@ You are a code reviewer. Provide a concise review plan and key changes you would
             )
             return f"\n=== TASK {i} REVIEW ===\n{review_output}\n"
 
+        # --- 2. TOKEN OPTIMIZATION (Layer 0) ---
+        # Inject Bootstrap context instead of raw file loading if needed
+        # (Hassan.prepare might be updated later, but for now we append to query)
+        layer0_context = self.token_optimizer.get_layer0_context()
         self.hassan.prepare(current_task_text=task_block, persona_guidelines=persona_guidelines, tool_registry=self.tool_registry)
-        initial_query = f"Start Task {i}: {task_block}"
+        
+        initial_query = f"Start Task {i}: {task_block}\n\n[PROJECT CONTEXT]\n{layer0_context}"
+        # ---------------------------------------
 
         orig_path = self.hassan.mission_config.get("project_path", os.getcwd())
         self.hassan.mission_config["project_path"] = work_dir
@@ -430,10 +482,17 @@ You are a code reviewer. Provide a concise review plan and key changes you would
         last_check_command = None
         last_check_output = None
         repeat_check_count = 0
+        
         # Semantic Memory: Load only relevant lessons for this task
         relevant_memories = self.memory_manager.load_memories(query=task_block)
-        if relevant_memories:
-            logging.info(f"🧠 Retrieved {len(relevant_memories.split('---'))} relevant memories for Task {i}.")
+        
+        # --- 3. REFLEXION MEMORY ---
+        # Inject adopted fixes for similar past errors
+        past_fixes = self.reflexion_memory.get_all_adopted_fixes()
+        reflexion_context = ""
+        if past_fixes:
+            reflexion_context = "\n[PAST SOLUTIONS (DO NOT REPEAT MISTAKES)]\n" + "\n".join(past_fixes)
+        # ---------------------------
 
         try:
             hassan_output = self.hassan.run(initial_query)
@@ -444,11 +503,12 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                 if "hit your limit" in last_output and "resets" in last_output:
                     self._handle_quota_limit(last_output)
 
+                # Inject Reflexion Context into Brain
                 next_action = self.brain.think(
                     task_block,
                     str([t.get("text", t) if isinstance(t, dict) else t for t in all_tasks]),
                     constraints,
-                    self._compact_history(task_history),
+                    self._compact_history(task_history) + reflexion_context, # Inject here
                     last_output,
                     persona_guidelines,
                     relevant_memories,
@@ -463,44 +523,75 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                     continue
 
                 if next_action == "MISSION_COMPLETED":
-                    qa_config = self.settings.get("qa", {})
-                    if qa_config.get("run_tests"):
-                        if qa_config.get("test_on_each_task", True):
-                            test_command = qa_config.get("test_command")
-                            if not test_command:
-                                test_command = (
-                                    "pytest"
-                                    if os.path.exists(os.path.join(self.hassan.mission_config.get("project_path", os.getcwd()), "tests"))
-                                    else ""
-                                )
-                            if test_command:
-                                logging.info(f"🧪 Running tests: {test_command}")
-                                test_output = self.hassan.run(test_command)
-                                task_history += f"\n--- 🧪 TEST OUTPUT ---\n{test_output}\n"
-                                if self.hassan.last_returncode != 0:
-                                    last_output = f"Tests failed: {test_output}"
-                                    continue
-                    if self.critic.critic_config.get("enabled") is False:
-                        logging.info("🧠 Critic disabled; Brain approving completion.")
-                        verification = "APPROVED"
+                    # --- 4. SELF-CHECK PROTOCOL (Post-Flight) ---
+                    # Validate before accepting completion
+                    # (In a real scenario, we would parse actual execution logs and diffs)
+                    # For now, we use the conversation history as a proxy for logs
+                    self_check_result = self.self_checker.validate_completion(task_history, []) # Diff list hard to get here
+                    
+                    if not self_check_result["passed"]:
+                        logging.warning(f"⚠️ Self-Check Failed: {self_check_result['missing']}")
+                        # Force Hassan to verify
+                        next_action = f"Self-Check Failed. Missing evidence for: {self_check_result['missing']}. Please verify and provide evidence."
+                        # Don't break, continue loop with this new instruction
+                        # Note: In production, we might want to allow override after N fails
                     else:
-                        verification = self.critic.evaluate(task_block, self._compact_history(task_history), last_output)
-                    if verification.strip().upper() == "APPROVED":
-                        logging.info(f"✅ Task {i} Verified and Completed!")
-                        state = self._load_state()
-                        completed = set(state.get("completed_indices", []))
-                        completed.add(i)
-                        state["completed_indices"] = sorted(completed)
-                        self._save_state(state)
-                        break
-                    logging.info(f"🕵️‍♂️ Critic Rejected Task {i}: {verification}")
-                    task_history += (
-                        f"\n--- 🕵️‍♂️ CRITIC FEEDBACK (REJECTED) ---\n{verification}\n"
-                        "Please address the issues mentioned above.\n-----------------------------------\n"
-                    )
-                    hassan_output = f"Critic feedback received: {verification}. I need to fix these issues."
-                    last_output = hassan_output
-                    continue
+                        logging.info("✅ Self-Check Passed.")
+                        # Proceed to normal completion logic...
+                    # --------------------------------------------
+                    
+                    if next_action == "MISSION_COMPLETED": # If still completed
+                        qa_config = self.settings.get("qa", {})
+                        if qa_config.get("run_tests"):
+                            if qa_config.get("test_on_each_task", True):
+                                test_command = qa_config.get("test_command")
+                                if not test_command:
+                                    test_command = (
+                                        "pytest"
+                                        if os.path.exists(os.path.join(self.hassan.mission_config.get("project_path", os.getcwd()), "tests"))
+                                        else ""
+                                    )
+                                if test_command:
+                                    logging.info(f"🧪 Running tests: {test_command}")
+                                    test_output = self.hassan.run(test_command)
+                                    task_history += f"\n--- 🧪 TEST OUTPUT ---\n{test_output}\n"
+                                    if self.hassan.last_returncode != 0:
+                                        last_output = f"Tests failed: {test_output}"
+                                        
+                                        # --- REFLEXION RECORDING ---
+                                        # If tests fail, record it
+                                        self.reflexion_memory.add_entry(
+                                            error_signature=f"Test failure in Task {i}",
+                                            root_cause="Automated test failure",
+                                            fix="Pending fix", # We don't know the fix yet
+                                            status="pending"
+                                        )
+                                        # ---------------------------
+                                        continue
+                        
+                        if self.critic.critic_config.get("enabled") is False:
+                            logging.info("🧠 Critic disabled; Brain approving completion.")
+                            verification = "APPROVED"
+                        else:
+                            verification = self.critic.evaluate(task_block, self._compact_history(task_history), last_output)
+                        
+                        if verification.strip().upper() == "APPROVED":
+                            logging.info(f"✅ Task {i} Verified and Completed!")
+                            state = self._load_state()
+                            completed = set(state.get("completed_indices", []))
+                            completed.add(i)
+                            state["completed_indices"] = sorted(completed)
+                            self._save_state(state)
+                            break
+                        
+                        logging.info(f"🕵️‍♂️ Critic Rejected Task {i}: {verification}")
+                        task_history += (
+                            f"\n--- 🕵️‍♂️ CRITIC FEEDBACK (REJECTED) ---\n{verification}\n"
+                            "Please address the issues mentioned above.\n-----------------------------------\n"
+                        )
+                        hassan_output = f"Critic feedback received: {verification}. I need to fix these issues."
+                        last_output = hassan_output
+                        continue
 
                 if next_action.startswith("MISSION_FAILED"):
                     logging.error(f"❌ Task {i} Failed: {next_action}")
