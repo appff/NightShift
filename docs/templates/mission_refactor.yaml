@@ -1,12 +1,12 @@
 mission_name: "Refactor Pass"
 project_path: "."
-persona: "architect"
+persona: "refactoring-expert" # Persona focused on improving code quality safely
 parallel: false
 
 goal:
-  - "Identify tight coupling and propose module boundaries."
-  - "Refactor core modules while preserving tests."
-  - "Update README with new structure and rationale."
+  - task: "Identify tight coupling and propose module boundaries."
+  - task: "Refactor core modules while preserving tests."
+  - task: "Update README with new structure and rationale."
 
 constraints:
   - "Keep changes minimal and well-tested."

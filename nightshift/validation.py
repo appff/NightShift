@@ -1,6 +1,45 @@
 import os
 import glob
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Any
+
+# --- Legacy Validation Functions (Restored) ---
+
+def validate_mission_schema(config: Dict[str, Any]):
+    """
+    Validates the mission.yaml configuration.
+    Raises ValueError if required fields are missing or invalid.
+    """
+    if not isinstance(config, dict):
+        raise ValueError("Mission configuration must be a dictionary.")
+    
+    # Required fields
+    required_fields = ["goal"] # 'mission_name' might be optional or have default
+    for field in required_fields:
+        if field not in config:
+            raise ValueError(f"Mission configuration missing required field: '{field}'")
+            
+    # 'goal' can be string or list of strings/dicts
+    goal = config.get("goal")
+    if not (isinstance(goal, str) or isinstance(goal, list)):
+         raise ValueError("Mission 'goal' must be a string or a list of tasks.")
+
+    if isinstance(goal, list):
+        if not all(isinstance(item, (str, dict)) for item in goal):
+             raise ValueError("Mission 'goal' list items must be strings or task dictionaries.")
+
+def validate_settings_schema(config: Dict[str, Any]):
+    """
+    Validates the settings.yaml configuration.
+    Raises ValueError if invalid.
+    """
+    if not isinstance(config, dict):
+        raise ValueError("Settings configuration must be a dictionary.")
+    
+    # Basic structure check (optional)
+    # Just ensure it's a dict for now as settings are often optional/merged
+    pass
+
+# --- New Cognitive Architecture Classes ---
 
 class ConfidenceChecker:
     """
@@ -99,45 +138,74 @@ class SelfCheckProtocol:
     Enforces 'The 4 Questions' to prevent hallucination and laziness.
     """
     
-    def validate_completion(self, execution_log: str, changed_files: List[str]) -> Dict:
+    def _is_coding_task(self, persona_name: str, task_description: str) -> bool:
+        """Heuristically determine if the task is about writing/modifying code."""
+        coding_personas = [
+            "backend-architect", "frontend-architect", "python-expert", "refactoring-expert",
+            "security-engineer", "quality-engineer", "performance-engineer"
+        ]
+        if persona_name in coding_personas:
+            return True
+
+        coding_keywords = [
+            "implement", "fix", "add", "refactor", "modify", "develop", "bug", 
+            "error", "test", "feature", "endpoint", "class", "function", "code",
+        ]
+        return any(keyword in task_description.lower() for keyword in coding_keywords)
+
+    def validate_completion(
+        self,
+        persona_name: str,
+        task_description: str,
+        execution_log: str,
+        changed_files: List[str]
+    ) -> Dict:
         """
-        Analyze execution artifacts to answer the 4 questions.
+        Analyze execution artifacts to answer the 4 questions, adapting to task type and persona.
+        """
+        is_coding = self._is_coding_task(persona_name, task_description)
         
-        Args:
-            execution_log: The full stdout/stderr of the task execution.
-            changed_files: List of files modified during the task.
-            
-        Returns:
-            Dict with pass/fail status for each check.
-        """
         checks = {
-            "tests_passed": False,
-            "requirements_met": "Unknown", # Requires semantic check
+            "tests_passed": not is_coding,
+            "requirements_met": False,
             "assumptions_verified": False,
-            "evidence_provided": False
+            "evidence_provided": False,
         }
         
-        # 1. Are all tests passing? (Check for common success patterns)
-        if "passed" in execution_log.lower() and "failed" not in execution_log.lower():
-            checks["tests_passed"] = True
-        elif "OK" in execution_log: # pytest style
-            checks["tests_passed"] = True
-            
-        # 2. Are requirements met? (Placeholder for now)
-        # Ideally this needs LLM verification against the original goal.
+        # 1. Test Verification (only for coding tasks)
+        if is_coding:
+            if "passed" in execution_log.lower() and "failed" not in execution_log.lower():
+                checks["tests_passed"] = True
+            elif "OK" in execution_log: # For pytest
+                checks["tests_passed"] = True
+            elif changed_files and "no tests ran" in execution_log.lower():
+                checks["tests_passed"] = True # Pass if code changed but no tests exist
+            else:
+                checks["tests_passed"] = False
         
-        # 3. No assumptions without verification?
-        # Check if logs show reading documentation or checking existing code
-        if "cat " in execution_log or "grep " in execution_log or "ls " in execution_log:
+        # 2. Requirements Met (Persona-based check)
+        log_lower = execution_log.lower()
+        if persona_name == "technical-writer" and any(k in log_lower for k in ["readme", "doc", "guide"]):
+            checks["requirements_met"] = True
+        elif persona_name == "refactoring-expert" and any(k in log_lower for k in ["refactor", "simplify", "improve"]):
+            checks["requirements_met"] = True
+        elif persona_name == "deep-research-agent" and any(k in log_lower for k in ["source:", "link:", "http"]):
+            checks["requirements_met"] = True
+        elif is_coding and "implemented" in log_lower or "fixed" in log_lower:
+            checks["requirements_met"] = True
+        elif not is_coding and len(log_lower) > 100: # For generic non-coding tasks, assume long output is good.
+             checks["requirements_met"] = True
+
+        # 3. Assumptions Verified
+        if any(cmd in execution_log for cmd in ["cat ", "grep ", "ls ", "find ", "search_file_content"]):
             checks["assumptions_verified"] = True
             
-        # 4. Is there evidence?
-        # Did we actually change anything or run anything?
+        # 4. Evidence Provided
         if changed_files or len(execution_log.strip()) > 50:
             checks["evidence_provided"] = True
-            
+        
         # Final Verdict
-        passed = checks["tests_passed"] and checks["evidence_provided"]
+        passed = all(checks.values())
         
         return {
             "passed": passed,

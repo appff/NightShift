@@ -1,17 +1,17 @@
 mission_name: "Hierarchical Task Example"
 project_path: "."
-persona: "architect"
+persona: "system-architect" # System Architect is suitable for core logic refactoring
 parallel: false
 
 goal:
-  - title: "Core Logic Refactor"
+  - task: "Core Logic Refactor"
     sub_tasks:
       - "Identify long functions in night_shift.py"
       - "Extract task execution into helpers"
       - "Ensure error handling is preserved"
 
-  - title: "Documentation Update"
-    persona: "document"
+  - task: "Documentation Update"
+    persona: "technical-writer" # Specific persona for this task
     sub_tasks:
       - "Update README with new config examples"
       - "Add notes about reviewer mode and planner"

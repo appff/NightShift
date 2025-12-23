@@ -527,7 +527,9 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                     # Validate before accepting completion
                     # (In a real scenario, we would parse actual execution logs and diffs)
                     # For now, we use the conversation history as a proxy for logs
-                    self_check_result = self.self_checker.validate_completion(task_history, []) # Diff list hard to get here
+                    self_check_result = self.self_checker.validate_completion(
+                        persona_name, task_block, task_history, []
+                    )  # Diff list hard to get here
                     
                     if not self_check_result["passed"]:
                         logging.warning(f"⚠️ Self-Check Failed: {self_check_result['missing']}")
@@ -662,7 +664,7 @@ You are a code reviewer. Provide a concise review plan and key changes you would
             self.hassan.mission_config["project_path"] = orig_path
 
     def start(self):
-        logging.info(f"🌙 Night Shift (v4.5.0) Starting with default persona: {self.default_persona_name}")
+        logging.info(f"🌙 Night Shift (v5.0) Starting with default persona: {self.default_persona_name}")
         if self.brain.driver_config.get("command") and not shutil.which(self.brain.driver_config.get("command")):
             logging.error("❌ Brain driver command not found in PATH.")
         if self.hassan.driver_config.get("command") and not shutil.which(self.hassan.driver_config.get("command")):

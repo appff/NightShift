@@ -1,12 +1,12 @@
 mission_name: "Bugfix & RCA"
 project_path: "."
-persona: "troubleshoot"
+persona: "root-cause-analyst" # Persona for systematic debugging
 parallel: false
 
 goal:
-  - "Reproduce the issue and identify root cause."
-  - "Implement a fix with tests."
-  - "Document the fix and any follow-ups."
+  - task: "Reproduce the issue and identify root cause."
+  - task: "Implement a fix with tests."
+  - task: "Document the fix and any follow-ups."
 
 constraints:
   - "Prefer small, targeted changes."

@@ -1,12 +1,12 @@
 mission_name: "Documentation Update"
 project_path: "."
-persona: "document"
+persona: "technical-writer" # Persona for clear, comprehensive documentation
 parallel: false
 
 goal:
-  - "Audit README and docs for outdated content."
-  - "Update usage examples and configuration sections."
-  - "Add a quickstart and FAQ."
+  - task: "Audit README and docs for outdated content."
+  - task: "Update usage examples and configuration sections."
+  - task: "Add a quickstart and FAQ."
 
 constraints:
   - "Keep language concise and user-focused."
