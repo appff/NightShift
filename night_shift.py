@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Night Shift: Autonomous AI Agent Wrapper (v4.4.2 - Pure CLI & Shadow Workspace)
+Night Shift: Autonomous AI Agent Wrapper (v4.5.0 - Hybrid Observation & RAG Memory)
 Target: macOS M3 (Apple Silicon)
-Version: 4.4.2
+Version: 4.5.0
 """
 
 import os

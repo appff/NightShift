@@ -260,7 +260,7 @@ def _is_ignored(path, root_path, patterns):
 
 def _link_auth_folders(target_home):
     real_home = os.path.expanduser("~")
-    auth_folders = [".claude", ".gemini", ".codex", ".config"]
+    auth_folders = [".claude", ".gemini", ".codex", ".config", ".anthropic"]
     auth_files = [".claude.json", ".gemini.json", ".codex.json"]
     for folder in auth_folders:
         src = os.path.join(real_home, folder)
