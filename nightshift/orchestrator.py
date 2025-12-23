@@ -196,7 +196,7 @@ class NightShiftAgent:
         try:
             tmp_path = f"{self.mission_path}.tmp"
             with open(tmp_path, "w", encoding="utf-8") as f:
-                yaml.safe_dump(self.mission_config, f, sort_keys=False)
+                yaml.safe_dump(self.mission_config, f, sort_keys=False, allow_unicode=True)
             os.replace(tmp_path, self.mission_path)
         finally:
             self._release_mission_lock(fd)

@@ -14,7 +14,7 @@ def _load_yaml(path):
 
 def _dump_yaml(path, data):
     with open(path, "w", encoding="utf-8") as f:
-        yaml.safe_dump(data, f, sort_keys=False)
+        yaml.safe_dump(data, f, sort_keys=False, allow_unicode=True)
 
 
 def _is_new_schema(config):
