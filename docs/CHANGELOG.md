@@ -2,6 +2,17 @@
 
 All notable changes to Night Shift will be documented in this file.
 
+## [5.1.0] - 2025-01-05
+### Added
+- **Repo-Scoped Missions**: `mission.yaml` now tracks task status (`todo` → `in_progress` → `done`/`blocked`) and auto-updates during runs.
+- **Mission Locking**: Atomic updates to `mission.yaml` with a lock file to avoid parallel write conflicts.
+- **Migration Tool**: Added `scripts/migrate_mission_v4_to_v5.py` for legacy mission schema conversion.
+
+### Changed
+- **Project Root Key**: `project.repo_root` renamed to `project.project_root` (no git repo required).
+- **Planner Behavior**: Planner is ignored for repo-scoped missions; tasks must be defined explicitly.
+- **Persona Resolution**: Persona files now default to the NightShift source `personas/` directory, with optional overrides.
+
 ## [4.5.0] - 2025-12-23
 ### Added
 - **Hybrid Observation**: Brain can now execute read-only tools (`ls`, `rg`, `grep`, `read_file`, etc.) directly for instant feedback, bypassing the Hassan worker turn.

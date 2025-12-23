@@ -24,8 +24,8 @@ The orchestrator coordinates these roles per mission task, writes logs, and mana
 ## Data Flow (Updated v5.0)
 
 1.  **Mission Load & Init**:
-    *   `mission.yaml` parsed.
-    *   **Context Loader** loads the specific persona (e.g., `architect.md`) from disk.
+    *   `mission.yaml` parsed (repo-scoped missions with task status tracking).
+    *   **Context Loader** loads the specific persona (e.g., `architect.md`) from Night Shift's `personas/` directory by default.
     *   **Token Optimizer** generates "Layer 0 Context" (File Tree + README) to minimize initial tokens.
 
 2.  **Task Execution Loop**:
