@@ -329,8 +329,16 @@ Return ONLY valid JSON:
     def _interpret_brain_response(self, response):
         if self.brain_output_format != "json":
             return response
+        
+        # Clean up code fences if present (e.g. ```json ... ```)
+        cleaned_response = response.strip()
+        json_pattern = r"```(?:json)?\s*(\{.*?\})\s*```"
+        match = re.search(json_pattern, cleaned_response, re.DOTALL)
+        if match:
+            cleaned_response = match.group(1)
+            
         try:
-            data = json.loads(response)
+            data = json.loads(cleaned_response)
             status = data.get("status", "").lower()
             command = data.get("command", "")
             if status == "completed":
