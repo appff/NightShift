@@ -83,7 +83,3 @@ This new project-based approach makes long-term, multi-task projects much easier
 ## ⚙️ Configuration
 
 For detailed configuration of drivers (AI models), safety settings, and persona rules, see `settings.example.yaml`.
-
----
-
-*... (Rest of the README remains the same) ...*
