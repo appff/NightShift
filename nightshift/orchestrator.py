@@ -44,6 +44,7 @@ class NightShiftAgent:
         self.reviewer_mode = reviewer_mode
         self.persona_map = persona_map or []
         self.driver_availability_checked = False
+        self.mission_path = os.path.abspath(mission_path)
 
         if not os.path.exists(mission_path):
             sys.exit(1)
@@ -53,6 +54,11 @@ class NightShiftAgent:
         if self.mission_config is None:
             raise ValueError("Mission file is empty or invalid YAML")
         validate_mission_schema(self.mission_config)
+        project_root = self.mission_config.get("project", {}).get("project_root", os.getcwd())
+        project_path = os.path.abspath(os.path.expanduser(project_root))
+        self.mission_config["project_path"] = project_path
+        self.mission_lock_file = os.path.join(project_path, ".night_shift", "mission.lock")
+        self._normalize_mission_config()
 
         if not os.path.exists(SETTINGS_FILE):
             self.settings = {}
@@ -62,13 +68,20 @@ class NightShiftAgent:
         self._apply_mission_overrides()
         validate_settings_schema(self.settings)
 
-        project_path = self.mission_config.get("project_path", os.getcwd())
+        project_root = self.mission_config.get("project", {}).get("project_root", os.getcwd())
+        project_path = os.path.abspath(os.path.expanduser(project_root))
+        self.mission_config["project_path"] = project_path
         memory_scope = (self.settings.get("memory") or {}).get("scope", "project")
         
         # --- INITIALIZE NEW MODULES ---
         self.memory_manager = MemoryManager(project_path, scope=memory_scope) # Original memory
         self.reflexion_memory = ReflexionMemory(os.path.join(project_path, ".night_shift/reflexion.jsonl"))
-        self.context_loader = ContextLoader(os.path.join(project_path, "personas"))
+        personas_root = (
+            self.mission_config.get("personas_root")
+            or self.settings.get("personas_root")
+            or os.path.join(os.path.dirname(os.path.dirname(__file__)), "personas")
+        )
+        self.context_loader = ContextLoader(personas_root)
         self.confidence_checker = ConfidenceChecker(project_path)
         self.self_checker = SelfCheckProtocol()
         self.token_optimizer = TokenOptimizer(project_path)
@@ -88,7 +101,11 @@ class NightShiftAgent:
             logging.info("📚 Long-term memories loaded. Brain is feeling experienced.")
 
         # Updated Persona Handling using ContextLoader
-        self.default_persona_name = self.mission_config.get("persona", "general")
+        self.default_persona_name = (
+            self.mission_config.get("mission", {}).get("persona")
+            or self.mission_config.get("persona")
+            or "general"
+        )
         self.default_persona_guidelines = self.context_loader.load_persona(self.default_persona_name)
         
         # Keep regex rules from settings for mapping patterns to names
@@ -125,6 +142,84 @@ class NightShiftAgent:
         for key in ["brain", "critic", "body", "hassan"]:
             if key in self.mission_config:
                 self.settings[key] = self._merge_dict(self.settings.get(key, {}), self.mission_config.get(key, {}))
+
+    def _normalize_mission_config(self):
+        changed = False
+        mission = self.mission_config.get("mission", {})
+        if mission.get("status") is None:
+            mission["status"] = "active"
+            changed = True
+        if mission.get("created_at") is None:
+            mission["created_at"] = datetime.now().strftime("%Y-%m-%d")
+            changed = True
+        if mission.get("updated_at") is None:
+            mission["updated_at"] = datetime.now().strftime("%Y-%m-%d")
+            changed = True
+        self.mission_config["mission"] = mission
+
+        tasks = self.mission_config.get("tasks", [])
+        for task in tasks:
+            if not isinstance(task, dict):
+                continue
+            if "status" not in task:
+                task["status"] = "todo"
+                changed = True
+            if "title" not in task and task.get("task"):
+                task["title"] = task.get("task")
+                changed = True
+        if changed:
+            self._save_mission_config()
+
+    def _acquire_mission_lock(self, timeout=10):
+        os.makedirs(os.path.dirname(self.mission_lock_file), exist_ok=True)
+        start_time = time.time()
+        while True:
+            try:
+                fd = os.open(self.mission_lock_file, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+                return fd
+            except FileExistsError:
+                if time.time() - start_time > timeout:
+                    raise TimeoutError("Failed to acquire mission lock.")
+                time.sleep(0.1)
+
+    def _release_mission_lock(self, fd):
+        try:
+            os.close(fd)
+        finally:
+            try:
+                os.remove(self.mission_lock_file)
+            except FileNotFoundError:
+                pass
+
+    def _save_mission_config(self):
+        fd = self._acquire_mission_lock()
+        try:
+            tmp_path = f"{self.mission_path}.tmp"
+            with open(tmp_path, "w", encoding="utf-8") as f:
+                yaml.safe_dump(self.mission_config, f, sort_keys=False)
+            os.replace(tmp_path, self.mission_path)
+        finally:
+            self._release_mission_lock(fd)
+
+    def _update_task_status(self, task_id, status, summary_path=None, notes=None):
+        tasks = self.mission_config.get("tasks", [])
+        updated = False
+        for task in tasks:
+            if not isinstance(task, dict):
+                continue
+            if task.get("id") == task_id:
+                task["status"] = status
+                if summary_path:
+                    task["summary_path"] = summary_path
+                if notes is not None:
+                    task["notes"] = notes
+                updated = True
+                break
+        if updated:
+            mission = self.mission_config.get("mission", {})
+            mission["updated_at"] = datetime.now().isoformat()
+            self.mission_config["mission"] = mission
+            self._save_mission_config()
 
     def _load_state(self):
         if not self.resume_enabled or not os.path.exists(self.state_file):
@@ -358,10 +453,11 @@ Return ONLY valid JSON:
         if isinstance(task_item, str):
             return f"Task: {task_item}"
 
-        title = task_item.get("task") or task_item.get("goal") or task_item.get("title", "Untitled Task")
+        task_id = task_item.get("id", "UNKNOWN")
+        title = task_item.get("title") or task_item.get("task") or "Untitled Task"
         sub_tasks = task_item.get("sub_tasks", []) or []
 
-        block = f"MAIN TASK: {title}\n"
+        block = f"TASK ID: {task_id}\nMAIN TASK: {title}\n"
         if sub_tasks:
             block += "SUB-TASKS:\n"
             for sub in sub_tasks:
@@ -370,20 +466,32 @@ Return ONLY valid JSON:
 
     def _normalize_task_item(self, task_item):
         if isinstance(task_item, str):
-            return {"text": f"Task: {task_item}", "persona": None}
+            return {"id": None, "text": f"Task: {task_item}", "persona": None, "status": "todo"}
         if isinstance(task_item, dict):
-            text = task_item.get("task") or task_item.get("goal") or task_item.get("title")
+            task_id = task_item.get("id")
+            text = task_item.get("title") or task_item.get("task")
             if not text:
                 text = "Untitled Task"
             if task_item.get("sub_tasks"):
                 block = self._format_task_block(task_item)
-                return {"text": block, "persona": task_item.get("persona")}
-            return {"text": text, "persona": task_item.get("persona")}
-        return {"text": str(task_item), "persona": None}
+                return {
+                    "id": task_id,
+                    "text": block,
+                    "persona": task_item.get("persona"),
+                    "status": task_item.get("status", "todo"),
+                }
+            return {
+                "id": task_id,
+                "text": text,
+                "persona": task_item.get("persona"),
+                "status": task_item.get("status", "todo"),
+            }
+        return {"id": None, "text": str(task_item), "persona": None, "status": "todo"}
 
     def _execute_single_task(self, i, task_item, all_tasks, constraints, safety_config, reviewer_mode=False):
         task_block = task_item.get("text") if isinstance(task_item, dict) else self._format_task_block(task_item)
-        
+        task_id = task_item.get("id") if isinstance(task_item, dict) else None
+
         # --- 1. PRE-FLIGHT CHECK (Confidence) ---
         logging.info(f"🔎 Running Pre-Flight Check for Task {i}...")
         confidence_result = self.confidence_checker.calculate_confidence(task_block)
@@ -465,6 +573,15 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                 }
             )
             return f"\n=== TASK {i} REVIEW ===\n{review_output}\n"
+
+        if task_id:
+            self._update_task_status(task_id, "in_progress")
+            self._save_state(
+                {
+                    "active_task_id": task_id,
+                    "last_run_at": datetime.now().isoformat(),
+                }
+            )
 
         # --- 2. TOKEN OPTIMIZATION (Layer 0) ---
         # Inject Bootstrap context instead of raw file loading if needed
@@ -579,11 +696,8 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                         
                         if verification.strip().upper() == "APPROVED":
                             logging.info(f"✅ Task {i} Verified and Completed!")
-                            state = self._load_state()
-                            completed = set(state.get("completed_indices", []))
-                            completed.add(i)
-                            state["completed_indices"] = sorted(completed)
-                            self._save_state(state)
+                            if task_id:
+                                self._update_task_status(task_id, "done")
                             break
                         
                         logging.info(f"🕵️‍♂️ Critic Rejected Task {i}: {verification}")
@@ -607,6 +721,8 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                             "duration_seconds": (datetime.now() - task_start_time).total_seconds(),
                         }
                     )
+                    if task_id:
+                        self._update_task_status(task_id, "blocked", notes=next_action)
                     return f"TASK_{i}_FAILED: {next_action}"
 
                 if self._is_local_check_command(next_action):
@@ -643,11 +759,8 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                     "duration_seconds": (datetime.now() - task_start_time).total_seconds(),
                 }
             )
-            state = self._load_state()
-            completed = set(state.get("completed_indices", []))
-            completed.add(i)
-            state["completed_indices"] = sorted(completed)
-            self._save_state(state)
+            if task_id:
+                self._update_task_status(task_id, "done")
             task_completed = True
             return task_history
         finally:
@@ -681,31 +794,13 @@ You are a code reviewer. Provide a concise review plan and key changes you would
             )
             logging.info(f"🛡️ Created backup branch (no checkout): {branch_name}")
 
-        raw_tasks = self.mission_config.get("goal")
-        if raw_tasks is None:
-            raw_tasks = self.mission_config.get("task", [])
-        tasks = raw_tasks if isinstance(raw_tasks, list) else [raw_tasks]
-        constraints = self.mission_config.get("constraints", [])
+        tasks = self.mission_config.get("tasks", [])
+        constraints = self.mission_config.get("constraints") or self.mission_config.get("mission", {}).get("constraints", [])
         is_parallel = self.mission_config.get("parallel", False)
         reviewer_mode = self.mission_config.get("reviewer_mode", False) or self.reviewer_mode
 
-        planned = self._plan_tasks(raw_tasks, constraints)
-        if planned:
-            logging.info("🧭 Planner produced a task list.")
-            if self.settings.get("planner", {}).get("require_approval", False) and not self.auto_approve_plan:
-                print("Proposed plan:")
-                for idx, task in enumerate(planned, 1):
-                    print(f"{idx}. {task}")
-                approval = input("Approve this plan? [y/N]: ").strip().lower()
-                if approval != "y":
-                    logging.info("❌ Plan rejected. Falling back to original tasks.")
-                else:
-                    tasks = planned
-            else:
-                tasks = planned
-
-        state = self._load_state()
-        completed_indices = set(state.get("completed_indices", []))
+        if self.settings.get("planner", {}).get("enabled"):
+            logging.info("ℹ️ Planner is enabled but ignored for repo-scoped missions. Define tasks in mission.yaml.")
 
         normalized_tasks = []
         for task_item in tasks:
@@ -726,21 +821,32 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                 max_workers = self.settings.get("parallel", {}).get("max_workers", len(normalized_tasks))
                 if not isinstance(max_workers, int) or max_workers <= 0:
                     max_workers = len(normalized_tasks)
+                runnable = []
+                for idx, task_item in enumerate(normalized_tasks, 1):
+                    status = task_item.get("status", "todo")
+                    if status in ("done", "blocked"):
+                        logging.info(f"⏭️ Skipping task {task_item.get('id')} (status: {status}).")
+                        continue
+                    runnable.append((idx, task_item))
+                if not runnable:
+                    logging.info("ℹ️ No runnable tasks found.")
+                    return
                 with ThreadPoolExecutor(max_workers=max_workers) as executor:
                     results = list(
                         executor.map(
                             lambda x: self._execute_single_task(
                                 x[0], x[1], normalized_tasks, constraints, safety_config, reviewer_mode
                             ),
-                            enumerate(normalized_tasks, 1),
+                            runnable,
                         )
                     )
                 for res in results:
                     self.conversation_history += res
             else:
                 for i, task_item in enumerate(normalized_tasks, 1):
-                    if i in completed_indices:
-                        logging.info(f"⏭️ Skipping completed task {i} (resume enabled).")
+                    status = task_item.get("status", "todo")
+                    if status in ("done", "blocked"):
+                        logging.info(f"⏭️ Skipping task {task_item.get('id')} (status: {status}).")
                         continue
                     res = self._execute_single_task(i, task_item, normalized_tasks, constraints, safety_config, reviewer_mode)
                     self.conversation_history += res
@@ -776,12 +882,14 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                     logging.info("ℹ️ Auto commit/push disabled. Review and commit changes manually.")
             else:
                 logging.info(f"🏁 Parallel tasks finished. Check isolated workspaces in {SQUAD_WORKSPACE_DIR}")
-            if self.resume_enabled and os.path.exists(self.state_file):
-                try:
-                    os.remove(self.state_file)
-                except Exception:
-                    pass
         finally:
+            if self.resume_enabled:
+                self._save_state(
+                    {
+                        "active_task_id": None,
+                        "last_run_at": datetime.now().isoformat(),
+                    }
+                )
             self.hassan.cleanup()
             history_file = self.log_file_path.replace("night_shift_log", "night_shift_history")
             with open(history_file, "w", encoding="utf-8") as f:

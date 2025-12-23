@@ -27,6 +27,12 @@ critic:
 memory:
   scope: project # project, global, or both
 
+# --- Context Reduction ---
+context_reduction:
+  enabled: true
+  head_chars: 800
+  tail_chars: 2000
+
 # --- Safety ---
 safety:
   auto_rollback_on_failure: true

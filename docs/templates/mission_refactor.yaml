@@ -1,12 +1,31 @@
-mission_name: "Refactor Pass"
-project_path: "."
-persona: "refactoring-expert" # Persona focused on improving code quality safely
+project:
+  name: "Refactor Pass"
+  project_root: "."
+  owner: ""
+  tags: ["refactor"]
+
+mission:
+  name: "Refactor Pass"
+  status: "active"
+  created_at: "2025-01-01"
+  updated_at: "2025-01-01"
+  persona: "refactoring-expert"
+
 parallel: false
 
-goal:
-  - task: "Identify tight coupling and propose module boundaries."
-  - task: "Refactor core modules while preserving tests."
-  - task: "Update README with new structure and rationale."
+tasks:
+  - id: "RF-001"
+    title: "Identify tight coupling and propose module boundaries."
+    status: "todo"
+    priority: "P1"
+  - id: "RF-002"
+    title: "Refactor core modules while preserving tests."
+    status: "todo"
+    priority: "P1"
+  - id: "RF-003"
+    title: "Update README with new structure and rationale."
+    status: "todo"
+    priority: "P2"
 
 constraints:
   - "Keep changes minimal and well-tested."

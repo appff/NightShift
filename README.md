@@ -91,7 +91,8 @@ persona_rules:
 ```
 
 **Notes:**
-- `home_dir` / `link_auth`: These are automatically handled by Night Shift based on `project_path` for isolated environments.
+- `home_dir` / `link_auth`: These are automatically handled by Night Shift based on `project.project_root` for isolated environments.
+- Persona files default to `<mission.yaml directory>/personas`. Override with `personas_root` in `settings.yaml` or `mission.yaml` if needed.
 - `context_reduction`: Trims long history to reduce token usage.
 - `approval` / `sandbox`: Optional Codex-only flags; applied only if your Codex CLI supports these flags.
 
@@ -104,22 +105,42 @@ For a comprehensive list of all configurable options and examples, refer to `set
 ## 📋 Define Your Mission (`mission.yaml`)
 
 ```yaml
-mission_name: "Example Mission"
-project_path: "."
-persona: "system-architect" # Specify a persona from the 'personas/' directory
+project:
+  name: "Example Mission"
+  project_root: "."
+  owner: ""
+  tags: ["example"]
+
+mission:
+  name: "Example Mission"
+  status: "active"
+  created_at: "2025-01-01"
+  updated_at: "2025-01-01"
+  persona: "system-architect" # Specify a persona from the 'personas/' directory
+
 parallel: false # Set to true for parallel task execution
 
-goal:
-  - task: "Design a MessageBus class using SOLID principles."
-  - task: "Implement unit tests for the MessageBus."
-  - task: "Document the design choices and API."
+tasks:
+  - id: "EX-001"
+    title: "Design a MessageBus class using SOLID principles."
+    status: "todo"
+    priority: "P1"
+  - id: "EX-002"
+    title: "Implement unit tests for the MessageBus."
+    status: "todo"
+    priority: "P1"
+  - id: "EX-003"
+    title: "Document the design choices and API."
+    status: "todo"
+    priority: "P2"
 
 constraints:
   - "Use only standard Python libraries."
   - "Ensure 95% test coverage."
 ```
 
-**Note**: `goal` can be a list of strings for simple tasks or a list of dictionaries for hierarchical tasks with per-task personas. The `task:` field is now preferred over `title:`.
+**Note**: `project.project_root` can point to any project directory (git repo not required). `tasks` are tracked in `mission.yaml` and updated automatically as they move from `todo` → `in_progress` → `done` (or `blocked` on failure).
+Legacy `mission.yaml` files can be migrated with `scripts/migrate_mission_v4_to_v5.py`.
 
 ### Full Mission Reference & Templates
 

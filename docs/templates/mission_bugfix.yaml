@@ -1,12 +1,31 @@
-mission_name: "Bugfix & RCA"
-project_path: "."
-persona: "root-cause-analyst" # Persona for systematic debugging
+project:
+  name: "Bugfix & RCA"
+  project_root: "."
+  owner: ""
+  tags: ["bugfix"]
+
+mission:
+  name: "Bugfix & RCA"
+  status: "active"
+  created_at: "2025-01-01"
+  updated_at: "2025-01-01"
+  persona: "root-cause-analyst"
+
 parallel: false
 
-goal:
-  - task: "Reproduce the issue and identify root cause."
-  - task: "Implement a fix with tests."
-  - task: "Document the fix and any follow-ups."
+tasks:
+  - id: "BUG-001"
+    title: "Reproduce the issue and identify root cause."
+    status: "todo"
+    priority: "P0"
+  - id: "BUG-002"
+    title: "Implement a fix with tests."
+    status: "todo"
+    priority: "P0"
+  - id: "BUG-003"
+    title: "Document the fix and any follow-ups."
+    status: "todo"
+    priority: "P1"
 
 constraints:
   - "Prefer small, targeted changes."

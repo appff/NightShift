@@ -5,7 +5,7 @@ This document lists Night Shift features and where they are configured.
 ## Orchestration
 
 - Sequential or parallel task execution.
-- Optional planner to expand goals into task lists.
+- Repo-scoped `mission.yaml` with task status tracking (`todo` → `in_progress` → `done`/`blocked`).
 - Resume after interruption (default enabled).
 
 ## Cognitive Architecture (New in v5.0) 🧠

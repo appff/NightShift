@@ -1,12 +1,31 @@
-mission_name: "Documentation Update"
-project_path: "."
-persona: "technical-writer" # Persona for clear, comprehensive documentation
+project:
+  name: "Documentation Update"
+  project_root: "."
+  owner: ""
+  tags: ["docs"]
+
+mission:
+  name: "Documentation Update"
+  status: "active"
+  created_at: "2025-01-01"
+  updated_at: "2025-01-01"
+  persona: "technical-writer"
+
 parallel: false
 
-goal:
-  - task: "Audit README and docs for outdated content."
-  - task: "Update usage examples and configuration sections."
-  - task: "Add a quickstart and FAQ."
+tasks:
+  - id: "DOC-001"
+    title: "Audit README and docs for outdated content."
+    status: "todo"
+    priority: "P1"
+  - id: "DOC-002"
+    title: "Update usage examples and configuration sections."
+    status: "todo"
+    priority: "P1"
+  - id: "DOC-003"
+    title: "Add a quickstart and FAQ."
+    status: "todo"
+    priority: "P2"
 
 constraints:
   - "Keep language concise and user-focused."
