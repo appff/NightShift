@@ -12,20 +12,31 @@ def validate_mission_schema(config: Dict[str, Any]):
     if not isinstance(config, dict):
         raise ValueError("Mission configuration must be a dictionary.")
     
-    # Required fields
-    required_fields = ["goal"] # 'mission_name' might be optional or have default
-    for field in required_fields:
-        if field not in config:
-            raise ValueError(f"Mission configuration missing required field: '{field}'")
+    # Support both legacy 'goal' and new 'tasks' format
+    if "goal" not in config and "tasks" not in config:
+        raise ValueError("Mission configuration must contain either a 'goal' or a 'tasks' field.")
             
-    # 'goal' can be string or list of strings/dicts
-    goal = config.get("goal")
-    if not (isinstance(goal, str) or isinstance(goal, list)):
-         raise ValueError("Mission 'goal' must be a string or a list of tasks.")
+    # Check 'goal' if present
+    if "goal" in config:
+        goal = config.get("goal")
+        if not (isinstance(goal, str) or isinstance(goal, list)):
+             raise ValueError("Mission 'goal' must be a string or a list of tasks.")
+        if isinstance(goal, list):
+            if not all(isinstance(item, (str, dict)) for item in goal):
+                 raise ValueError("Mission 'goal' list items must be strings or task dictionaries.")
 
-    if isinstance(goal, list):
-        if not all(isinstance(item, (str, dict)) for item in goal):
-             raise ValueError("Mission 'goal' list items must be strings or task dictionaries.")
+    # Check 'tasks' if present
+    if "tasks" in config:
+        tasks = config.get("tasks")
+        if not isinstance(tasks, list):
+            raise ValueError("Mission 'tasks' must be a list.")
+        for task in tasks:
+            if not isinstance(task, dict):
+                # We can be lenient and allow string tasks in the list too
+                continue
+            if "title" not in task and "task" not in task:
+                # One of them should be present for a valid task object
+                pass
 
 def validate_settings_schema(config: Dict[str, Any]):
     """
