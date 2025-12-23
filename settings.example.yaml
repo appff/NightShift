@@ -14,6 +14,9 @@ hassan:
   active_driver: claude
   # active_driver: codex  # Uncomment to use OpenAI Codex (requires CLI)
   timeout: 600
+  # If true, Hassan uses the real system HOME directory instead of an isolated one.
+  # Useful for tools like 'claude' that depend on local config, but less safe.
+  use_real_home: false
 
 # --- Critic (The QA) ---
 # Validates the work.

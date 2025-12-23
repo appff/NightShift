@@ -277,7 +277,8 @@ Your "Hassan" (Worker) is a CLI tool that executes your commands.
 
 [DECISION LOGIC & SCOPE ENFORCEMENT]
 1. **Analyze Completion:** Compare [LAST HASSAN OUTPUT] against [CURRENT ACTIVE TASK HIERARCHY].
-2. **Hybrid Observation:** You can use read-only tools (`ls`, `cat`, `rg`, `grep`, `read_file`, `glob`) for INSTANT feedback. These run locally and do not consume a worker turn.
+2. **File Operations:** For creating or updating files, PREFER using the `write_file` tool directly if available. DO NOT use complex shell redirects like heredocs (`<< EOF`) as they often fail in CLI environments.
+3. **Hybrid Observation:** You can use read-only tools (`ls`, `cat`, `rg`, `grep`, `read_file`, `glob`) for INSTANT feedback. These run locally and do not consume a worker turn.
 3. **Ignore Extensions:** If Hassan has completed the core requirements but suggests optional expansions (e.g., "I can also do X", "Would you like charts?"), YOU MUST IGNORE THEM. Do not expand the scope.
 4. **Declare Completion:** If the core task requirements are met, output exactly: "MISSION_COMPLETED".
 5. **Next Step:** If and ONLY IF the task is incomplete, output the next specific CLI command.
@@ -554,15 +555,21 @@ class Hassan:
             self.drivers = _build_default_drivers("body", settings)
         self.mission_config = mission_config
         self.system_prompt_file = None
+        
+        self.use_real_home = self.hassan_config.get("use_real_home", False)
         self.home_dir = None
-        configured_home = self.hassan_config.get("home_dir")
-        if configured_home:
-            self.home_dir = os.path.abspath(os.path.expanduser(configured_home))
-        self.link_auth = self.hassan_config.get("link_auth", True)
-        if self.home_dir:
-            os.makedirs(self.home_dir, exist_ok=True)
-            if self.link_auth:
-                _link_auth_folders(self.home_dir)
+
+        if self.use_real_home:
+            logging.warning("⚠️ Hassan is configured to use the REAL SYSTEM HOME directory. Sandbox isolation is disabled.")
+        else:
+            configured_home = self.hassan_config.get("home_dir")
+            if configured_home:
+                self.home_dir = os.path.abspath(os.path.expanduser(configured_home))
+            self.link_auth = self.hassan_config.get("link_auth", True)
+            if self.home_dir:
+                os.makedirs(self.home_dir, exist_ok=True)
+                if self.link_auth:
+                    _link_auth_folders(self.home_dir)
 
         self.driver_config = self.drivers.get(self.active_driver_name)
         if not self.driver_config:
