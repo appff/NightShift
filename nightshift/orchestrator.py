@@ -615,6 +615,7 @@ You are a code reviewer. Provide a concise review plan and key changes you would
             hassan_output = self.hassan.run(initial_query)
             task_history = f"\n=== TASK {i} START ===\nDirector Init: {initial_query}\nHassan Output:\n{hassan_output}\n"
             last_output = hassan_output
+            self_check_retry_count = 0  # Prevention for infinite self-check loops
 
             while True:
                 if "hit your limit" in last_output and "resets" in last_output:
@@ -642,24 +643,27 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                 if next_action == "MISSION_COMPLETED":
                     # --- 4. SELF-CHECK PROTOCOL (Post-Flight) ---
                     # Validate before accepting completion
-                    # (In a real scenario, we would parse actual execution logs and diffs)
-                    # For now, we use the conversation history as a proxy for logs
                     self_check_result = self.self_checker.validate_completion(
                         persona_name, task_block, task_history, []
-                    )  # Diff list hard to get here
+                    )
                     
                     if not self_check_result["passed"]:
-                        logging.warning(f"⚠️ Self-Check Failed: {self_check_result['missing']}")
-                        # Force Hassan to verify
-                        next_action = f"Self-Check Failed. Missing evidence for: {self_check_result['missing']}. Please verify and provide evidence."
-                        # Don't break, continue loop with this new instruction
-                        # Note: In production, we might want to allow override after N fails
-                    else:
-                        logging.info("✅ Self-Check Passed.")
-                        # Proceed to normal completion logic...
+                        self_check_retry_count += 1
+                        if self_check_retry_count > 2:
+                            logging.warning(f"⚠️ Self-Check failed {self_check_retry_count} times. Forcing completion to prevent loop.")
+                            # Force pass or mark potential issues
+                        else:
+                            logging.warning(f"⚠️ Self-Check Failed (Attempt {self_check_retry_count}): {self_check_result['missing']}")
+                            # Feedback to Brain directly via history/output, DO NOT run as command
+                            failure_msg = f"SYSTEM ALERT: Self-Check Failed. Missing evidence for: {self_check_result['missing']}. You must provide evidence or verify the work."
+                            task_history += f"\n--- 🛡️ SELF-CHECK FEEDBACK ---\n{failure_msg}\n"
+                            last_output = failure_msg
+                            continue # Skip hassan.run and go back to Brain
+                    
+                    logging.info("✅ Self-Check Passed (or forced).")
                     # --------------------------------------------
                     
-                    if next_action == "MISSION_COMPLETED": # If still completed
+                    if True: # Proceed to completion processing
                         qa_config = self.settings.get("qa", {})
                         if qa_config.get("run_tests"):
                             if qa_config.get("test_on_each_task", True):
