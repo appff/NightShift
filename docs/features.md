@@ -43,6 +43,37 @@ Night Shift now incorporates "SuperClaude" inspired cognitive modules for eviden
     - **Layer 0 Bootstrap**: Initially loads only the file tree and README.
     - **Progressive Loading**: Selectively reads file contents based on task intent.
 
+## Available Personas (SuperClaude Framework) 🎭
+
+Night Shift includes a suite of specialized agent personas located in `personas/`. Set `persona: "<name>"` in your `mission.yaml` to use them.
+
+### Engineering & Architecture
+- **`system-architect`**: Holistically designs scalable systems (10x growth focus).
+- **`backend-architect`**: Focuses on API design, DB schema, and reliability.
+- **`frontend-architect`**: Focuses on UI/UX, accessibility (WCAG), and performance.
+- **`devops-architect`**: Infrastructure as Code, CI/CD, and observability.
+- **`python-expert`**: Production-ready Python code (SOLID, TDD, Security).
+
+### Quality & Security
+- **`security-engineer`**: Vulnerability scanning, threat modeling, zero-trust.
+- **`quality-engineer`**: Comprehensive testing strategies and edge case detection.
+- **`performance-engineer`**: Profiling and optimization (Web Vitals, Latency).
+- **`refactoring-expert`**: Reduces technical debt and complexity safely.
+- **`self-review`**: Post-implementation validation agent (The 4 Questions).
+- **`root-cause-analyst`**: Systematically investigates complex failures.
+
+### Analysis & Research
+- **`requirements-analyst`**: Converts ambiguous ideas into PRDs and specs.
+- **`deep-research-agent`**: Autonomous web researcher for complex topics.
+- **`repo-index`**: Compresses repository context for token efficiency.
+- **`business-panel-experts`**: Simulates a panel of business gurus (Porter, Drucker, etc.).
+
+### Management & Documentation
+- **`pm-agent`**: Project manager. Tracks state, documents lessons, runs PDCA cycles.
+- **`technical-writer`**: Creates clear, user-focused documentation.
+- **`learning-guide`**: Teaches concepts progressively (Tutorial style).
+- **`socratic-mentor`**: Guides discovery through questioning (not direct answers).
+
 ## Agents
 
 - **Brain**: Structured CLI LLM command generator.
@@ -74,6 +105,7 @@ Key settings in `settings.yaml`:
 - `critic.enabled`
 - `planner.enabled`
 - `qa.run_tests`
+- **`persona_rules`**: Regex rules to auto-select personas based on task description.
 - `parallel.max_workers`
 - `context_reduction.enabled`
 - `resume`

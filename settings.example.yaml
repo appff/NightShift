@@ -1,243 +1,90 @@
+# Night Shift Configuration Example
+# Copy this to settings.yaml and adjust as needed.
+
+# --- Brain (The Director) ---
+# Decides strictly what to do next.
 brain:
-  # 메인으로 사용할 두뇌(Director)를 선택합니다.
-  # API 호출이 아닌 CLI 도구를 사용하여 비정형 미션 해석과 명령 생성을 수행합니다.
-  # 드라이버 블록이 없으면 NightShift 기본 프리셋을 사용합니다.
-  active_driver: "gemini" # options: claude, codex, gemini
-  output_format: "text" # text | json
-  # Codex CLI 전용 승인/샌드박스 옵션 (옵션)
-  approval: "on-request" # untrusted | on-failure | on-request | never
-  sandbox: "read-only" # read-only | workspace-write | danger-full-access
-  home_dir: ".night_shift/brain_env"
-  link_auth: true
+  active_driver: claude  # claude, gemini, codex, etc.
+  output_format: json    # json (recommended) or text
+  timeout: 300           # Seconds to wait for Brain response
 
-  claude:
-    # Claude Code CLI (requires 'claude' in PATH)
-    command: "claude"
-    args:
-      - "-p"
-      - "{prompt}"
-      - "--dangerously-skip-permissions"
-  codex:
-    # OpenAI Codex CLI (@openai/codex)
-    command: "codex"
-    args:
-      - "exec"
-      - "--full-auto"
-      - "{prompt}"
-  gemini:
-    # Gemini CLI (Official/Community)
-    command: "gemini"
-    args:
-      - "-p"
-      - "{prompt}"
+# --- Hassan (The Executor) ---
+# Executes the commands.
+hassan:
+  active_driver: claude
+  # active_driver: codex  # Uncomment to use OpenAI Codex (requires CLI)
+  timeout: 600
 
+# --- Critic (The QA) ---
+# Validates the work.
 critic:
-  # 브레인과 다른 드라이버를 사용하는 것을 권장합니다 (Cross-verification)
-  active_driver: "codex"
-  strictness: "lenient" # lenient | balanced | strict
-  enabled: false
-  # Codex CLI 전용 승인/샌드박스 옵션 (옵션)
-  approval: "on-request"
-  sandbox: "read-only"
-  home_dir: ".night_shift/critic_env"
-  link_auth: true
-  claude:
-    command: "claude"
-    args:
-      - "-p"
-      - "{prompt}"
-      - "--dangerously-skip-permissions"
-  gemini:
-    command: "gemini"
-    args:
-      - "-p"
-      - "{prompt}"
-  codex:
-    # OpenAI Codex CLI (@openai/codex)
-    command: "codex"
-    args:
-      - "exec"
-      - "--full-auto"
-      - "{prompt}"
-
-body:
-  # 작업을 수행할 주체(Worker/Hassan)를 선택합니다.
-  active_driver: "claude"
-  # Codex CLI 전용 승인/샌드박스 옵션 (옵션)
-  approval: "on-request"
-  sandbox: "workspace-write"
-  claude:
-    # Claude Code CLI (requires 'claude' in PATH)
-    command: "claude"
-    # {query} will be replaced with the actual command
-    # {system_prompt_file} will be replaced with the path to the system prompt file
-    args:
-      - "--system-prompt-file"
-      - "{system_prompt_file}"
-      - "-p"
-      - "{query}"
-      - "-c"
-      - "--dangerously-skip-permissions"
-      - "--allowedTools"
-      - "Write"
-    env: {}
-  gemini:
-    # Gemini CLI (Official/Community)
-    command: "gemini"
-    args:
-      - "-p"
-      - "{query}"
-      - "--allowed-tools"
-      - "write_file"
-      - "--allowed-tools"
-      - "run_shell_command"
-  codex:
-    # OpenAI Codex CLI (@openai/codex)
-    command: "codex"
-    args:
-      - "exec"
-      - "--dangerously-bypass-approvals-and-sandbox"
-      - "{query}"
-
-# Safety & Snapshot Settings
-safety:
-  # Automatically rollback to the previous commit if a task fails
-  auto_rollback_on_failure: false
-  # Create a temporary backup branch before starting the mission
-  create_backup_branch: false
-  # Automatically commit and push after all tasks complete
-  auto_commit_and_push: false
-  # Require approval for destructive commands (rm -rf, git reset, etc.)
-  require_approval_for_destructive: true
-  # Run tasks in a worktree and preview changes before applying
-  preview_changes: false
-  # Use git worktrees for task isolation when possible
-  use_worktrees: false
-
-# Tool registry shared with Brain/Hassan (optional)
-tools:
-  - "rg -n <pattern> <path>"
-  - "python3 night_shift.py --dry-run"
-
-# Planner (optional)
-planner:
   enabled: true
-  require_approval: true
+  active_drivers: [gemini] # Can use multiple critics for voting
+  voting: majority         # all (unanimous) or majority
+  timeout: 300
 
-# QA (optional)
-qa:
-  run_tests: false
-  test_on_each_task: true
-  test_command: ""
-
-# Memory (optional)
+# --- Memory ---
 memory:
-  scope: "project" # project | global | both
+  scope: project # project, global, or both
 
-# Parallel execution (optional)
-parallel:
-  max_workers: 4
-  use_worktrees: false
+# --- Safety ---
+safety:
+  auto_rollback_on_failure: true
+  create_backup_branch: true
+  require_approval_for_destructive: true
+  preview_changes: false # If true, uses worktrees to preview changes before applying
+  auto_commit_and_push: false
 
-# Resume (optional)
-resume: true
-
-# Context reduction (optional)
-context_reduction:
-  enabled: true
-  head_chars: 800
-  tail_chars: 2000
-
-# 페르소나 정의: Brain과 Hassan이 공유할 전문적 가이드라인
-personas:
-  architect: |
-    - Focus on high-level structure, scalability, and design patterns (SOLID, Clean Architecture).
-    - Avoid quick hacks; prioritize maintainability.
-    - Ensure all components are modular and well-interfaced.
-    - Prefer clear boundaries, minimal coupling, and stable interfaces.
-
-  troubleshoot: |
-    - Prioritize root cause analysis (RCA).
-    - Always analyze logs, tracebacks, and environment state before proposing a fix.
-    - Explain the logic behind the fix and verify it with tests.
-    - Prefer minimal, targeted changes with evidence-backed reasoning.
-
-  document: |
-    - Write professional, clear, and concise technical documentation.
-    - Ensure READMEs, API docs, and code comments follow standard conventions.
-    - Focus on the "Why" and "How to use" rather than just the "What".
-    - Provide quickstart steps and concrete examples when helpful.
-
-  brainstorm: |
-    - Generate creative ideas, alternative approaches, and innovative solutions.
-    - Focus on divergent thinking and explore multiple possibilities without self-censoring.
-    - Provide pros and cons for each major idea.
-    - Avoid converging too early; keep options open.
-
-  research: |
-    - Conduct deep-dive investigations, search for best practices, and gather relevant data.
-    - Focus on finding external documentation, library APIs, and community-proven solutions.
-    - Summarize findings with clear sources and actionable insights.
-    - Prefer primary sources and official docs when possible.
-
-  analyze: |
-    - Perform rigorous problem analysis and identify root causes (RCA).
-    - Deconstruct complex issues into smaller, manageable parts.
-    - Focus on logic, data evidence, and systematic troubleshooting.
-    - Validate assumptions and make constraints explicit.
-
-  general: |
-    - Act as a balanced, professional software engineer.
-    - Focus on delivering functional, clean, and tested code.
-    - Keep changes small, readable, and well-justified.
-
-  security: |
-    - Prioritize threat modeling, least privilege, and secure defaults.
-    - Avoid introducing risky dependencies or unsafe patterns.
-    - Flag sensitive data exposure and secret handling issues.
-    - Prefer explicit validation and safe error handling.
-
-  performance: |
-    - Identify bottlenecks with evidence (profiling/logs) before tuning.
-    - Focus on algorithmic improvements and reducing I/O.
-    - Avoid premature optimization; measure impact.
-    - Document tradeoffs and performance assumptions.
-
-  testing: |
-    - Add or improve tests for critical paths and regressions.
-    - Prefer deterministic, fast, and isolated tests.
-    - Validate edge cases and failure modes.
-    - Keep test names and assertions clear and specific.
-
-  ops: |
-    - Emphasize deployment reliability, observability, and rollback plans.
-    - Prefer explicit configuration and reproducible environments.
-    - Improve logging, metrics, and alerting where relevant.
-    - Consider operational runbooks and failure recovery.
-
-  researcher: |
-    - Gather evidence from docs, specs, and reliable sources.
-    - Summarize findings with citations and clear recommendations.
-    - Compare alternatives and note risks or unknowns.
-
-  refactor: |
-    - Reduce complexity and improve readability without changing behavior.
-    - Prefer small, safe steps with tests or verification.
-    - Eliminate duplication and clarify responsibilities.
-    - Keep public APIs stable unless explicitly required.
-
-  ux_writer: |
-    - Focus on clarity, tone, and user empathy.
-    - Use concise language and consistent terminology.
-    - Provide helpful microcopy and actionable guidance.
-    - Avoid jargon unless it is clearly defined.
-
-# Optional: automatic persona selection rules (first match wins).
-# flags: "i" enables case-insensitive matching.
+# --- Persona Rules (Auto-Selection) ---
+# If mission.yaml doesn't specify a persona, these regex rules allow
+# NightShift to auto-select the best expert based on the task description.
+# Checked in order (top to bottom).
 persona_rules:
-  - pattern: "docs|readme|document"
-    persona: "document"
-    flags: "i"
-  - pattern: "bug|error|traceback|fix"
-    persona: "troubleshoot"
-    flags: "i"
+  # 1. Architecture & Infrastructure
+  - pattern: "(?i)(devops|docker|kubernetes|k8s|pipeline|ci/cd|deploy|aws|cloud|terraform|ansible)"
+    persona: "devops-architect"
+  - pattern: "(?i)(frontend|ui|ux|css|html|react|vue|tailwind|accessibility|wcag|web vitals)"
+    persona: "frontend-architect"
+  - pattern: "(?i)(backend|api|database|schema|sql|graphql|rest|server|microservice)"
+    persona: "backend-architect"
+  - pattern: "(?i)(system design|architecture|scalability|pattern|structure)"
+    persona: "system-architect"
+
+  # 2. Quality & Security
+  - pattern: "(?i)(security|auth|oauth|vulnerability|hack|owasp|audit|penetration)"
+    persona: "security-engineer"
+  - pattern: "(?i)(performance|optimize|speed|latency|slow|benchmark|memory leak|cpu)"
+    persona: "performance-engineer"
+  - pattern: "(?i)(test|qa|coverage|unit test|integration test|e2e|mock|fixture)"
+    persona: "quality-engineer"
+  - pattern: "(?i)(refactor|cleanup|clean code|technical debt|legacy|simplify)"
+    persona: "refactoring-expert"
+
+  # 3. Research & Analysis
+  - pattern: "(?i)(research|investigate|find out|search|study|compare|survey)"
+    persona: "deep-research-agent"
+  - pattern: "(?i)(requirement|prd|spec|user story|planning|scope|analysis)"
+    persona: "requirements-analyst"
+  - pattern: "(?i)(index|map|overview|structure|codebase)"
+    persona: "repo-index"
+
+  # 4. Troubleshooting & Maintenance
+  - pattern: "(?i)(bug|fix|error|exception|fail|crash|debug|root cause|incident)"
+    persona: "root-cause-analyst"
+  - pattern: "(?i)(doc|readme|guide|manual|tutorial|write up|changelog)"
+    persona: "technical-writer"
+
+  # 5. Language Specifics (Examples)
+  - pattern: "(?i)(python|pip|django|flask|fastapi|pandas|numpy)"
+    persona: "python-expert"
+
+# --- Tools ---
+# Tools available to the agents. (Actual tool logic is handled by the CLI driver)
+tools:
+  - "ls: List files"
+  - "cat: Read file content"
+  - "grep: Search text in files"
+  - "find: Find files"
+  - "edit: Edit file (via sed or specialized tool)"
+  - "run_test: Run test suite"
+  - "git: Version control"

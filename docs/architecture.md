@@ -62,8 +62,16 @@ The orchestrator coordinates these roles per mission task, writes logs, and mana
 ## Agent Intelligence
 
 ### Persona System (Context-Oriented)
-Night Shift now uses "Context-Oriented Config". Instead of putting prompt strings in `settings.yaml`, we use `personas/` files.
-- `architect.md`: Focuses on structure and boundaries.
-- `troubleshoot.md`: Focuses on evidence and root cause analysis.
 
-This allows agents to behave more like specialized experts.
+Night Shift uses a **"Context-Oriented Config"** approach. Instead of rigid code logic, agent behavior is defined by rich Markdown files in `personas/`.
+
+#### How It Works (The Prompt Flow)
+
+1.  **Selection**: The user selects a persona in `mission.yaml` (e.g., `persona: "python-expert"`), or regex rules in `settings.yaml` auto-select it based on the task description.
+2.  **Loading**: `ContextLoader` reads `personas/python-expert.md`.
+3.  **Injection (Brain)**: The content is injected into the **System Prompt** of the Brain.
+    *   *Effect*: The Brain plans and reasons like a Python Expert (e.g., prioritizing TDD, Security).
+4.  **Injection (Hassan)**: The content is written to a temporary system prompt file (`.night_shift_system_prompt.txt`) passed to Hassan's CLI driver.
+    *   *Effect*: Hassan generates code and executes commands adhering to the persona's constraints and style.
+
+This ensures that both the **Planner (Brain)** and the **Executor (Hassan)** align with the same specialized mindset throughout the task.
