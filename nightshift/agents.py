@@ -277,9 +277,10 @@ Your "Hassan" (Worker) is a CLI tool that executes your commands.
 
 [DECISION LOGIC & SCOPE ENFORCEMENT]
 1. **Analyze Completion:** Compare [LAST HASSAN OUTPUT] against [CURRENT ACTIVE TASK HIERARCHY].
-2. **Ignore Extensions:** If Hassan has completed the core requirements but suggests optional expansions (e.g., "I can also do X", "Would you like charts?"), YOU MUST IGNORE THEM. Do not expand the scope.
-3. **Declare Completion:** If the core task requirements are met, output exactly: "MISSION_COMPLETED".
-4. **Next Step:** If and ONLY IF the task is incomplete, output the next specific CLI command.
+2. **Hybrid Observation:** You can use read-only tools (`ls`, `cat`, `rg`, `grep`, `read_file`, `glob`) for INSTANT feedback. These run locally and do not consume a worker turn.
+3. **Ignore Extensions:** If Hassan has completed the core requirements but suggests optional expansions (e.g., "I can also do X", "Would you like charts?"), YOU MUST IGNORE THEM. Do not expand the scope.
+4. **Declare Completion:** If the core task requirements are met, output exactly: "MISSION_COMPLETED".
+5. **Next Step:** If and ONLY IF the task is incomplete, output the next specific CLI command.
 
 [INSTRUCTIONS]
 1. Focus ONLY on the [CURRENT ACTIVE TASK HIERARCHY].
@@ -329,24 +330,53 @@ class MemoryManager:
         except Exception:
             pass
 
-    def load_memories(self):
-        """Returns the content of the memory file."""
+    def load_memories(self, query=None):
+        """Returns the content of the memory file, optionally filtered by relevance to a query."""
         memories = []
         files = []
         if self.scope in ("project", "both"):
             files.append(self.project_memory_file)
         if self.scope in ("global", "both"):
             files.append(self.global_memory_file)
+            
+        all_content = ""
         for path in files:
             if os.path.exists(path):
                 try:
                     with open(path, "r", encoding="utf-8") as f:
                         content = f.read().strip()
                         if content:
-                            memories.append(content)
+                            all_content += "\n\n" + content
                 except Exception:
                     continue
-        return "\n\n".join(memories).strip()
+        
+        all_content = all_content.strip()
+        if not all_content or not query:
+            return all_content
+
+        # Simple RAG-lite: Keyword-based relevance filtering
+        # Memory files use "### YYYY-MM-DD" headers to separate entries.
+        sections = re.split(r"(?=### \d{4}-\d{2}-\d{2})", all_content)
+        sections = [s.strip() for s in sections if s.strip()]
+        
+        if len(sections) <= 3:
+            return all_content
+
+        query_words = set(re.findall(r"\w+", query.lower()))
+        scored_sections = []
+        for section in sections:
+            section_words = set(re.findall(r"\w+", section.lower()))
+            score = len(query_words.intersection(section_words))
+            scored_sections.append((score, section))
+            
+        # Sort by score descending and take top 3
+        scored_sections.sort(key=lambda x: x[0], reverse=True)
+        top_sections = [s[1] for s in scored_sections[:3] if s[0] > 0]
+        
+        if not top_sections:
+            return "" # Or return generic if preferred
+            
+        return "\n\n---\n".join(top_sections).strip()
 
     def save_memory(self, new_insight):
         """Appends a new insight to the memory file."""

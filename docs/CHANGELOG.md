@@ -2,12 +2,13 @@
 
 All notable changes to Night Shift will be documented in this file.
 
-## [4.4.2] - 2025-12-23
-### Changed
-- **Docs**: Updated architecture and features manuals to reflect v4.4.x robustness improvements.
-- **Maintenance**: Minor cleanup and version bump.
+## [4.5.0] - 2025-12-23
+### Added
+- **Hybrid Observation**: Brain can now execute read-only tools (`ls`, `rg`, `grep`, `read_file`, etc.) directly for instant feedback, bypassing the Hassan worker turn.
+- **RAG Memory**: Implemented Semantic Memory (RAG-lite) that retrieves only the top 3 most relevant "Lessons Learned" for each task based on keyword overlap, preventing context overflow.
+- **Roadmap**: Added `docs/roadmap.md` to track future architectural improvements.
 
-## [4.4.1] - 2025-12-23
+## [4.4.2] - 2025-12-23
 ### Added
 - **Structured Reasoning**: Brain is now forced to output JSON (`{"command": "...", "status": "..."}`) to prevent conversational loops and improve state tracking.
 - **Tail-based Filtering**: Hassan (especially Codex) output is filtered to remove execution logs, code blocks, and metadata, keeping only the final summary for the Brain.

@@ -430,6 +430,11 @@ You are a code reviewer. Provide a concise review plan and key changes you would
         last_check_command = None
         last_check_output = None
         repeat_check_count = 0
+        # Semantic Memory: Load only relevant lessons for this task
+        relevant_memories = self.memory_manager.load_memories(query=task_block)
+        if relevant_memories:
+            logging.info(f"🧠 Retrieved {len(relevant_memories.split('---'))} relevant memories for Task {i}.")
+
         try:
             hassan_output = self.hassan.run(initial_query)
             task_history = f"\n=== TASK {i} START ===\nDirector Init: {initial_query}\nHassan Output:\n{hassan_output}\n"
@@ -446,7 +451,7 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                     self._compact_history(task_history),
                     last_output,
                     persona_guidelines,
-                    self.past_memories,
+                    relevant_memories,
                     self.tool_registry,
                     output_format="json",
                 )
@@ -566,7 +571,7 @@ You are a code reviewer. Provide a concise review plan and key changes you would
             self.hassan.mission_config["project_path"] = orig_path
 
     def start(self):
-        logging.info(f"🌙 Night Shift (v4.4.2) Starting with default persona: {self.default_persona_name}")
+        logging.info(f"🌙 Night Shift (v4.5.0) Starting with default persona: {self.default_persona_name}")
         if self.brain.driver_config.get("command") and not shutil.which(self.brain.driver_config.get("command")):
             logging.error("❌ Brain driver command not found in PATH.")
         if self.hassan.driver_config.get("command") and not shutil.which(self.hassan.driver_config.get("command")):
@@ -716,7 +721,11 @@ You are a code reviewer. Provide a concise review plan and key changes you would
             return False
         if not parts:
             return False
-        allowed = {"ls", "cat", "rg", "sed", "head", "tail", "stat", "wc"}
+        # Hybrid Observation: Allow more read-only tools to run locally for speed
+        allowed = {
+            "ls", "cat", "rg", "grep", "sed", "head", "tail", "stat", "wc", 
+            "find", "read_file", "search_file_content", "glob"
+        }
         return parts[0] in allowed
 
     def _run_local_check(self, command, cwd):
