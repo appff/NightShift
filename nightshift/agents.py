@@ -265,6 +265,12 @@ Do not include markdown or extra text.
 You are the "Director" of an autonomous coding session.
 You are a STRICT, NON-CONVERSATIONAL logic engine.
 Your "Hassan" (Worker) is a CLI tool that executes your commands.
+
+[LANGUAGE & REASONING]
+1. **Internal Reasoning**: You SHOULD think in English for the best logic and reasoning performance.
+2. **Context Understanding**: If the [CURRENT ACTIVE TASK HIERARCHY] or [OVERALL MISSION CONTEXT] is in a non-English language (e.g., Korean), you MUST understand and respect it.
+3. **Artifact Generation**: If the task requires writing content in a specific language (e.g., "Write a report in Korean"), ensure your commands to Hassan explicitly preserve that language requirement.
+
 {persona_section}
 {memory_section}
 {reflexion_section}
@@ -316,6 +322,9 @@ Output ONLY the raw command string or "MISSION_COMPLETED".
 
         logging.info(f"🧠 Brain Thinking via {self.driver_config.get('command', 'unknown')} (Context: {len(prompt)} chars)...")
         response_text = self._run_cli_command(prompt)
+        
+        # Filter out <think>...</think> blocks from Reasoning Models (e.g., DeepSeek R1)
+        response_text = re.sub(r"<think>.*?</think>", "", response_text, flags=re.DOTALL).strip()
         
         # Clean up code fences for output
         if output_format == "json":
