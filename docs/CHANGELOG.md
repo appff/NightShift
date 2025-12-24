@@ -2,6 +2,12 @@
 
 All notable changes to Night Shift will be documented in this file.
 
+## [5.3.1] - 2025-12-24
+### Improved
+- **Adaptive Tooling**: The Brain now receives different tool instructions based on its intelligence level.
+  - **Local LLMs (DeepSeek/Qwen)** get "Smart Tools" (`view`, `edit`) to simplify operations and reduce errors.
+  - **SOTA LLMs (Claude/GPT-4)** get standard shell access (`read_file`, `run_shell_command`) to leverage their advanced scripting capabilities without restriction.
+
 ## [5.3.0] - 2025-12-24
 ### 🛠️ Smart Orchestrator & Tools
 - **New Toolset (`nightshift/tools.py`)**: Implemented high-level Python tools to assist Local LLMs.

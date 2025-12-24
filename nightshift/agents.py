@@ -250,9 +250,14 @@ class Brain:
         clean_output = self.clean_ansi(last_hassan_output)[-MAX_CONTEXT_CHARS:]
         constraints_text = "\n".join(constraints) if isinstance(constraints, list) else str(constraints)
         
-        # Inject Core System Tools to ensure Brain knows how to operate
-        core_tools = """
-- view <path_or_url>: Reads a local file OR a web URL.
+        # Determine Toolset based on Driver Capability
+        # Local LLMs need "Smart Tools" (High-level python wrappers)
+        # SOTA LLMs (Claude/GPT-4) prefer raw shell power
+        is_local_llm = any(name in self.active_driver_name.lower() for name in ["deepseek", "qwen", "llama", "ollama"])
+        
+        if is_local_llm:
+            core_tools = """
+- view <path_or_url>: Reads a local file OR a web URL (auto-cleaned).
 - list <path>: Lists files in a directory.
 - edit <path> <old_text> <new_text>: Replaces exact text in a file.
 - run_shell_command <command>: Executes any other shell command.
@@ -262,6 +267,15 @@ IMPORTANT:
 - Use `edit` for stable file modifications. It requires the EXACT text to replace.
 - DO NOT invent flags for `night_shift.py`.
 """
+        else:
+            # Standard toolset for smart models
+            core_tools = """
+- read_file: Reads a file from the local filesystem.
+- write_file: Writes content to a file.
+- run_shell_command: Executes a shell command (ls, grep, find, curl, etc.).
+- glob: Finds files matching a pattern.
+"""
+
         tools_section = f"\n[AVAILABLE TOOLS]\n{core_tools}\n{tool_registry}\n" 
 
         format_section = ""
