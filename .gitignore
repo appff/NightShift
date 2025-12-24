@@ -1,5 +1,4 @@
 # Configuration files (contain sensitive API keys)
-settings.yaml
 mission.yaml
 
 # Python cache
