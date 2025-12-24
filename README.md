@@ -2,17 +2,18 @@
 
 **Night Shift** is an **Autonomous Agent Orchestrator** where the **Brain (Director)** and **Hassan (Worker)** collaborate to finish your projects while you're away. 
 
-**v5.1** introduces a new **project-centric workflow**. Instead of defining a list of goals, you now manage a single `mission.yaml` file as a persistent dashboard for your entire project, tracking task status directly within the file.
+**v5.2** introduces a leaner, more robust **Evidence-Based Architecture**. By unifying verification into the Brain's core identity, Night Shift ensures high-quality results with reduced complexity and faster execution.
 
 ---
 
-## ✨ Why Night Shift (v5.1)?
+## ✨ Why Night Shift (v5.2)?
 
-*   **🧠 Cognitive Architecture ([SuperClaude](https://www.superclaude.sh/) Inspired)**: Agents think and act like specialized experts, learning from past mistakes (`ReflexionMemory`) and verifying their own work (`SelfCheckProtocol`).
-*   **📋 Project-as-a-Dashboard**: The `mission.yaml` file is now a living document. Task statuses (`todo`, `in_progress`, `done`) are updated directly in the file, providing a single source of truth for your project's progress.
-*   **🎭 Dynamic Persona Selection**: Let `persona_rules` in `settings.yaml` intelligently select the best expert for each task, or assign them manually.
-*   **🚀 Token Efficiency (Layer 0 Bootstrap)**: Minimizes token usage by loading only essential project context (file tree, `README.md`) initially.
-*   **🛡️ Robust Quality Gates**: Ensures tasks are not just "done," but done *right* through rigorous, persona-aware self-validation.
+*   **🔍 Evidence-Based Done**: The Brain (Director) no longer blindly trusts the Worker's reports. Completion is only granted when **physical evidence** (file content, test logs, or command output) is visible in the session history.
+*   **⚖️ Brain as Auditor & Architect**: The Brain's identity is fixed as a high-level Auditor. It remains objective and skeptical, ensuring the Worker (Hassan) adheres to mission constraints regardless of their persona.
+*   **🛠️ Optimized for Local LLMs**: Enhanced support for models like DeepSeek, Qwen, and Llama via **Smart Tools** (`view`, `list`, `edit`). Advanced prompt engineering combats recency bias in local models.
+*   **📉 Lean Orchestration**: The separate Critic module has been integrated into the Brain's verification logic, reducing token overhead and eliminating agent-to-agent friction.
+*   **🧠 Cognitive Architecture**: Agents learn from past mistakes (`ReflexionMemory`) and apply rigorous structural integrity checks before declaring a mission success.
+*   **📋 Project-as-a-Dashboard**: Manage your entire project via `mission.yaml`. Statuses (`todo`, `in_progress`, `done`) update in real-time as the dashboard evolves.
 *   **⚡ Parallel Execution**: Run independent tasks simultaneously by setting `parallel: true`.
 *   **⏪ Safety Net**: Automatic Git checkpoints and auto-rollback on failure.
 
@@ -34,7 +35,7 @@ This script will:
 
 ---
 
-## 🚀 Quick Start (v5.1 Project-Based Workflow)
+## 🚀 Quick Start (v5.2 Project-Based Workflow)
 
 ### Step 1: Initialize Your Project
 
@@ -75,20 +76,16 @@ nightshift mission.yaml
 
 Night Shift is designed to be low-maintenance. When you run it:
 
-- **Auto-Injection**: Night Shift will automatically add `id: task_n` and `status: todo` to any tasks that don't have them. 
-- **State Tracking**: As it works, it updates `status` from `todo` → `in_progress` → `done`.
-- **Persistence**: Your `mission.yaml` is updated in real-time, allowing you to stop and resume exactly where you left off.
-- **Smart Mapping**: If you use a legacy `task` field, it will be automatically mapped to `title`.
-
-*Tip: You can still manually define `id` or `status` if you want specific control, and Night Shift will respect your values.*
-
-This new project-based approach makes long-term, multi-task projects much easier to manage.
+- **Strict Audit**: The Brain will command `view` or `read_file` to verify the Worker's output before finishing.
+- **Auto-Injection**: Night Shift will automatically add `id: task_n` and `status: todo` to tasks.
+- **State Tracking**: Statuses update from `todo` → `in_progress` → `done` directly in your YAML.
+- **Persistence**: Stop and resume exactly where you left off.
 
 ---
 
 ## 📚 Documentation
 
-- `docs/architecture.md`: System structure and data flow.
+- `docs/architecture.md`: System structure and data flow (v5.2 Auditor Model).
 - `docs/features.md`: Capability overview and all available personas.
 - `docs/quality_gates.md`: How Night Shift ensures "true completion".
 

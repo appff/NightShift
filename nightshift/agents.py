@@ -293,7 +293,11 @@ OR
 {"command": "", "status": "completed"}
 """
 
-        persona_section = f"\n[YOUR PERSONA GUIDELINES]\n{persona_guidelines}\n" if persona_guidelines else ""
+        if persona_guidelines:
+            persona_section = f"\n[WORKER (HASSAN) PERSONA & EXPERTISE]\nYour Worker (Hassan) is currently acting as a specialized agent with the following expertise/persona:\n{persona_guidelines}\n\nAs the Director, you must ensure Hassan utilizes this expertise correctly while you maintain objective oversight.\n"
+        else:
+            persona_section = "\n[DIRECTOR CORE IDENTITY]\nYou are currently operating in your pure Auditor/Architect mode. You must apply rigorous logic, structural integrity checks, and precise verification to all of Hassan's actions without being influenced by a specific domain persona.\n"
+
         memory_section = f"\n[PAST MEMORIES / LESSONS LEARNED]\n{past_memories}\n" if past_memories else ""
         reflexion_section = f"\n{reflexion_context}\n" if reflexion_context else ""
 
@@ -304,6 +308,7 @@ OR
         prompt = f"""
 You are the "Director" of an autonomous coding session.
 You are a STRICT, NON-CONVERSATIONAL logic engine.
+Regardless of the Worker's persona, YOUR identity is a high-level Auditor and Architect.
 Your "Hassan" (Worker) is a CLI tool that executes your commands.
 
 [LANGUAGE & REASONING]
@@ -314,7 +319,7 @@ Your "Hassan" (Worker) is a CLI tool that executes your commands.
 {persona_section}
 {memory_section}
 {reflexion_section}
-{tools_section}
+
 [CURRENT ACTIVE TASK HIERARCHY]
 {current_task_block}
 
@@ -330,19 +335,30 @@ Your "Hassan" (Worker) is a CLI tool that executes your commands.
 [LAST HASSAN OUTPUT]
 {clean_output}
 
-[DECISION LOGIC & SCOPE ENFORCEMENT]
-1. **Analyze Completion:** Compare [LAST HASSAN OUTPUT] against [CURRENT ACTIVE TASK HIERARCHY].
-2. **File Operations:** For creating or updating files, PREFER using the `write_file` tool directly if available. DO NOT use complex shell redirects like heredocs (`<< EOF`) as they often fail in CLI environments.
-3. **Hybrid Observation:** You can use read-only tools (`ls`, `cat`, `rg`, `grep`, `read_file`, `glob`) for INSTANT feedback. These run locally and do not consume a worker turn.
-3. **Ignore Extensions:** If Hassan has completed the core requirements but suggests optional expansions (e.g., "I can also do X", "Would you like charts?"), YOU MUST IGNORE THEM. Do not expand the scope.
-4. **Declare Completion:** If the core task requirements are met, set status to "completed" in the JSON output.
-5. **Next Step:** If the task is incomplete, provide the next specific CLI command in the "command" field.
+{tools_section}
+
+[DECISION LOGIC & STRICT EVIDENCE CHECK]
+1. **EVIDENCE CHECK (CRITICAL)**: Look at [CONVERSATION HISTORY]. Do you see **PHYSICAL EVIDENCE** of completion?
+   - **File Tasks**: Did you see the *actual content* of created/modified files (either via `read_file`/`view` OR displayed within the shell command used to create/update them)?
+   - **Action Tasks**: Did you see a *verification command output* (e.g., `curl` response, `ps` output, `pytest` logs, `grep` matches) proving success?
+   - **NO (Summary Only)**: You see only Hassan's claims without the raw results. You MUST command a verification step. Do NOT finish.
+   - **YES (Visible Evidence)**: Proceed to step 2.
+
+2. **VERIFICATION**: Compare the *visible evidence* against [CONSTRAINTS] and [CURRENT ACTIVE TASK HIERARCHY].
+   - If the evidence shows errors, wrong language, or missing info: Command Hassan to fix it.
+   - If the evidence confirms success: Proceed to step 3.
+
+3. **COMPLETION**: Set "status": "completed" ONLY IF you have physically verified the results in step 1.
+
+4. **Ignore Extensions**: If Hassan suggests optional expansions (e.g., "I can also do X"), IGNORE THEM. Focus only on the main task.
+
+5. **Format**: Output ONLY the raw JSON object.
 
 [INSTRUCTIONS]
 1. Focus ONLY on the [CURRENT ACTIVE TASK HIERARCHY].
-2. Analyze the [CONSTRAINTS], [PERSONA GUIDELINES], and [LAST HASSAN OUTPUT].
+2. Analyze the [CONSTRAINTS] and [LAST HASSAN OUTPUT].
 3. Determine the NEXT single, specific, and actionable command/query for Hassan.
-4. If ALL parts of the [CURRENT ACTIVE TASK HIERARCHY] are complete, set status to "completed".
+4. If ALL parts of the [CURRENT ACTIVE TASK HIERARCHY] are complete AND you have physically verified the results in Step 1, set status to "completed".
 {output_instruction}
 
 [CRITICAL RULE]
@@ -467,153 +483,6 @@ class MemoryManager:
             except Exception as e:
                 logging.error(f"❌ Failed to save memory: {e}")
 
-
-class Critic:
-    """The Quality Assurance Unit (Critic). Reviews the work of Hassan."""
-
-    def __init__(self, settings, mission_config):
-        self.settings = settings
-        self.mission_config = mission_config
-        self.project_path = os.path.abspath(self.mission_config.get("project_path", os.getcwd()))
-
-        self.critic_config = self.settings.get("critic", {})
-        self.active_driver_name, self.drivers = _extract_driver_block(self.critic_config)
-        if not self.active_driver_name:
-            self.active_driver_name = "gemini"
-        if not self.drivers:
-            self.drivers = _build_default_drivers("critic", self.settings)
-        self.active_driver_names = self.critic_config.get("active_drivers", [])
-        if isinstance(self.active_driver_names, str):
-            self.active_driver_names = [self.active_driver_names]
-        if not self.active_driver_names:
-            self.active_driver_names = [self.active_driver_name]
-        self.active_driver_names = self._filter_available_drivers(self.active_driver_names)
-        self.voting_mode = self.critic_config.get("voting", "all")
-        configured_home = self.critic_config.get("home_dir")
-        if configured_home:
-            self.brain_env_dir = os.path.abspath(os.path.expanduser(configured_home))
-        else:
-            self.brain_env_dir = os.path.join(self.project_path, BRAIN_WORKSPACE_DIR)
-        self.link_auth = self.critic_config.get("link_auth", True)
-        if self.brain_env_dir:
-            os.makedirs(self.brain_env_dir, exist_ok=True)
-            if self.link_auth:
-                _link_auth_folders(self.brain_env_dir)
-        self.timeout = int(self.critic_config.get("timeout", 300))
-        self.retries = int(self.critic_config.get("retries", 0))
-        self.retry_backoff = float(self.critic_config.get("retry_backoff", 1.5))
-
-        if self.critic_config.get("enabled") is False:
-            logging.info("🎓 Critic Disabled")
-        else:
-            logging.info(f"🎓 Critic Initialized: {', '.join([n.upper() for n in self.active_driver_names])} CLI Mode")
-
-    def _filter_available_drivers(self, names):
-        available = []
-        for name in names:
-            cfg = self.drivers.get(name, {})
-            cmd = cfg.get("command")
-            if cmd and shutil.which(cmd):
-                available.append(name)
-        if not available:
-            for name, cfg in self.drivers.items():
-                cmd = cfg.get("command")
-                if cmd and shutil.which(cmd):
-                    available.append(name)
-        if not available:
-            logging.error("❌ No available Critic drivers found.")
-            return []
-        return available
-
-    def _run_with_driver(self, driver_name, prompt):
-        driver_config = self.drivers.get(driver_name)
-        if not driver_config:
-            driver_config = {"command": "gemini", "args": ["-p", "{prompt}"]}
-
-        brain_env = os.environ.copy()
-        brain_env["HOME"] = self.brain_env_dir
-
-        attempt = 0
-        while True:
-            try:
-                cmd_list = [driver_config["command"]]
-                args_template = driver_config.get("args", [])
-                if driver_config.get("command") == "codex":
-                    args_template = _apply_codex_policy(driver_config.get("command"), args_template, self.critic_config)
-                for arg in args_template:
-                    val = arg.replace("{prompt}", prompt)
-                    if val:
-                        cmd_list.append(val)
-
-                logging.info(f"🎓 Critic is reviewing work via {driver_config['command']}...")
-                logging.debug(f"🎓 Critic Command: {' '.join(_redact_cmd(cmd_list))}")
-                process = subprocess.run(
-                    cmd_list,
-                    capture_output=True,
-                    text=True,
-                    cwd=self.project_path,
-                    env=brain_env,
-                    timeout=self.timeout,
-                )
-                response = process.stdout.strip()
-                if process.returncode != 0 and attempt < self.retries:
-                    attempt += 1
-                    time.sleep(self.retry_backoff**attempt)
-                    continue
-                return response
-            except Exception as e:
-                if attempt < self.retries:
-                    attempt += 1
-                    time.sleep(self.retry_backoff**attempt)
-                    continue
-                logging.error(f"🕵️‍♂️ Critic Error: {e}")
-                return "APPROVED"
-
-    def evaluate(self, task_block, history, last_output):
-        """Evaluates Hassan's work against the task hierarchy."""
-        if self.critic_config.get("enabled") is False:
-            return "APPROVED"
-        prompt = f"""
-You are the "Quality Assurance Critic".
-A worker (Hassan) has just completed a task. Your job is to verify if the work is actually complete and high quality.
-
-[TASK HIERARCHY TO REVIEW]
-{task_block}
-
-[CONVERSATION & WORK HISTORY]
-{history[-MAX_HISTORY_CHARS:]}
-
-[FINAL OUTPUT/STATE]
-{last_output[-MAX_CONTEXT_CHARS:]}
-
-[INSTRUCTIONS]
-1. Verify if all key parts of the [TASK HIERARCHY TO REVIEW] are fulfilled.
-2. Focus on major issues (functional failures, missing core requirements).
-3. Ignore minor style nits or optional improvements.
-4. If everything is acceptable, reply exactly: "APPROVED".
-5. If there are blocking issues, provide a CONCISE list of fixes.
-6. Output ONLY "APPROVED" or your feedback.
-"""
-        responses = []
-        approvals = 0
-        for driver_name in self.active_driver_names:
-            response = self._run_with_driver(driver_name, prompt)
-            responses.append((driver_name, response))
-            if response.strip().upper() == "APPROVED":
-                approvals += 1
-
-        if self.voting_mode == "majority":
-            if approvals >= (len(self.active_driver_names) // 2 + 1):
-                return "APPROVED"
-        else:
-            if approvals == len(self.active_driver_names):
-                return "APPROVED"
-
-        feedback_lines = []
-        for driver_name, response in responses:
-            if response.strip().upper() != "APPROVED":
-                feedback_lines.append(f"[{driver_name}] {response}")
-        return "\n".join(feedback_lines) if feedback_lines else "APPROVED"
 
 
 class Hassan:

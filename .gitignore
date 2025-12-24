@@ -7,10 +7,8 @@ __pycache__/
 *$py.class
 *.so
 
-# Logs and temporary files
-logs/
+# Temporary files
 jobs/
-*.log
 .night_shift_system_prompt.txt
 
 # IDE and editor files

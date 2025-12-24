@@ -12,7 +12,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 import yaml
 
-from .agents import Brain, Critic, Hassan, MemoryManager
+from .agents import Brain, Hassan, MemoryManager
 from .constants import LOG_DIR, RATE_LIMIT_SLEEP, SETTINGS_FILE, SQUAD_WORKSPACE_DIR
 from .utils import _is_ignored, _load_ignore_patterns, setup_logging
 from .validation import validate_mission_schema, validate_settings_schema
@@ -90,7 +90,6 @@ class NightShiftAgent:
         # -----------------------------
 
         self.brain = Brain(self.settings, self.mission_config, log_dir=self.log_dir)
-        self.critic = Critic(self.settings, self.mission_config)
         self.hassan = Hassan(self.settings, self.mission_config)
 
         if not self.brain.driver_config.get("command") or not shutil.which(self.brain.driver_config.get("command")):
@@ -680,7 +679,7 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                     constraints,
                     self._compact_history(task_history),
                     last_output,
-                    persona_guidelines,
+                    "", # Removed persona_guidelines: Brain acts only as Auditor/Architect
                     relevant_memories,
                     self.tool_registry,
                     output_format="json",
@@ -760,26 +759,10 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                                     # ---------------------------
                                     continue
                     
-                    if self.critic.critic_config.get("enabled") is False:
-                        logging.info("🎓 Critic disabled; Brain approving completion.")
-                        verification = "APPROVED"
-                    else:
-                        verification = self.critic.evaluate(task_block, self._compact_history(task_history), last_output)
-                    
-                    if verification.strip().upper() == "APPROVED":
-                        logging.info(f"✅ Task {i} Verified and Completed!")
-                        if task_id:
-                            self._update_task_status(task_id, "done")
-                        break
-                    
-                    logging.info(f"🎓 Critic Rejected Task {i}: {verification}")
-                    task_history += (
-                        f"\n--- 🎓 CRITIC FEEDBACK (REJECTED) ---\n{verification}\n"
-                        "Please address the issues mentioned above.\n-----------------------------------\n"
-                    )
-                    hassan_output = f"Critic feedback received: {verification}. I need to fix these issues."
-                    last_output = hassan_output
-                    continue
+                    logging.info(f"✅ Task {i} Verified and Completed!")
+                    if task_id:
+                        self._update_task_status(task_id, "done")
+                    break
 
                 if next_action.startswith("MISSION_FAILED"):
                     logging.error(f"❌ Task {i} Failed: {next_action}")
@@ -808,7 +791,7 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                     last_check_command = next_action
                     last_check_output = local_output
                     last_output = local_output
-                    if self.critic.critic_config.get("enabled") is False and repeat_check_count >= 1:
+                    if repeat_check_count >= 1:
                         logging.info(f"✅ Task {i} completed after repeated local checks.")
                         break
                     continue
