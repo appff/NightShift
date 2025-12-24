@@ -1,8 +1,28 @@
 # 🌙 Night Shift: The Autonomous Overlord
 
-**Night Shift** is an **Autonomous Agent Orchestrator** where the **Brain (Director)** and **Hassan (Worker)** collaborate to finish your projects while you're away. 
+**Night Shift** is a command-line-native **Autonomous Agent Orchestrator** designed to reliably execute complex software engineering tasks. It acts as a tireless collaborator that works on your projects, finishes tasks, and verifies its own work, allowing you to delegate with confidence.
 
-**v5.2** introduces a leaner, more robust **Evidence-Based Architecture**. By unifying verification into the Brain's core identity, Night Shift ensures high-quality results with reduced complexity and faster execution.
+### How It Works: A Two-Agent System
+
+Night Shift's architecture is simple and robust, centered around two distinct agent roles that collaborate in a loop:
+
+1.  **The Brain (Director/Auditor)**:
+    *   **Role**: The project manager and quality assurance lead. It is a high-level LLM agent that interprets your `mission.yaml` file.
+    *   **Function**: It breaks down high-level goals into a series of precise, executable commands. Crucially, it then **verifies** the outcome of each command by inspecting file content, logs, or command outputs before proceeding. Its core identity is that of a strict auditor, ensuring tasks are not just *attempted*, but verifiably *completed*.
+
+2.  **The Worker (Hassan)**:
+    *   **Role**: The hands-on developer. It is a CLI-driven agent that has no long-term memory or planning capability.
+    *   **Function**: It receives single, explicit commands from the Brain and executes them. This can range from writing code, running tests, fetching data, to creating files.
+
+This separation of duties—strategic planning and verification (Brain) vs. simple execution (Worker)—creates a reliable, debuggable, and effective workflow.
+
+### Core Philosophy
+
+*   **Autonomy Through Verification**: True autonomy isn't just about executing commands; it's about achieving a goal. Night Shift's **Evidence-Based Done** protocol requires the Brain to find physical proof of completion, significantly reducing agent hallucinations and incomplete work.
+*   **CLI-Native**: Designed for developers, Night Shift operates directly on your filesystem using familiar command-line tools. It is not a chatbot in a browser window.
+*   **Model-Agnostic**: Leverage the power of any local or remote LLM that has a CLI wrapper (Ollama, Claude, Gemini, etc.).
+
+**v5.2** introduces the leaner, more robust **Evidence-Based Architecture**. By unifying verification into the Brain's core identity, Night Shift ensures high-quality results with reduced complexity and faster execution.
 
 ---
 

@@ -2,7 +2,7 @@ brain:
   # Select the main intelligence unit (Director).
   # Uses CLI tools instead of API calls for unstructured mission interpretation and command generation.
   # If no driver block is present, NightShift default presets are used.
-  active_driver: "deepseek" # options: claude, codex, gemini, deepseek, qwen, llama
+  active_driver: "gemini" # options: claude, codex, gemini, deepseek, qwen, llama
   output_format: "json" # text | json
   # Codex CLI specific approval/sandbox options (optional)
   approval: "on-request" # untrusted | on-failure | on-request | never
@@ -53,35 +53,6 @@ brain:
     command: "gemini"
     args:
       - "-p"
-      - "{prompt}"
-
-critic:
-  # Recommended to use a different driver than the Brain (Cross-verification)
-  active_driver: "codex"
-  strictness: "lenient" # lenient | balanced | strict
-  enabled: false
-  # Codex CLI specific approval/sandbox options (optional)
-  approval: "on-request"
-  sandbox: "read-only"
-  home_dir: ".night_shift/critic_env"
-  link_auth: true
-  claude:
-    command: "claude"
-    args:
-      - "-p"
-      - "{prompt}"
-      - "--dangerously-skip-permissions"
-  gemini:
-    command: "gemini"
-    args:
-      - "-p"
-      - "{prompt}"
-  codex:
-    # OpenAI Codex CLI (@openai/codex)
-    command: "codex"
-    args:
-      - "exec"
-      - "--full-auto"
       - "{prompt}"
 
 body:
