@@ -2,7 +2,7 @@ brain:
   # Select the main intelligence unit (Director).
   # Uses CLI tools instead of API calls for unstructured mission interpretation and command generation.
   # If no driver block is present, NightShift default presets are used.
-  active_driver: "gemini" # options: claude, codex, gemini
+  active_driver: "deepseek" # options: claude, codex, gemini, deepseek
   output_format: "json" # text | json
   # Codex CLI specific approval/sandbox options (optional)
   approval: "on-request" # untrusted | on-failure | on-request | never
@@ -10,6 +10,14 @@ brain:
   home_dir: ".night_shift/brain_env"
   link_auth: true
 
+  deepseek:
+    # DeepSeek Coder via Ollama (Requires 'ollama' installed)
+    # Recommended models: deepseek-r1, deepseek-coder-v2, llama3.1
+    command: "ollama"
+    args:
+      - "run"
+      - "deepseek-r1" # Change to your preferred model
+      - "{prompt}"
   claude:
     # Claude Code CLI (requires 'claude' in PATH)
     command: "claude"

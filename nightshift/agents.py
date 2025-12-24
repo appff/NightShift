@@ -134,6 +134,12 @@ class Brain:
             r"^OpenAI Codex.*$",
             # Add execution success logs
             r".*succeeded in \d+ms:$",
+            # Ollama / Local LLM noise
+            r"^success\s*$",
+            r"^loading model.*$",
+            r"^.*\[\d+%\].*$",
+            r"^.*⠋.*$",
+            r"^.*⠙.*$",
         ]
         
         cleaned_lines = []
