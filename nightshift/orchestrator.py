@@ -645,7 +645,8 @@ You are a code reviewer. Provide a concise review plan and key changes you would
             turn_count = 1
 
             while True:
-                logging.info(f"\n{'='*20} TURN {turn_count} START {'='*20}")
+                turn_phase = "START" if turn_count == 1 else "CONTINUE"
+                logging.info(f"\n{'='*20} TURN {turn_count}: {turn_phase} {'='*20}")
                 
                 if "hit your limit" in last_output and "resets" in last_output:
                     self._handle_quota_limit(last_output)
@@ -676,6 +677,7 @@ You are a code reviewer. Provide a concise review plan and key changes you would
 
                 if "capacity" in next_action or "quota" in next_action.lower():
                     self._handle_quota_limit(next_action)
+                    turn_count += 1
                     continue
 
                 if next_action == "MISSION_COMPLETED":
@@ -781,6 +783,7 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                     if self.critic.critic_config.get("enabled") is False and repeat_check_count >= 1:
                         logging.info(f"✅ Task {i} completed after repeated local checks.")
                         break
+                    turn_count += 1
                     continue
 
                 if safety_config.get("require_approval_for_destructive") and self._requires_approval(next_action) and not self.auto_approve_actions:

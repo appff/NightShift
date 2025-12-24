@@ -2,6 +2,11 @@
 
 All notable changes to Night Shift will be documented in this file.
 
+## [5.1.6] - 2025-12-24
+### Fixed
+- **Loop Logging**: Fixed an issue where the turn counter didn't increment during local observation steps or quota waits, causing logs to confusingly repeat "TURN 1 START".
+- **Log Clarity**: Updated turn logs to clearly distinguish between the initial turn ("TURN 1: START") and subsequent turns ("TURN X: CONTINUE").
+
 ## [5.1.5] - 2025-12-24
 ### Changed
 - **Cleaner UI**: Suppressed verbose "Layer 0" project context (file tree) from console output to keep logs clean.
