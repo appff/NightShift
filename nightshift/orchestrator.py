@@ -661,9 +661,10 @@ You are a code reviewer. Provide a concise review plan and key changes you would
             task_history = f"\n=== TASK {i} START ===\n⚙️ Orchestrator Init: {initial_query}\nHassan Output:\n{hassan_output}\n"
             last_output = hassan_output
             self_check_retry_count = 0  # Prevention for infinite self-check loops
-            turn_count = 1
+            turn_count = 0
 
             while True:
+                turn_count += 1
                 turn_phase = "START" if turn_count == 1 else "CONTINUE"
                 logging.info(f"\n{'='*20} TURN {turn_count}: {turn_phase} {'='*20}")
                 
@@ -696,7 +697,6 @@ You are a code reviewer. Provide a concise review plan and key changes you would
 
                 if "capacity" in next_action or "quota" in next_action.lower():
                     self._handle_quota_limit(next_action)
-                    turn_count += 1
                     continue
 
                 if next_action == "MISSION_COMPLETED":
@@ -802,7 +802,6 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                     if self.critic.critic_config.get("enabled") is False and repeat_check_count >= 1:
                         logging.info(f"✅ Task {i} completed after repeated local checks.")
                         break
-                    turn_count += 1
                     continue
 
                 if safety_config.get("require_approval_for_destructive") and self._requires_approval(next_action) and not self.auto_approve_actions:
@@ -820,7 +819,6 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                 task_history += f"\n--- 🦾 HASSAN OUTPUT ---\n{clean_hassan_output}\n"
                 last_output = hassan_output
                 time.sleep(RATE_LIMIT_SLEEP)
-                turn_count += 1
 
             self.task_summaries.append(
                 {

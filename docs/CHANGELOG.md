@@ -2,6 +2,10 @@
 
 All notable changes to Night Shift will be documented in this file.
 
+## [5.2.4] - 2025-12-24
+### Fixed
+- **Infinite Turn 1 Fix**: Corrected the turn counter logic by incrementing it at the start of the loop. This ensures turns are properly counted even when intermediate steps (like quota waits or local checks) trigger a `continue`, resolving the confusing "TURN 1: START" loop in logs.
+
 ## [5.2.3] - 2025-12-24
 ### Fixed
 - **Strict JSON Enforcement**: Further hardened the Brain's prompt to explicitly forbid markdown code blocks, reasoning text, or conversational fillers in the JSON output. This ensures local LLMs (Ollama) strictly adhere to the required command schema.
