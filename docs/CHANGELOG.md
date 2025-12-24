@@ -2,6 +2,14 @@
 
 All notable changes to Night Shift will be documented in this file.
 
+## [5.1.4] - 2025-12-24
+### Added
+- **One-Line Installer**: Introduced `install.sh` for seamless installation and updates via `curl`.
+- **Global CLI Support**: The installer automatically configures `PATH` and a dedicated virtual environment, allowing `nightshift` to be run from anywhere.
+
+### Changed
+- **Documentation**: Updated `README.md` with a streamlined "Quick Start" guide and installation instructions.
+
 ## [5.1.3] - 2025-12-24
 ### Added
 - **Auto-Task Management**: Task IDs and `status: todo` are now automatically generated if missing in `mission.yaml`.
