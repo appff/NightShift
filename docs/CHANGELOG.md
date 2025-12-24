@@ -2,6 +2,10 @@
 
 All notable changes to Night Shift will be documented in this file.
 
+## [5.2.2] - 2025-12-24
+### Fixed
+- **Robust JSON Parsing**: Improved the Brain's response parser to intelligently find JSON objects embedded within conversational text (e.g., "Here is the command: {...}"). This solves issues where local LLMs (DeepSeek/Qwen) would fail to execute commands if they added prologue/epilogue text without code blocks.
+
 ## [5.2.1] - 2025-12-24
 ### Fixed
 - **Ollama Log Pollution**: Fixed an issue where Ollama's system logs (e.g., `load_tensors`, `llama_context`) leaked into the Brain's context, confusing the Orchestrator.

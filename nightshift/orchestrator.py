@@ -348,22 +348,41 @@ Return ONLY valid JSON:
         if self.brain_output_format != "json":
             return response
         
-        # Clean up code fences if present (e.g. ```json ... ```)
-        cleaned_response = response.strip()
+        # 1. Check for explicit keywords first (Safety Net)
+        if "MISSION_COMPLETED" in response:
+            return "MISSION_COMPLETED"
+
+        # 2. Try to find JSON code blocks first
         json_pattern = r"```(?:json)?\s*(\{.*?\})\s*```"
-        match = re.search(json_pattern, cleaned_response, re.DOTALL)
+        match = re.search(json_pattern, response, re.DOTALL)
         if match:
-            cleaned_response = match.group(1)
-            
+            try:
+                data = json.loads(match.group(1))
+                status = data.get("status", "").lower()
+                command = data.get("command", "")
+                if status == "completed":
+                    return "MISSION_COMPLETED"
+                return command
+            except:
+                pass # Fallback if block content isn't valid JSON
+
+        # 3. Fallback: Heuristic search for JSON object (First '{' to Last '}')
+        # Handles cases like: "Here is the plan: { "command": "..." } Good luck."
         try:
-            data = json.loads(cleaned_response)
-            status = data.get("status", "").lower()
-            command = data.get("command", "")
-            if status == "completed":
-                return "MISSION_COMPLETED"
-            return command
+            start = response.find("{")
+            end = response.rfind("}")
+            if start != -1 and end != -1 and end > start:
+                candidate = response[start : end + 1]
+                data = json.loads(candidate)
+                status = data.get("status", "").lower()
+                command = data.get("command", "")
+                if status == "completed":
+                    return "MISSION_COMPLETED"
+                return command
         except Exception:
-            return response
+            pass
+            
+        return response
 
     def _handle_quota_limit(self, error_message):
         try:
