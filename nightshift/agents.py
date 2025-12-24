@@ -233,6 +233,7 @@ class Brain:
         past_memories="",
         tool_registry="",
         output_format="text",
+        reflexion_context="",
     ):
         clean_output = self.clean_ansi(last_hassan_output)[-MAX_CONTEXT_CHARS:]
         constraints_text = "\n".join(constraints) if isinstance(constraints, list) else str(constraints)
@@ -248,6 +249,7 @@ Do not include markdown or extra text.
 
         persona_section = f"\n[YOUR PERSONA GUIDELINES]\n{persona_guidelines}\n" if persona_guidelines else ""
         memory_section = f"\n[PAST MEMORIES / LESSONS LEARNED]\n{past_memories}\n" if past_memories else ""
+        reflexion_section = f"\n{reflexion_context}\n" if reflexion_context else ""
 
         output_instruction = "5. Output ONLY the command string."
         if output_format == "json":
@@ -259,6 +261,7 @@ You are a STRICT, NON-CONVERSATIONAL logic engine.
 Your "Hassan" (Worker) is a CLI tool that executes your commands.
 {persona_section}
 {memory_section}
+{reflexion_section}
 {tools_section}
 [CURRENT ACTIVE TASK HIERARCHY]
 {current_task_block}
@@ -439,9 +442,9 @@ class Critic:
         self.retry_backoff = float(self.critic_config.get("retry_backoff", 1.5))
 
         if self.critic_config.get("enabled") is False:
-            logging.info("🕵️‍♂️ Critic Disabled")
+            logging.info("🎓 Critic Disabled")
         else:
-            logging.info(f"🕵️‍♂️ Critic Initialized: {', '.join([n.upper() for n in self.active_driver_names])} CLI Mode")
+            logging.info(f"🎓 Critic Initialized: {', '.join([n.upper() for n in self.active_driver_names])} CLI Mode")
 
     def _filter_available_drivers(self, names):
         available = []
@@ -480,8 +483,8 @@ class Critic:
                     if val:
                         cmd_list.append(val)
 
-                logging.info(f"🕵️‍♂️ Critic is reviewing work via {driver_config['command']}...")
-                logging.debug(f"🕵️‍♂️ Critic Command: {' '.join(_redact_cmd(cmd_list))}")
+                logging.info(f"🎓 Critic is reviewing work via {driver_config['command']}...")
+                logging.debug(f"🎓 Critic Command: {' '.join(_redact_cmd(cmd_list))}")
                 process = subprocess.run(
                     cmd_list,
                     capture_output=True,

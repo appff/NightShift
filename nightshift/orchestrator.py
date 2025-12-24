@@ -634,12 +634,13 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                     task_block,
                     str([t.get("text", t) if isinstance(t, dict) else t for t in all_tasks]),
                     constraints,
-                    self._compact_history(task_history) + reflexion_context, # Inject here
+                    self._compact_history(task_history),
                     last_output,
                     persona_guidelines,
                     relevant_memories,
                     self.tool_registry,
                     output_format="json",
+                    reflexion_context=reflexion_context
                 )
                 
                 # Pre-strip code fences for cleaner logging
@@ -679,55 +680,55 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                     logging.info("✅ Self-Check Passed (or forced).")
                     # --------------------------------------------
                     
-                    if True: # Proceed to completion processing
-                        qa_config = self.settings.get("qa", {})
-                        if qa_config.get("run_tests"):
-                            if qa_config.get("test_on_each_task", True):
-                                test_command = qa_config.get("test_command")
-                                if not test_command:
-                                    test_command = (
-                                        "pytest"
-                                        if os.path.exists(os.path.join(self.hassan.mission_config.get("project_path", os.getcwd()), "tests"))
-                                        else ""
+                    # Proceed to completion processing
+                    qa_config = self.settings.get("qa", {})
+                    if qa_config.get("run_tests"):
+                        if qa_config.get("test_on_each_task", True):
+                            test_command = qa_config.get("test_command")
+                            if not test_command:
+                                test_command = (
+                                    "pytest"
+                                    if os.path.exists(os.path.join(self.hassan.mission_config.get("project_path", os.getcwd()), "tests"))
+                                    else ""
+                                )
+                            if test_command:
+                                logging.info(f"🧪 Running tests: {test_command}")
+                                test_output = self.hassan.run(test_command)
+                                task_history += f"\n--- 🧪 TEST OUTPUT ---\n{test_output}\n"
+                                if self.hassan.last_returncode != 0:
+                                    last_output = f"Tests failed: {test_output}"
+                                    
+                                    # --- REFLEXION RECORDING ---
+                                    # If tests fail, record it
+                                    self.reflexion_memory.add_entry(
+                                        error_signature=f"Test failure in Task {i}",
+                                        root_cause="Automated test failure",
+                                        fix="Pending fix", # We don't know the fix yet
+                                        status="pending"
                                     )
-                                if test_command:
-                                    logging.info(f"🧪 Running tests: {test_command}")
-                                    test_output = self.hassan.run(test_command)
-                                    task_history += f"\n--- 🧪 TEST OUTPUT ---\n{test_output}\n"
-                                    if self.hassan.last_returncode != 0:
-                                        last_output = f"Tests failed: {test_output}"
-                                        
-                                        # --- REFLEXION RECORDING ---
-                                        # If tests fail, record it
-                                        self.reflexion_memory.add_entry(
-                                            error_signature=f"Test failure in Task {i}",
-                                            root_cause="Automated test failure",
-                                            fix="Pending fix", # We don't know the fix yet
-                                            status="pending"
-                                        )
-                                        # ---------------------------
-                                        continue
-                        
-                        if self.critic.critic_config.get("enabled") is False:
-                            logging.info("🧠 Critic disabled; Brain approving completion.")
-                            verification = "APPROVED"
-                        else:
-                            verification = self.critic.evaluate(task_block, self._compact_history(task_history), last_output)
-                        
-                        if verification.strip().upper() == "APPROVED":
-                            logging.info(f"✅ Task {i} Verified and Completed!")
-                            if task_id:
-                                self._update_task_status(task_id, "done")
-                            break
-                        
-                        logging.info(f"🕵️‍♂️ Critic Rejected Task {i}: {verification}")
-                        task_history += (
-                            f"\n--- 🕵️‍♂️ CRITIC FEEDBACK (REJECTED) ---\n{verification}\n"
-                            "Please address the issues mentioned above.\n-----------------------------------\n"
-                        )
-                        hassan_output = f"Critic feedback received: {verification}. I need to fix these issues."
-                        last_output = hassan_output
-                        continue
+                                    # ---------------------------
+                                    continue
+                    
+                    if self.critic.critic_config.get("enabled") is False:
+                        logging.info("🧠 Critic disabled; Brain approving completion.")
+                        verification = "APPROVED"
+                    else:
+                        verification = self.critic.evaluate(task_block, self._compact_history(task_history), last_output)
+                    
+                    if verification.strip().upper() == "APPROVED":
+                        logging.info(f"✅ Task {i} Verified and Completed!")
+                        if task_id:
+                            self._update_task_status(task_id, "done")
+                        break
+                    
+                    logging.info(f"🎓 Critic Rejected Task {i}: {verification}")
+                    task_history += (
+                        f"\n--- 🎓 CRITIC FEEDBACK (REJECTED) ---\n{verification}\n"
+                        "Please address the issues mentioned above.\n-----------------------------------\n"
+                    )
+                    hassan_output = f"Critic feedback received: {verification}. I need to fix these issues."
+                    last_output = hassan_output
+                    continue
 
                 if next_action.startswith("MISSION_FAILED"):
                     logging.error(f"❌ Task {i} Failed: {next_action}")
@@ -770,7 +771,9 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                 if not hassan_output.strip():
                     hassan_output = "SYSTEM ALERT: Hassan returned an empty response. If you were trying to create a file, it might have failed silently. Please verify using 'ls' or use a different method (like the write_file tool)."
                 
-                task_history += f"\n--- 🦾 HASSAN OUTPUT ---\n{hassan_output}\n"
+                # Sanitize output before storing in history to save tokens
+                clean_hassan_output = self.brain.clean_ansi(hassan_output)
+                task_history += f"\n--- 🦾 HASSAN OUTPUT ---\n{clean_hassan_output}\n"
                 last_output = hassan_output
                 time.sleep(RATE_LIMIT_SLEEP)
 
