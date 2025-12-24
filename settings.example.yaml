@@ -2,7 +2,7 @@ brain:
   # Select the main intelligence unit (Director).
   # Uses CLI tools instead of API calls for unstructured mission interpretation and command generation.
   # If no driver block is present, NightShift default presets are used.
-  active_driver: "deepseek" # options: claude, codex, gemini, deepseek
+  active_driver: "deepseek" # options: claude, codex, gemini, deepseek, qwen, llama
   output_format: "json" # text | json
   # Codex CLI specific approval/sandbox options (optional)
   approval: "on-request" # untrusted | on-failure | on-request | never
@@ -12,11 +12,27 @@ brain:
 
   deepseek:
     # DeepSeek Coder via Ollama (Requires 'ollama' installed)
-    # Recommended models: deepseek-r1, deepseek-coder-v2, llama3.1
+    # Recommended models: deepseek-r1:14b (for 16GB+ RAM), deepseek-r1:8b (for 8GB RAM)
     command: "ollama"
     args:
       - "run"
-      - "deepseek-r1" # Change to your preferred model
+      - "deepseek-r1:14b" 
+      - "{prompt}"
+  qwen:
+    # Qwen 2.5 via Ollama (Requires 'ollama' installed)
+    # Recommended: qwen2.5:14b (Great at JSON & Coding), qwen2.5:7b
+    command: "ollama"
+    args:
+      - "run"
+      - "qwen2.5:14b"
+      - "{prompt}"
+  llama:
+    # Llama 3.1 via Ollama (Requires 'ollama' installed)
+    # Recommended: llama3.1 (8B) - Fast and stable standard
+    command: "ollama"
+    args:
+      - "run"
+      - "llama3.1"
       - "{prompt}"
   claude:
     # Claude Code CLI (requires 'claude' in PATH)
@@ -75,21 +91,31 @@ body:
   # Codex CLI specific approval/sandbox options (optional)
   approval: "on-request"
   sandbox: "workspace-write"
+  deepseek:
+    # DeepSeek Coder via Ollama (Requires 'ollama' installed)
+    command: "ollama"
+    # {query} will be replaced with the actual command
+    # Note: System prompts are handled differently in Ollama CLI (often prepended to query)
+    args:
+      - "run"
+      - "deepseek-r1:14b"
+      - "You are Hassan, an expert developer. Execute the following task:\n\n{query}"
+  qwen:
+    # Qwen 2.5 via Ollama
+    command: "ollama"
+    args:
+      - "run"
+      - "qwen2.5:14b"
+      - "You are Hassan, an expert developer. Execute the following task:\n\n{query}"
+  llama:
+    # Llama 3.1 via Ollama
+    command: "ollama"
+    args:
+      - "run"
+      - "llama3.1"
+      - "You are Hassan, an expert developer. Execute the following task:\n\n{query}"
   claude:
     # Claude Code CLI (requires 'claude' in PATH)
-    command: "claude"
-    # {query} will be replaced with the actual command
-    # {system_prompt_file} will be replaced with the path to the system prompt file
-    args:
-      - "--system-prompt-file"
-      - "{system_prompt_file}"
-      - "-p"
-      - "{query}"
-      - "-c"
-      - "--dangerously-skip-permissions"
-      - "--allowedTools"
-      - "Write"
-    env: {}
   gemini:
     # Gemini CLI (Official/Community)
     command: "gemini"
