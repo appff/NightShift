@@ -308,6 +308,7 @@ Output ONLY the raw command string or "MISSION_COMPLETED".
         log_entry = f"\n{'=' * 80}\n[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] BRAIN REQUEST\n{'=' * 80}\n{prompt}\n"
         self._log_brain_activity(log_entry)
 
+        logging.info(f"🧠 Brain Thinking via {self.driver_config.get('command', 'unknown')} (Context: {len(prompt)} chars)...")
         response_text = self._run_cli_command(prompt)
         
         # Clean up code fences for output
@@ -675,7 +676,7 @@ class Hassan:
         if self.home_dir:
             current_env["HOME"] = self.home_dir
 
-        logging.info(f"\n--- 🚀 Running Hassan ({self.active_driver_name}) ---")
+        logging.info(f"\n--- 🚀 Running Hassan ({self.active_driver_name}) ---\n> Command: {query}")
         logging.debug(f"🦾 Hassan Command: {' '.join(_redact_cmd(cmd_list))}")
         attempt = 0
         while True:

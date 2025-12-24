@@ -558,7 +558,7 @@ Return ONLY valid JSON:
         persona_name = task_item.get("persona_name") if isinstance(task_item, dict) else self.default_persona_name
         persona_guidelines = task_item.get("persona_guidelines") if isinstance(task_item, dict) else self.default_persona_guidelines
 
-        logging.info(f"\n{'=' * 60}\n🚀 STARTING TASK {i} (Persona: {persona_name})\n{task_block}\n{'=' * 60}\n")
+        logging.info(f"\n{'=' * 60}\n🚀 STARTING TASK {i} (Persona: {persona_name})\n{'=' * 60}\n{task_block}\n{'=' * 60}\n")
 
         if reviewer_mode:
             review_prompt = f"""
@@ -747,6 +747,7 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                     return f"TASK_{i}_FAILED: {next_action}"
 
                 if self._is_local_check_command(next_action):
+                    logging.info(f"⚙️  Orchestrator Intercept: Executing local observation -> {next_action}")
                     local_output = self._run_local_check(next_action, work_dir)
                     task_history += f"\n--- 🔍 LOCAL CHECK OUTPUT ---\n{local_output}\n"
                     if next_action == last_check_command and local_output == last_check_output:
@@ -908,6 +909,11 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                     logging.info("ℹ️ Auto commit/push disabled. Review and commit changes manually.")
             else:
                 logging.info(f"🏁 Parallel tasks finished. Check isolated workspaces in {SQUAD_WORKSPACE_DIR}")
+
+        except KeyboardInterrupt:
+            logging.warning("\n🛑 Night Shift interrupted by user. Saving logs and shutting down...")
+            self.conversation_history += "\n\n[SYSTEM] Execution interrupted by user (KeyboardInterrupt).\n"
+            
         finally:
             if self.resume_enabled:
                 self._save_state(
@@ -938,6 +944,9 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                 logging.info(f"🧾 Summary saved: {summary_path}")
             except Exception as e:
                 logging.error(f"❌ Failed to write summary: {e}")
+            
+            # Ensure all log buffers are flushed
+            logging.shutdown()
 
     def _is_local_check_command(self, command):
         if any(token in command for token in ["|", "&", ";", ">", "<"]):
