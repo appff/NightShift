@@ -2,6 +2,10 @@
 
 All notable changes to Night Shift will be documented in this file.
 
+## [5.2.5] - 2025-12-24
+### Changed
+- **Decision Visibility**: Restored visibility of the Brain's final decision in the console. While verbose reasoning text remains hidden, the specific command or completion status (`MISSION_COMPLETED`) is now clearly logged as `🧠 Brain Decision: ...`, improving observability without clutter.
+
 ## [5.2.4] - 2025-12-24
 ### Fixed
 - **Infinite Turn 1 Fix**: Corrected the turn counter logic by incrementing it at the start of the loop. This ensures turns are properly counted even when intermediate steps (like quota waits or local checks) trigger a `continue`, resolving the confusing "TURN 1: START" loop in logs.

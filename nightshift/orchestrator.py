@@ -693,6 +693,13 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                         next_action = match.group(1)
 
                 next_action = self._interpret_brain_response(next_action)
+                
+                # Log the final decision clearly to the console
+                if next_action == "MISSION_COMPLETED":
+                    logging.info("🧠 Brain Decision: ✅ MISSION COMPLETED")
+                else:
+                    logging.info(f"🧠 Brain Decision: 🛠️  Execute Command -> {next_action}")
+
                 task_history += f"\n--- 🧠 DIRECTOR DECISION ---\n{next_action}\n"
 
                 if "capacity" in next_action or "quota" in next_action.lower():
