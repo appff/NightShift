@@ -2,6 +2,16 @@
 
 All notable changes to Night Shift will be documented in this file.
 
+## [5.2.0] - 2025-12-24
+### 🚀 Local LLM Revolution (Ollama)
+- **DeepSeek / Qwen / Llama Support**: You can now run NightShift completely offline and free of cost using local LLMs via `ollama`.
+- **Reasoning Model Support**: Built-in handling for "Chain of Thought" models like **DeepSeek R1**, automatically stripping internal reasoning (`<think>`) from outputs to keep commands clean.
+- **Multi-Language Brain**: Enhanced system prompts for the Brain to better understand and respect non-English (e.g., Korean) mission contexts while maintaining English-based logical reasoning.
+
+### Changed
+- **Silent & Clean UI**: Drastically reduced console noise. Brain's verbose reasoning and Worker's raw outputs are now hidden from the terminal (logged to file only), showing only essential status updates.
+- **Settings Update**: `settings.yaml` now includes presets for `deepseek`, `qwen`, and `llama` drivers.
+
 ## [5.1.7] - 2025-12-24
 ### Changed
 - **Silent Worker**: Suppressed live console output from Hassan (Worker) drivers. This prevents verbose tool logs (especially Codex echoes) from flooding the terminal, keeping the UI minimal and clean.
