@@ -2,6 +2,10 @@
 
 All notable changes to Night Shift will be documented in this file.
 
+## [5.2.3] - 2025-12-24
+### Fixed
+- **Strict JSON Enforcement**: Further hardened the Brain's prompt to explicitly forbid markdown code blocks, reasoning text, or conversational fillers in the JSON output. This ensures local LLMs (Ollama) strictly adhere to the required command schema.
+
 ## [5.2.2] - 2025-12-24
 ### Fixed
 - **Robust JSON Parsing**: Improved the Brain's response parser to intelligently find JSON objects embedded within conversational text (e.g., "Here is the command: {...}"). This solves issues where local LLMs (DeepSeek/Qwen) would fail to execute commands if they added prologue/epilogue text without code blocks.

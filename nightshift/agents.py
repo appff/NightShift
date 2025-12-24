@@ -254,9 +254,15 @@ class Brain:
         if output_format == "json":
             format_section = """
 [OUTPUT FORMAT]
-Return ONLY valid JSON with:
-{"command": "<next action command>", "status": "continue"} OR {"command": "", "status": "completed"}.
-Do not include markdown or extra text.
+You must output ONLY a single valid JSON object.
+DO NOT use markdown code blocks (e.g., ```json).
+DO NOT include any explanations, reasoning, or conversational text.
+Your entire response must be parseable by `json.loads()`.
+
+Required Schema:
+{"command": "<next CLI command string>", "status": "continue"}
+OR
+{"command": "", "status": "completed"}
 """
 
         persona_section = f"\n[YOUR PERSONA GUIDELINES]\n{persona_guidelines}\n" if persona_guidelines else ""
@@ -265,7 +271,7 @@ Do not include markdown or extra text.
 
         output_instruction = "5. Output ONLY the command string."
         if output_format == "json":
-            output_instruction = "5. Output ONLY valid JSON as specified in [OUTPUT FORMAT]."
+            output_instruction = "5. Output ONLY raw JSON. Start with { and end with }."
 
         prompt = f"""
 You are the "Director" of an autonomous coding session.
@@ -301,14 +307,14 @@ Your "Hassan" (Worker) is a CLI tool that executes your commands.
 2. **File Operations:** For creating or updating files, PREFER using the `write_file` tool directly if available. DO NOT use complex shell redirects like heredocs (`<< EOF`) as they often fail in CLI environments.
 3. **Hybrid Observation:** You can use read-only tools (`ls`, `cat`, `rg`, `grep`, `read_file`, `glob`) for INSTANT feedback. These run locally and do not consume a worker turn.
 3. **Ignore Extensions:** If Hassan has completed the core requirements but suggests optional expansions (e.g., "I can also do X", "Would you like charts?"), YOU MUST IGNORE THEM. Do not expand the scope.
-4. **Declare Completion:** If the core task requirements are met, output exactly: "MISSION_COMPLETED".
-5. **Next Step:** If and ONLY IF the task is incomplete, output the next specific CLI command.
+4. **Declare Completion:** If the core task requirements are met, set status to "completed" in the JSON output.
+5. **Next Step:** If the task is incomplete, provide the next specific CLI command in the "command" field.
 
 [INSTRUCTIONS]
 1. Focus ONLY on the [CURRENT ACTIVE TASK HIERARCHY].
 2. Analyze the [CONSTRAINTS], [PERSONA GUIDELINES], and [LAST HASSAN OUTPUT].
 3. Determine the NEXT single, specific, and actionable command/query for Hassan.
-4. If ALL parts of the [CURRENT ACTIVE TASK HIERARCHY] are complete, reply exactly: "MISSION_COMPLETED".
+4. If ALL parts of the [CURRENT ACTIVE TASK HIERARCHY] are complete, set status to "completed".
 {output_instruction}
 
 [CRITICAL RULE]
@@ -316,9 +322,9 @@ Your "Hassan" (Worker) is a CLI tool that executes your commands.
 - Do NOT repeat the exact same command if it failed.
 
 [FINAL WARNING]
-Your response is piped directly to a shell. Do NOT include any conversational filler (e.g., "Okay", "I will", "Here is").
-Do NOT explain your reasoning.
-Output ONLY the raw command string or "MISSION_COMPLETED".
+Your response is piped directly to a parser.
+Any text outside the JSON object will cause a system crash.
+Output ONLY the raw JSON string.
 """
         if format_section:
             prompt += format_section
