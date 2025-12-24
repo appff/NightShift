@@ -16,6 +16,22 @@
 *   **⚡ Parallel Execution**: Run independent tasks simultaneously by setting `parallel: true`.
 *   **⏪ Safety Net**: Automatic Git checkpoints and auto-rollback on failure.
 
+## 🚀 Installation
+
+The easiest way to install Night Shift (macOS/Linux) is via our one-line installer:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/appff/NightShift/main/install.sh | bash
+```
+
+This script will:
+- Clone the repository to `~/.night_shift_app`
+- Set up a dedicated Python virtual environment
+- Install all dependencies
+- Add the `nightshift` command to your `PATH`
+
+*To update your installation, simply run the same command again.*
+
 ---
 
 ## 🚀 Quick Start (v5.1 Project-Based Workflow)
