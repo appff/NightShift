@@ -2,7 +2,7 @@ brain:
   # Select the main intelligence unit (Director).
   # Uses CLI tools instead of API calls for unstructured mission interpretation and command generation.
   # If no driver block is present, NightShift default presets are used.
-  active_driver: "deepseek" # options: claude, codex, gemini, deepseek, qwen, llama
+  active_driver: "gemini" # options: claude, codex, gemini, deepseek, qwen, llama
   output_format: "json" # text | json
   # Codex CLI specific approval/sandbox options (optional)
   approval: "on-request" # untrusted | on-failure | on-request | never
@@ -86,7 +86,7 @@ critic:
 
 body:
   # Select the execution unit (Worker/Hassan).
-  active_driver: "claude"
+  active_driver: "codex"
   use_real_home: true
   # Codex CLI specific approval/sandbox options (optional)
   approval: "on-request"

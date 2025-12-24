@@ -2,6 +2,10 @@
 
 All notable changes to Night Shift will be documented in this file.
 
+## [5.2.6] - 2025-12-24
+### Improved
+- **Tool Awareness**: Injected core tool definitions (`read_file`, `write_file`, `run_shell_command`, `glob`) directly into the Brain's system prompt. This ensures local LLMs (DeepSeek, Qwen) explicitly know how to verify their work and interact with the filesystem, even without custom tool configuration.
+
 ## [5.2.5] - 2025-12-24
 ### Changed
 - **Decision Visibility**: Restored visibility of the Brain's final decision in the console. While verbose reasoning text remains hidden, the specific command or completion status (`MISSION_COMPLETED`) is now clearly logged as `🧠 Brain Decision: ...`, improving observability without clutter.

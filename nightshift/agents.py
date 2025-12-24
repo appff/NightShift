@@ -249,7 +249,16 @@ class Brain:
     ):
         clean_output = self.clean_ansi(last_hassan_output)[-MAX_CONTEXT_CHARS:]
         constraints_text = "\n".join(constraints) if isinstance(constraints, list) else str(constraints)
-        tools_section = f"\n[TOOL REGISTRY]\n{tool_registry}\n" if tool_registry else ""
+        
+        # Inject Core System Tools to ensure Brain knows how to operate
+        core_tools = """
+- read_file: Reads a file from the local filesystem. Usage: `read_file <path>` (or via shell `cat <path>`)
+- write_file: Writes content to a file. Usage: `write_file` tool or shell `echo "content" > <path>`
+- run_shell_command: Executes a shell command. Usage: `ls -la`, `grep <pattern> <file>`, `python <script.py>`
+- glob: Finds files matching a pattern. Usage: `glob <pattern>`
+"""
+        tools_section = f"\n[AVAILABLE TOOLS]\n{core_tools}\n{tool_registry}\n" 
+
         format_section = ""
         if output_format == "json":
             format_section = """
