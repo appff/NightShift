@@ -333,7 +333,8 @@ Output ONLY the raw command string or "MISSION_COMPLETED".
             if match:
                 response_text = match.group(1)
 
-        logging.info(f"--- 🧠 BRAIN RESPONSE ---\n{response_text}\n--- END RESPONSE ---")
+        logging.debug(f"--- 🧠 BRAIN RESPONSE ---\n{response_text}\n--- END RESPONSE ---")
+        logging.info("🧠 Brain has formulated a plan.")
         self._log_brain_activity(
             f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] BRAIN RESPONSE\n{'-' * 80}\n{response_text}\n"
         )
