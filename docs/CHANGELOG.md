@@ -2,6 +2,11 @@
 
 All notable changes to Night Shift will be documented in this file.
 
+## [5.2.1] - 2025-12-24
+### Fixed
+- **Ollama Log Pollution**: Fixed an issue where Ollama's system logs (e.g., `load_tensors`, `llama_context`) leaked into the Brain's context, confusing the Orchestrator.
+- **DeepSeek Loop Fix**: Enhanced Brain response parsing to strictly prioritize `MISSION_COMPLETED`. This prevents infinite loops where conversational fillers (e.g., "I have finished. MISSION_COMPLETED") were misinterpreted as commands.
+
 ## [5.2.0] - 2025-12-24
 ### 🚀 Local LLM Revolution (Ollama)
 - **DeepSeek / Qwen / Llama Support**: You can now run NightShift completely offline and free of cost using local LLMs via `ollama`.

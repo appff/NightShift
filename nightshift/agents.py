@@ -192,9 +192,13 @@ class Brain:
         attempt = 0
         while True:
             try:
+                # Special handling for Ollama to avoid stderr pollution (loading logs)
+                is_ollama = "ollama" in base_cmd.lower()
+                
                 process = subprocess.run(
                     cmd_list,
-                    capture_output=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE, # Capture separately
                     text=True,
                     cwd=self.project_path,
                     env=brain_env,
@@ -211,6 +215,8 @@ class Brain:
                         continue
                     return f"MISSION_FAILED: Brain CLI Error - {error_msg}"
 
+                # For Ollama, we strictly return stdout. 
+                # Other drivers might mix useful info in stderr, but typically stdout is what we want.
                 return process.stdout.strip()
 
             except subprocess.TimeoutExpired:
@@ -325,6 +331,11 @@ Output ONLY the raw command string or "MISSION_COMPLETED".
         
         # Filter out <think>...</think> blocks from Reasoning Models (e.g., DeepSeek R1)
         response_text = re.sub(r"<think>.*?</think>", "", response_text, flags=re.DOTALL).strip()
+        
+        # PRIORITY CHECK: If MISSION_COMPLETED is anywhere in the text, treat it as done.
+        # This handles cases where models say "Okay, I am done. MISSION_COMPLETED"
+        if "MISSION_COMPLETED" in response_text:
+            response_text = "MISSION_COMPLETED"
         
         # Clean up code fences for output
         if output_format == "json":
