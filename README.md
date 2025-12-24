@@ -73,9 +73,14 @@ nightshift mission.yaml
 
 ### Step 3: Observe and Collaborate
 
--   Night Shift will find the first task with `status: "todo"` and start working on it.
--   Once `task_001` is complete, Night Shift will **automatically update** `mission.yaml` to mark it as `status: "done"`.
--   It will then proceed to the next `todo` task. You can stop and resume at any time.
+Night Shift is designed to be low-maintenance. When you run it:
+
+- **Auto-Injection**: Night Shift will automatically add `id: task_n` and `status: todo` to any tasks that don't have them. 
+- **State Tracking**: As it works, it updates `status` from `todo` → `in_progress` → `done`.
+- **Persistence**: Your `mission.yaml` is updated in real-time, allowing you to stop and resume exactly where you left off.
+- **Smart Mapping**: If you use a legacy `task` field, it will be automatically mapped to `title`.
+
+*Tip: You can still manually define `id` or `status` if you want specific control, and Night Shift will respect your values.*
 
 This new project-based approach makes long-term, multi-task projects much easier to manage.
 
