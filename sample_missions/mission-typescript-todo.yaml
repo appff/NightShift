@@ -1,0 +1,72 @@
+project:
+  name: TypeScript TODO CLI Application
+  project_root: /Users/jeongminkim/Downloads/NightShift/jobs/typescript-todo
+  owner: ''
+  tags:
+  - typescript
+  - cli
+  - test
+mission:
+  name: Build a Simple TypeScript TODO CLI Application
+  status: active
+  created_at: '2025-01-01'
+  updated_at: '2025-12-24T15:53:44.881972'
+  persona: system-architect
+parallel: false
+tasks:
+- id: TS-001
+  title: Set up TypeScript project structure
+  status: done
+  priority: P1
+  sub_tasks:
+  - Create package.json with typescript, @types/node dependencies
+  - Configure tsconfig.json with strict mode
+  - Set up project folder structure (src/, tests/, dist/)
+- id: TS-002
+  title: Implement Todo data model and types
+  status: done
+  priority: P1
+  sub_tasks:
+  - Define Todo interface (id, title, completed, createdAt)
+  - Create TodoList class for managing todos
+- id: TS-003
+  title: Build file-based storage module
+  status: done
+  priority: P2
+  sub_tasks:
+  - Implement save() to write todos to JSON file
+  - Implement load() to read todos from JSON file
+  - Handle file not found and parse errors
+- id: TS-004
+  title: Create CLI interface
+  status: in_progress
+  priority: P2
+  sub_tasks:
+  - Implement 'add <title>' command
+  - Implement 'list' command to show all todos
+  - Implement 'complete <id>' command
+  - Implement 'delete <id>' command
+  - Parse command line arguments
+- id: TS-005
+  title: Write unit tests
+  status: todo
+  priority: P3
+  sub_tasks:
+  - Test TodoList operations (add, complete, delete)
+  - Test storage module (save/load)
+  - Aim for >80% code coverage
+- id: TS-006
+  title: Create documentation
+  status: todo
+  priority: P3
+  sub_tasks:
+  - Write README.md with installation and usage instructions
+  - Add inline code comments for complex logic
+constraints:
+- Use TypeScript with strict type checking enabled
+- Keep the code simple and modular
+- Follow modern TypeScript best practices
+- Use file system (fs/promises) for data persistence
+- Store todos in todos.json file
+- DO NOT use external CLI libraries - implement argument parsing manually
+project_path: /Users/jeongminkim/Downloads/NightShift/jobs/typescript-todo
