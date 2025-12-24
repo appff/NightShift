@@ -8,7 +8,7 @@
 
 ## ✨ Why Night Shift (v5.1)?
 
-*   **🧠 Cognitive Architecture (SuperClaude Inspired)**: Agents think and act like specialized experts, learning from past mistakes (`ReflexionMemory`) and verifying their own work (`SelfCheckProtocol`).
+*   **🧠 Cognitive Architecture ([SuperClaude](https://www.superclaude.sh/) Inspired)**: Agents think and act like specialized experts, learning from past mistakes (`ReflexionMemory`) and verifying their own work (`SelfCheckProtocol`).
 *   **📋 Project-as-a-Dashboard**: The `mission.yaml` file is now a living document. Task statuses (`todo`, `in_progress`, `done`) are updated directly in the file, providing a single source of truth for your project's progress.
 *   **🎭 Dynamic Persona Selection**: Let `persona_rules` in `settings.yaml` intelligently select the best expert for each task, or assign them manually.
 *   **🚀 Token Efficiency (Layer 0 Bootstrap)**: Minimizes token usage by loading only essential project context (file tree, `README.md`) initially.
