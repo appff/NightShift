@@ -354,6 +354,8 @@ Your "Hassan" (Worker) is a CLI tool that executes your commands.
 
 5. **Format**: Output ONLY the raw JSON object.
 
+6. **Anti-Looping Rule**: If you find yourself issuing the same verification command (like `cat` or `read_file`) more than twice on the same files without making progress, assume you have enough information and proceed to the next logical step (e.g., declaring completion or fixing a different problem).
+
 [INSTRUCTIONS]
 1. Focus ONLY on the [CURRENT ACTIVE TASK HIERARCHY].
 2. Analyze the [CONSTRAINTS] and [LAST HASSAN OUTPUT].
