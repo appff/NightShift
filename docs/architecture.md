@@ -21,7 +21,7 @@ The orchestrator coordinates these roles per mission task, writes logs, and mana
 - **`nightshift/optimizer.py`** (New): **Token Optimizer** for Layer 0 context bootstrapping.
 - `nightshift/utils.py`, `constants.py`: Helpers and global configurations.
 
-## Data Flow (Updated v5.0)
+## Data Flow
 
 1.  **Mission Load & Init**:
     *   `mission.yaml` parsed (repo-scoped missions with task status tracking).

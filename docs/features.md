@@ -8,7 +8,7 @@ This document lists Night Shift features and where they are configured.
 - Repo-scoped `mission.yaml` with task status tracking (`todo` → `in_progress` → `done`/`blocked`).
 - Resume after interruption (default enabled).
 
-## Cognitive Architecture (New in v5.0) 🧠
+## Cognitive Architecture 🧠
 
 Night Shift now incorporates "SuperClaude" inspired cognitive modules for evidence-based autonomy.
 
