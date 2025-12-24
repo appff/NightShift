@@ -697,7 +697,8 @@ class Hassan:
                 output_lines = []
                 start_time = time.time()
                 for line in process.stdout:
-                    print(line, end="")
+                    # Removed live printing to keep console clean
+                    # print(line, end="") 
                     output_lines.append(line)
                     if self.timeout and (time.time() - start_time) > self.timeout:
                         process.kill()

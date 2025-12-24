@@ -2,6 +2,10 @@
 
 All notable changes to Night Shift will be documented in this file.
 
+## [5.1.7] - 2025-12-24
+### Changed
+- **Silent Worker**: Suppressed live console output from Hassan (Worker) drivers. This prevents verbose tool logs (especially Codex echoes) from flooding the terminal, keeping the UI minimal and clean.
+
 ## [5.1.6] - 2025-12-24
 ### Fixed
 - **Loop Logging**: Fixed an issue where the turn counter didn't increment during local observation steps or quota waits, causing logs to confusingly repeat "TURN 1 START".
