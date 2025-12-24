@@ -314,6 +314,7 @@ class NightShiftAgent:
         
         # --- TOKEN OPTIMIZATION: Use Layer 0 Context ---
         layer0_context = self.token_optimizer.get_layer0_context()
+        logging.info(self.token_optimizer.get_layer0_summary())
         
         prompt = f"""
 You are a planning assistant. Break the mission into a concise list of actionable tasks.
@@ -610,8 +611,8 @@ You are a code reviewer. Provide a concise review plan and key changes you would
 
         # --- 2. TOKEN OPTIMIZATION (Layer 0) ---
         # Inject Bootstrap context instead of raw file loading if needed
-        # (Hassan.prepare might be updated later, but for now we append to query)
         layer0_context = self.token_optimizer.get_layer0_context()
+        logging.info(self.token_optimizer.get_layer0_summary())
         self.hassan.prepare(current_task_text=task_block, persona_guidelines=persona_guidelines, tool_registry=self.tool_registry)
         
         initial_query = f"Start Task {i}: {task_block}\n\n[PROJECT CONTEXT]\n{layer0_context}"
@@ -637,7 +638,7 @@ You are a code reviewer. Provide a concise review plan and key changes you would
         # ---------------------------
 
         try:
-            hassan_output = self.hassan.run(initial_query)
+            hassan_output = self.hassan.run(initial_query, print_query=False)
             task_history = f"\n=== TASK {i} START ===\n⚙️ Orchestrator Init: {initial_query}\nHassan Output:\n{hassan_output}\n"
             last_output = hassan_output
             self_check_retry_count = 0  # Prevention for infinite self-check loops

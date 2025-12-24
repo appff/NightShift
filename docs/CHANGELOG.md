@@ -2,6 +2,11 @@
 
 All notable changes to Night Shift will be documented in this file.
 
+## [5.1.5] - 2025-12-24
+### Changed
+- **Cleaner UI**: Suppressed verbose "Layer 0" project context (file tree) from console output to keep logs clean.
+- **Improved Feedback**: Added a clear summary of context loading and a path-specific warning when `README.md` is missing.
+
 ## [5.1.4] - 2025-12-24
 ### Added
 - **One-Line Installer**: Introduced `install.sh` for seamless installation and updates via `curl`.

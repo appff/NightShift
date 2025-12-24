@@ -12,6 +12,21 @@ class TokenOptimizer:
         self.project_root = project_root
         self.ignore_patterns = [".git*", "__pycache__", "venv", "node_modules", ".DS_Store"]
 
+    def check_readme(self) -> Optional[str]:
+        """Checks if README.md exists and returns its absolute path if it does."""
+        readme_path = os.path.join(self.project_root, "README.md")
+        if os.path.exists(readme_path):
+            return os.path.abspath(readme_path)
+        return None
+
+    def get_layer0_summary(self) -> str:
+        """Returns a brief summary of the project context loading."""
+        readme_path = self.check_readme()
+        if readme_path:
+            return "✅ Project context loaded (File tree + README.md)"
+        else:
+            return f"⚠️ Warning: No README.md found in {os.path.abspath(self.project_root)}. Brain may lack project overview."
+
     def get_layer0_context(self) -> str:
         """
         Layer 0: Bootstrap Context.

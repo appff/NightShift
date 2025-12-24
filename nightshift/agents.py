@@ -643,7 +643,7 @@ class Hassan:
         if self.system_prompt_file and os.path.exists(self.system_prompt_file):
             os.remove(self.system_prompt_file)
 
-    def run(self, query):
+    def run(self, query, print_query=True):
         """Executes the driver command with the given query."""
         if not query:
             return "ERROR: Empty query."
@@ -676,7 +676,11 @@ class Hassan:
         if self.home_dir:
             current_env["HOME"] = self.home_dir
 
-        logging.info(f"\n--- 🚀 Running Hassan ({self.active_driver_name}) ---\n> Command: {query}")
+        if print_query:
+            logging.info(f"\n--- 🚀 Running Hassan ({self.active_driver_name}) ---\n> Command: {query}")
+        else:
+            logging.info(f"\n--- 🚀 Running Hassan ({self.active_driver_name}) ---")
+
         logging.debug(f"🦾 Hassan Command: {' '.join(_redact_cmd(cmd_list))}")
         attempt = 0
         while True:
