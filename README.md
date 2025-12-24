@@ -44,7 +44,6 @@ For a new or existing project, create a `mission.yaml` file in your project's ro
 ```yaml
 project:
   project_root: "." # Defines the root directory for this mission
-  # project_name: "My Awesome Project" # Optional
 
 mission:
   title: "Develop a new feature and document it"
@@ -54,26 +53,18 @@ mission:
     - "All code must be formatted with black."
 
 tasks:
-  - id: "task_001"
-    title: "Design the core module"
-    persona: "system-architect" # Override persona for a specific task
-    status: "todo"
+  - title: "Design the core module"
+    persona: "system-architect" # Optional: override persona for a specific task
 
-  - id: "task_002"
-    title: "Implement the feature with unit tests"
-    depends_on: ["task_001"] # Optional dependency
-    status: "todo"
+  - title: "Implement the feature with unit tests"
 
-  - id: "task_003"
-    title: "Write user documentation for the new feature"
+  - title: "Write user documentation for the new feature"
     persona: "technical-writer"
-    depends_on: ["task_002"]
-    status: "todo"
 ```
 
 ### Step 2: Run Night Shift
 
-Simply execute Night Shift, pointing it to your mission file.
+Simply execute Night Shift, pointing it to your mission file. Night Shift will automatically manage task IDs and track progress for you.
 
 ```bash
 # Ensure you are in the directory containing mission.yaml
