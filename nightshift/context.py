@@ -22,7 +22,8 @@ class ContextLoader:
         file_path = os.path.join(self.personas_dir, f"{persona_name}.md")
         
         if not os.path.exists(file_path):
-            print(f"WARN: Persona file '{file_path}' not found. Using default context.")
+            # Silently fallback to default context if file not found
+            # This allows running without explicit persona configuration or 'general.md' file
             return self._get_default_context()
             
         try:

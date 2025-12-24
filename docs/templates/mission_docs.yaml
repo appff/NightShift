@@ -1,31 +1,13 @@
 project:
-  name: "Documentation Update"
   project_root: "."
-  owner: ""
-  tags: ["docs"]
 
 mission:
-  name: "Documentation Update"
-  status: "active"
-  created_at: "2025-01-01"
-  updated_at: "2025-01-01"
+  title: "Documentation Update"
   persona: "technical-writer"
-
-parallel: false
+  constraints:
+    - "Keep language concise and user-focused."
 
 tasks:
-  - id: "DOC-001"
-    title: "Audit README and docs for outdated content."
-    status: "todo"
-    priority: "P1"
-  - id: "DOC-002"
-    title: "Update usage examples and configuration sections."
-    status: "todo"
-    priority: "P1"
-  - id: "DOC-003"
-    title: "Add a quickstart and FAQ."
-    status: "todo"
-    priority: "P2"
-
-constraints:
-  - "Keep language concise and user-focused."
+  - title: "Audit README and docs for outdated content."
+  - title: "Update usage examples and configuration sections."
+  - title: "Add a quickstart and FAQ."

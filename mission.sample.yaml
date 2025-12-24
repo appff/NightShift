@@ -1,24 +1,22 @@
-mission_name: "Project-Specific Overrides Example"
-project_path: "."
-persona: "architect"
-parallel: false
+# NightShift Mission Configuration (v5.1 Project-Centric)
+
+project:
+  project_root: "." # The root directory for the project
+
+mission:
+  title: "Project-Specific Overrides Example"
+  persona: "system-architect"
+  constraints:
+    - "Keep changes minimal and well-tested."
 
 # Per-project overrides (optional)
 brain:
   active_driver: "gemini"
-body:
+hassan:
   active_driver: "claude"
-  codex:
-    args:
-      - "exec"
-      - "--dangerously-bypass-approvals-and-sandbox"
-      - "{query}"
 critic:
-  active_driver: "codex"
+  active_driver: "gemini"
 
-goal:
-  - "Review the codebase and propose a refactor plan."
-  - "Implement the refactor with tests."
-
-constraints:
-  - "Keep changes minimal and well-tested."
+tasks:
+  - title: "Review the codebase and propose a refactor plan."
+  - title: "Implement the refactor with tests."

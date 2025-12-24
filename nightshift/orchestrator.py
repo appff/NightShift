@@ -158,15 +158,32 @@ class NightShiftAgent:
         self.mission_config["mission"] = mission
 
         tasks = self.mission_config.get("tasks", [])
+        existing_ids = {t.get("id") for t in tasks if isinstance(t, dict) and t.get("id")}
+        next_id_num = 1
+
         for task in tasks:
             if not isinstance(task, dict):
                 continue
+            
+            # Auto-generate ID if missing
+            if not task.get("id"):
+                while f"task_{next_id_num}" in existing_ids:
+                    next_id_num += 1
+                new_id = f"task_{next_id_num}"
+                task["id"] = new_id
+                existing_ids.add(new_id)
+                changed = True
+            
+            # Auto-set status if missing
             if "status" not in task:
                 task["status"] = "todo"
                 changed = True
+                
+            # Compatibility: copy 'task' to 'title' if title missing
             if "title" not in task and task.get("task"):
                 task["title"] = task.get("task")
                 changed = True
+                
         if changed:
             self._save_mission_config()
 

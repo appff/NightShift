@@ -2,6 +2,15 @@
 
 All notable changes to Night Shift will be documented in this file.
 
+## [5.1.3] - 2025-12-24
+### Added
+- **Auto-Task Management**: Task IDs and `status: todo` are now automatically generated if missing in `mission.yaml`.
+- **Flexible Persona Loading**: Context loader now silently falls back to default context if a persona file is missing.
+
+### Changed
+- **Schema Simplification**: Mission templates and `mission.sample.yaml` have been streamlined to remove redundant fields (`project.name`, `mission.status`, `parallel`, etc.) in favor of the v5.1 project-centric schema.
+- **Improved Compatibility**: Orchestrator now automatically maps the legacy `task` field to `title` for better backward compatibility.
+
 ## [5.1.0] - 2025-01-05
 ### Added
 - **Repo-Scoped Missions**: `mission.yaml` now tracks task status (`todo` → `in_progress` → `done`/`blocked`) and auto-updates during runs.
