@@ -2,7 +2,7 @@ brain:
   # Select the main intelligence unit (Director).
   # Uses CLI tools instead of API calls for unstructured mission interpretation and command generation.
   # If no driver block is present, NightShift default presets are used.
-  active_driver: "gemini" # options: claude, codex, gemini, deepseek, qwen, llama
+  active_driver: "deepseek" # options: claude, codex, gemini, deepseek, qwen, llama
   output_format: "json" # text | json
   # Codex CLI specific approval/sandbox options (optional)
   approval: "on-request" # untrusted | on-failure | on-request | never
@@ -151,6 +151,10 @@ safety:
 
 # Tool registry shared with Brain/Hassan (optional)
 tools:
+  - "view <path_or_url>: Read a local file or fetch and clean a web URL."
+  - "list <path>: List files in a directory with icons."
+  - "edit <path> <old_text> <new_text>: Safely replace exact text in a file."
+  - "run_shell_command <command>: Execute any standard shell command."
   - "rg -n <pattern> <path>"
   - "python3 night_shift.py --dry-run"
 

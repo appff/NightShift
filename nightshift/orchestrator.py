@@ -22,6 +22,7 @@ from .memory import ReflexionMemory
 from .context import ContextLoader
 from .validation import ConfidenceChecker, SelfCheckProtocol
 from .optimizer import TokenOptimizer
+from .tools import SmartTools
 # -------------------
 
 
@@ -85,6 +86,7 @@ class NightShiftAgent:
         self.confidence_checker = ConfidenceChecker(project_path)
         self.self_checker = SelfCheckProtocol()
         self.token_optimizer = TokenOptimizer(project_path)
+        self.smart_tools = SmartTools(project_path)
         # -----------------------------
 
         self.brain = Brain(self.settings, self.mission_config, log_dir=self.log_dir)
@@ -811,6 +813,23 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                         break
                     continue
 
+                # Handle 'edit' command via SmartTools (Mutation)
+                if next_action.startswith("edit "):
+                    logging.info(f"⚙️  Orchestrator Intercept: edit action detected")
+                    try:
+                        parts = shlex.split(next_action)
+                        if len(parts) >= 4:
+                            path, old, new = parts[1], parts[2], parts[3]
+                            smart_output = self.smart_tools.edit_file(path, old, new)
+                        else:
+                            smart_output = "ERROR: 'edit' requires 3 arguments: path, old_text, new_text"
+                    except Exception as e:
+                        smart_output = f"ERROR parsing edit command: {e}"
+                    
+                    task_history += f"\n--- 🛠️ EDIT OUTPUT ---\n{smart_output}\n"
+                    last_output = smart_output
+                    continue
+
                 if safety_config.get("require_approval_for_destructive") and self._requires_approval(next_action) and not self.auto_approve_actions:
                     approval = input("Destructive action detected. Approve? [y/N]: ").strip().lower()
                     if approval != "y":
@@ -1009,13 +1028,23 @@ You are a code reviewer. Provide a concise review plan and key changes you would
         # Hybrid Observation: Allow more read-only tools to run locally for speed
         allowed = {
             "ls", "cat", "rg", "grep", "sed", "head", "tail", "stat", "wc", 
-            "find", "read_file", "search_file_content", "glob"
+            "find", "read_file", "search_file_content", "glob",
+            "view", "list"
         }
         return parts[0] in allowed
 
     def _run_local_check(self, command, cwd):
         try:
             parts = shlex.split(command)
+            cmd = parts[0]
+            
+            # Use SmartTools if applicable
+            if cmd == "view" and len(parts) > 1:
+                return self.smart_tools.view(parts[1])
+            if cmd == "list":
+                return self.smart_tools.list_files(parts[1] if len(parts) > 1 else ".")
+            
+            # Fallback to standard subprocess
             result = subprocess.run(parts, capture_output=True, text=True, cwd=cwd)
             output = result.stdout.strip()
             if result.stderr:

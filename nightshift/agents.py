@@ -252,10 +252,15 @@ class Brain:
         
         # Inject Core System Tools to ensure Brain knows how to operate
         core_tools = """
-- read_file: Reads a file from the local filesystem. Usage: `read_file <path>` (or via shell `cat <path>`)
-- write_file: Writes content to a file. Usage: `write_file` tool or shell `echo "content" > <path>`
-- run_shell_command: Executes a shell command. Usage: `ls -la`, `grep <pattern> <file>`, `python <script.py>`
-- glob: Finds files matching a pattern. Usage: `glob <pattern>`
+- view <path_or_url>: Reads a local file OR a web URL.
+- list <path>: Lists files in a directory.
+- edit <path> <old_text> <new_text>: Replaces exact text in a file.
+- run_shell_command <command>: Executes any other shell command.
+
+IMPORTANT:
+- Use `view` for BOTH local files and remote websites.
+- Use `edit` for stable file modifications. It requires the EXACT text to replace.
+- DO NOT invent flags for `night_shift.py`.
 """
         tools_section = f"\n[AVAILABLE TOOLS]\n{core_tools}\n{tool_registry}\n" 
 

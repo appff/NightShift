@@ -202,12 +202,15 @@ class SelfCheckProtocol:
             checks["requirements_met"] = any(k in log_lower for k in ["source:", "link:", "http"])
         
         # 3. Assumptions Verified (Did they look before leaping?)
-        if any(cmd in execution_log for cmd in ["cat ", "grep ", "ls ", "find ", "search_file_content", "read_file"]):
+        # Strict Verification: Must use observation tools to confirm.
+        verification_tools = ["cat ", "grep ", "ls ", "find ", "search_file_content", "read_file", "glob"]
+        
+        if any(tool in execution_log for tool in verification_tools):
             checks["assumptions_verified"] = True
         else:
-            # If no look-up commands, but task was simple generation, maybe okay?
-            # Let's keep it strict for now to encourage checking context.
-            pass
+            # If no verification tools were used, this check FAILS.
+            # This forces the Brain to perform a 'read_file' or 'ls' to confirm the result.
+            checks["assumptions_verified"] = False
             
         # 4. Evidence Provided (Did they do anything?)
         if changed_files or len(execution_log.strip()) > 50:

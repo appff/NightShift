@@ -2,6 +2,19 @@
 
 All notable changes to Night Shift will be documented in this file.
 
+## [5.3.0] - 2025-12-24
+### 🛠️ Smart Orchestrator & Tools
+- **New Toolset (`nightshift/tools.py`)**: Implemented high-level Python tools to assist Local LLMs.
+  - `view`: Supports both local files and **Web URLs** (with automatic HTML stripping/cleaning).
+  - `list`: Better directory listing with type indicators.
+  - `edit`: Safe, exact-match string replacement.
+- **Magic Commands**: The Orchestrator now intercepts `view`, `list`, and `edit` commands to run them via optimized Python functions rather than raw shell commands.
+- **Improved Reliability**: Local LLMs (DeepSeek/Qwen) are now much better at gathering information from the web and modifying files without syntax errors.
+
+## [5.2.7] - 2025-12-24
+### Improved
+- **Strict Verification**: The `SelfCheckProtocol` now enforces a "Trust but Verify" policy. If the Brain attempts to complete a task without having executed any verification commands (e.g., `read_file`, `ls`, `grep`) during the session, the completion is rejected. This compels "lazy" local LLMs to explicitly check their work.
+
 ## [5.2.6] - 2025-12-24
 ### Improved
 - **Tool Awareness**: Injected core tool definitions (`read_file`, `write_file`, `run_shell_command`, `glob`) directly into the Brain's system prompt. This ensures local LLMs (DeepSeek, Qwen) explicitly know how to verify their work and interact with the filesystem, even without custom tool configuration.
