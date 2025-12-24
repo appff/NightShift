@@ -621,11 +621,14 @@ You are a code reviewer. Provide a concise review plan and key changes you would
 
         try:
             hassan_output = self.hassan.run(initial_query)
-            task_history = f"\n=== TASK {i} START ===\nDirector Init: {initial_query}\nHassan Output:\n{hassan_output}\n"
+            task_history = f"\n=== TASK {i} START ===\n⚙️ Orchestrator Init: {initial_query}\nHassan Output:\n{hassan_output}\n"
             last_output = hassan_output
             self_check_retry_count = 0  # Prevention for infinite self-check loops
+            turn_count = 1
 
             while True:
+                logging.info(f"\n{'='*20} TURN {turn_count} START {'='*20}")
+                
                 if "hit your limit" in last_output and "resets" in last_output:
                     self._handle_quota_limit(last_output)
 
@@ -710,7 +713,7 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                                     continue
                     
                     if self.critic.critic_config.get("enabled") is False:
-                        logging.info("🧠 Critic disabled; Brain approving completion.")
+                        logging.info("🎓 Critic disabled; Brain approving completion.")
                         verification = "APPROVED"
                     else:
                         verification = self.critic.evaluate(task_block, self._compact_history(task_history), last_output)
@@ -777,6 +780,7 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                 task_history += f"\n--- 🦾 HASSAN OUTPUT ---\n{clean_hassan_output}\n"
                 last_output = hassan_output
                 time.sleep(RATE_LIMIT_SLEEP)
+                turn_count += 1
 
             self.task_summaries.append(
                 {
