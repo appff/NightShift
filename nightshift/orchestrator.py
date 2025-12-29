@@ -813,6 +813,28 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                     last_output = smart_output
                     continue
 
+                # Handle 'write_file' command via SmartTools (Mutation)
+                if next_action.startswith("write_file "):
+                    logging.info(f"⚙️  Orchestrator Intercept: write_file action detected")
+                    try:
+                        # We expect write_file <path> <content>
+                        # But content might contain spaces, so we need careful splitting or usage
+                        # Standard write_file tool usually takes JSON or similar, 
+                        # here we assume simple space separation for now or a single line.
+                        # For complex content, Brain should use HEREDOC via run_shell_command.
+                        parts = shlex.split(next_action)
+                        if len(parts) >= 3:
+                            path, content = parts[1], parts[2]
+                            smart_output = self.smart_tools.write_file(path, content)
+                        else:
+                            smart_output = "ERROR: 'write_file' requires 2 arguments: path, content"
+                    except Exception as e:
+                        smart_output = f"ERROR parsing write_file command: {e}"
+                    
+                    task_history += f"\n--- 🛠️ WRITE_FILE OUTPUT ---\n{smart_output}\n"
+                    last_output = smart_output
+                    continue
+
                 if safety_config.get("require_approval_for_destructive") and self._requires_approval(next_action) and not self.auto_approve_actions:
                     approval = input("Destructive action detected. Approve? [y/N]: ").strip().lower()
                     if approval != "y":
@@ -1024,8 +1046,25 @@ You are a code reviewer. Provide a concise review plan and key changes you would
             # Use SmartTools if applicable
             if cmd == "view" and len(parts) > 1:
                 return self.smart_tools.view(parts[1])
+            if (cmd == "read_file" or cmd == "cat") and len(parts) > 1:
+                # Handle multiple files for cat (e.g., cat file1 file2)
+                if len(parts) > 2 and cmd == "cat":
+                    outputs = []
+                    for p in parts[1:]:
+                        outputs.append(self.smart_tools.read_file(p))
+                    return "\n\n".join(outputs)
+                
+                # Standard single file read
+                path = parts[1]
+                if path.startswith("--"):
+                    if len(parts) > 2: path = parts[2]
+                return self.smart_tools.read_file(path)
             if cmd == "list":
                 return self.smart_tools.list_files(parts[1] if len(parts) > 1 else ".")
+            if cmd == "search_file_content" and len(parts) > 1:
+                return self.smart_tools.search_file_content(parts[1], parts[2] if len(parts) > 2 else ".")
+            if cmd == "glob" and len(parts) > 1:
+                return self.smart_tools.glob(parts[1])
             
             # Fallback to standard subprocess
             result = subprocess.run(parts, capture_output=True, text=True, cwd=cwd)

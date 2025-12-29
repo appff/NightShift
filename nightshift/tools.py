@@ -2,6 +2,7 @@ import os
 import subprocess
 import re
 import logging
+import glob
 
 class SmartTools:
     """
@@ -22,16 +23,60 @@ class SmartTools:
         if target.startswith("http://") or target.startswith("https://"):
             return self._fetch_url(target)
         
-        # Local file handling
-        full_path = self._resolve_path(target)
+        return self.read_file(target)
+
+    def read_file(self, path):
+        """Reads content from a local file."""
+        full_path = self._resolve_path(path)
         if not os.path.exists(full_path):
-            return f"ERROR: File not found: {target}"
+            return f"ERROR: File not found: {path}"
         try:
             with open(full_path, 'r', encoding='utf-8') as f:
                 content = f.read()
-            return f"--- FILE: {target} ---\n{content}\n--- END OF FILE ---"
+            return f"--- FILE: {path} ---\n{content}\n--- END OF FILE ---"
         except Exception as e:
-            return f"ERROR reading file {target}: {e}"
+            return f"ERROR reading file {path}: {e}"
+
+    def glob(self, pattern):
+        """Finds files matching a glob pattern."""
+        try:
+            # glob.glob returns list of strings
+            # We want to glob relative to project_root
+            search_pattern = os.path.join(self.project_root, pattern)
+            matches = glob.glob(search_pattern, recursive=True)
+            
+            # Make paths relative to project root for cleaner output
+            rel_matches = [os.path.relpath(m, self.project_root) for m in matches]
+            
+            if not rel_matches:
+                return "(No files found)"
+            return "\n".join(sorted(rel_matches))
+        except Exception as e:
+            return f"ERROR executing glob {pattern}: {e}"
+
+    def search_file_content(self, pattern, path="."):
+        """Searches for regex pattern in files using grep."""
+        # Using grep is generally faster and safer for CLI tools context
+        full_path = self._resolve_path(path)
+        try:
+            # -r: recursive, -n: line number, -I: ignore binary
+            cmd = ["grep", "-rnI", pattern, full_path]
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=30
+            )
+            output = result.stdout.strip()
+            if not output:
+                return "(No matches found)"
+            # Limit output to prevent context flooding
+            lines = output.splitlines()
+            if len(lines) > 100:
+                return "\n".join(lines[:100]) + f"\n... ({len(lines)-100} more matches truncated)"
+            return output
+        except Exception as e:
+            return f"ERROR searching file content: {e}"
 
     def _fetch_url(self, url):
         """Fetches a URL and strips HTML tags to save tokens."""
@@ -118,3 +163,15 @@ class SmartTools:
             return f"SUCCESS: File {path} updated."
         except Exception as e:
             return f"ERROR editing file {path}: {e}"
+
+    def write_file(self, path, content):
+        """Writes content to a file (creates or overwrites)."""
+        full_path = self._resolve_path(path)
+        try:
+            # Ensure directory exists
+            os.makedirs(os.path.dirname(full_path), exist_ok=True)
+            with open(full_path, 'w', encoding='utf-8') as f:
+                f.write(content)
+            return f"SUCCESS: File {path} written successfully."
+        except Exception as e:
+            return f"ERROR writing file {path}: {e}"
