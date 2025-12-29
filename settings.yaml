@@ -158,6 +158,10 @@ context_reduction:
   head_chars: 800
   tail_chars: 2000
 
+# Message Efficiency Mode (optional)
+# If true, excludes detailed persona guidelines from the system prompt to save tokens.
+message_efficiency: true
+
 # Persona Definitions: Professional guidelines shared by Brain and Hassan
 personas:
   architect: |

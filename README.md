@@ -112,3 +112,11 @@ Night Shift is designed to be low-maintenance. When you run it:
 ## ⚙️ Configuration
 
 For detailed configuration of drivers (AI models), safety settings, and persona rules, see `settings.example.yaml`.
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgements
+
+*   **SuperClaude**: The specialized personas used in this project are derived from the [SuperClaude](https://github.com/SuperClaude-Org) framework, which is licensed under the MIT License. We thank the SuperClaude community for their contributions to prompt engineering.

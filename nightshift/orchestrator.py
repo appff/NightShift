@@ -596,6 +596,12 @@ Return ONLY valid JSON:
         persona_name = task_item.get("persona_name") if isinstance(task_item, dict) else self.default_persona_name
         persona_guidelines = task_item.get("persona_guidelines") if isinstance(task_item, dict) else self.default_persona_guidelines
 
+        # --- Message Efficiency Mode ---
+        if self.settings.get("message_efficiency"):
+            logging.info("⚡ Message Efficiency Mode Active: Suppressing persona guidelines.")
+            persona_guidelines = ""
+        # -------------------------------
+
         logging.info(f"\n{'=' * 60}\n🚀 STARTING TASK {i} (Persona: {persona_name})\n{'=' * 60}\n{task_block}\n{'=' * 60}\n")
 
         if reviewer_mode:
