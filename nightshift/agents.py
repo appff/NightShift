@@ -183,7 +183,7 @@ class Brain:
             if val:
                 cmd_list.append(val)
 
-        logging.info(f"🧠 Brain Thinking via {base_cmd}...")
+        logging.info(f"🧠 Brain({self.active_driver_name.capitalize()}) Thinking via {base_cmd}...")
         logging.debug(f"🧠 Brain Command: {' '.join(_redact_cmd(cmd_list))}")
 
         brain_env = os.environ.copy()
@@ -378,7 +378,7 @@ Output ONLY the raw JSON string.
         log_entry = f"\n{'=' * 80}\n[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] BRAIN REQUEST\n{'=' * 80}\n{prompt}\n"
         self._log_brain_activity(log_entry)
 
-        logging.info(f"🧠 Brain Thinking via {self.driver_config.get('command', 'unknown')} (Context: {len(prompt)} chars)...")
+        logging.info(f"🧠 Brain({self.active_driver_name.capitalize()}) Thinking via {self.driver_config.get('command', 'unknown')} (Context: {len(prompt)} chars)...")
         response_text = self._run_cli_command(prompt)
         
         # Filter out <think>...</think> blocks from Reasoning Models (e.g., DeepSeek R1)
