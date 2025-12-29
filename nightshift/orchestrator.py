@@ -703,7 +703,13 @@ You are a code reviewer. Provide a concise review plan and key changes you would
 
                 task_history += f"\n--- 🧠 DIRECTOR DECISION ---\n{next_action}\n"
 
-                if "capacity" in next_action or "quota" in next_action.lower():
+                next_action_lower = next_action.lower()
+                if "hit your limit" in next_action_lower and "resets" in next_action_lower:
+                    self._handle_quota_limit(next_action)
+                    last_output = next_action
+                    continue
+
+                if "capacity" in next_action or "quota" in next_action_lower:
                     self._handle_quota_limit(next_action)
                     continue
 
