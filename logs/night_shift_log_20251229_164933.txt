@@ -1,0 +1,17 @@
+2025-12-29 16:49:33,738 - INFO - 🧠 Brain Initialized: [GEMINI] CLI Mode
+2025-12-29 16:49:33,738 - WARNING - ⚠️ Hassan is configured to use the REAL SYSTEM HOME directory. Sandbox isolation is disabled.
+2025-12-29 16:49:33,738 - INFO - 🦾 Hassan Initialized: [CODEX] Driver
+2025-12-29 16:49:33,738 - INFO - 📚 Long-term memories loaded. Brain is feeling experienced.
+2025-12-29 16:49:33,738 - INFO - 🎭 Default Persona: [TECHNICAL-WRITER] loaded from file.
+2025-12-29 16:49:33,738 - INFO - 🌙 Night Shift Starting with default persona: technical-writer
+2025-12-29 16:49:33,753 - INFO - ℹ️ Planner is enabled but ignored for repo-scoped missions. Define tasks in mission.yaml.
+2025-12-29 16:49:33,754 - INFO - 📋 Mission loaded with 3 task(s). Mode: SEQUENTIAL
+2025-12-29 16:49:33,754 - INFO - ⏭️ Skipping task task_1 (status: done).
+2025-12-29 16:49:33,754 - INFO - ⏭️ Skipping task task_2 (status: done).
+2025-12-29 16:49:33,754 - INFO - ⏭️ Skipping task task_3 (status: blocked).
+2025-12-29 16:49:33,754 - INFO - 🧠 Reflecting on mission to store memories...
+2025-12-29 16:49:33,754 - INFO - 🧠 Brain(Gemini) Thinking via gemini...
+2025-12-29 16:50:24,612 - INFO - ℹ️ Auto commit/push disabled. Review and commit changes manually.
+2025-12-29 16:50:24,614 - INFO - 📝 Full history saved: logs/night_shift_history_20251229_164933.txt
+2025-12-29 16:50:24,614 - INFO - 📝 Runtime log saved: logs/night_shift_log_20251229_164933.txt
+2025-12-29 16:50:24,614 - INFO - 🧾 Summary saved: logs/night_shift_summary_20251229_164933.json

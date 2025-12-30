@@ -1,21 +1,19 @@
 project:
-  project_root: /Users/jeongminkim/Downloads/NightShift
+  project_root: /Users/jeongminkim/Downloads/NightShift/sample_missions
 mission:
-  title: Mandatory MCP Tool Usage Test (Demo Version)
-  persona: architect
+  title: Mission Analysis and Summary Report
   constraints:
-  - You MUST use the 'mcp_run sequential_thinking' tool to analyze the project in
-    at least 3 steps.
-  - You MUST use Serena's 'write_memory' tool to save the results.
-  - You MUST output the final architectural review to 'review.md' in the project root.
+  - 현재 폴더(sample_missions) 내의 모든 YAML 미션 파일들을 분석할 것.
+  - 각 미션의 핵심 목표와 현재 상태(status)를 요약할 것.
+  - sequential_thinking 도구를 사용하여 분석 과정을 논리적으로 전개할 것.
+  - 최종 분석 결과를 프로젝트 루트의 'review.md' 파일에 한국어로 저장할 것.
   status: active
   created_at: '2025-12-30'
-  updated_at: '2025-12-30T09:52:34.616361'
+  updated_at: '2025-12-30T10:36:35.540905'
 tasks:
-- title: Deep analysis using sequential_thinking and save to Serena memory
-  id: mcp_mandatory_use
+- title: 폴더 내 모든 YAML 미션 파일 분석
+  id: analyze_yaml_missions
+  status: in_progress
+- title: 미션 요약 및 review.md 리포트 생성
+  id: generate_summary_report
   status: todo
-- title: Generate final report in review.md
-  id: create_review_md
-  status: todo
-project_path: /Users/jeongminkim/Downloads/NightShift

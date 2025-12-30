@@ -2,13 +2,18 @@ brain:
   # Select the main intelligence unit (Director).
   # Uses CLI tools instead of API calls for unstructured mission interpretation and command generation.
   # If no driver block is present, NightShift default presets are used.
-  active_driver: "claude" # options: claude, codex, gemini, deepseek, qwen, llama
+  active_driver: "gemini" # options: claude, codex, gemini, deepseek, qwen, llama
   output_format: "json" # text | json
   # Codex CLI specific approval/sandbox options (optional)
   approval: "on-request" # untrusted | on-failure | on-request | never
   sandbox: "read-only" # read-only | workspace-write | danger-full-access
   home_dir: ".night_shift/brain_env"
   link_auth: true
+  
+  # Thinking Budget & Strategy
+  # Limits the number of sequential thinking steps to prevent over-analysis.
+  thinking_budget: 5 # Recommended: 3 (concise), 5 (balanced), 10 (thorough)
+  thinking_strategy: "balanced" # concise | balanced | thorough
 
   deepseek:
     # DeepSeek Coder via Ollama (Requires 'ollama' installed)
@@ -252,7 +257,7 @@ mcp_enabled: true
 mcp_servers:
   serena:
     command: "uvx"
-    args: ["--from", "git+https://github.com/oraios/serena.git", "serena", "start-mcp-server"]
+    args: ["--from", "git+https://github.com/oraios/serena.git", "serena", "start-mcp-server", "--project", "{root}", "--language", "yaml", "--language", "markdown"]
     enabled: true
   sequential_thinking:
     command: "npx"

@@ -57,9 +57,8 @@ class NightShiftAgent:
             raise ValueError("Mission file is empty or invalid YAML")
         validate_mission_schema(self.mission_config)
         project_root = self.mission_config.get("project", {}).get("project_root", os.getcwd())
-        project_path = os.path.abspath(os.path.expanduser(project_root))
-        self.mission_config["project_path"] = project_path
-        self.mission_lock_file = os.path.join(project_path, ".night_shift", "mission.lock")
+        self.root = os.path.abspath(os.path.expanduser(project_root))
+        self.mission_lock_file = os.path.join(self.root, ".night_shift", "mission.lock")
         self._normalize_mission_config()
 
         if not os.path.exists(SETTINGS_FILE):
@@ -71,27 +70,26 @@ class NightShiftAgent:
         validate_settings_schema(self.settings)
 
         project_root = self.mission_config.get("project", {}).get("project_root", os.getcwd())
-        project_path = os.path.abspath(os.path.expanduser(project_root))
-        self.mission_config["project_path"] = project_path
+        self.root = os.path.abspath(os.path.expanduser(project_root))
         memory_scope = (self.settings.get("memory") or {}).get("scope", "project")
         
         # --- INITIALIZE NEW MODULES ---
-        self.memory_manager = MemoryManager(project_path, scope=memory_scope) # Original memory
-        self.reflexion_memory = ReflexionMemory(os.path.join(project_path, ".night_shift/reflexion.jsonl"))
+        self.memory_manager = MemoryManager(self.root, scope=memory_scope) # Original memory
+        self.reflexion_memory = ReflexionMemory(os.path.join(self.root, ".night_shift/reflexion.jsonl"))
         personas_root = (
             self.mission_config.get("personas_root")
             or self.settings.get("personas_root")
             or os.path.join(os.path.dirname(os.path.dirname(__file__)), "personas")
         )
         self.context_loader = ContextLoader(personas_root)
-        self.confidence_checker = ConfidenceChecker(project_path)
+        self.confidence_checker = ConfidenceChecker(self.root)
         self.self_checker = SelfCheckProtocol()
-        self.token_optimizer = TokenOptimizer(project_path)
-        self.smart_tools = SmartTools(project_path)
+        self.token_optimizer = TokenOptimizer(self.root)
+        self.smart_tools = SmartTools(self.root)
         
         # --- MCP INTEGRATION ---
         self.mcp_enabled = self.settings.get("mcp_enabled", True)
-        self.mcp_manager = MCPManager(self.settings.get("mcp_servers", {})) if self.mcp_enabled else None
+        self.mcp_manager = MCPManager(self.settings.get("mcp_servers", {}), root=self.root) if self.mcp_enabled else None
         if self.mcp_manager:
             self.mcp_manager.start()
         # -----------------------
@@ -136,7 +134,7 @@ class NightShiftAgent:
         self.task_summaries = []
         self.run_start_time = datetime.now()
         self.resume_enabled = self.settings.get("resume", True)
-        self.state_file = os.path.join(project_path, ".night_shift", "state.json")
+        self.state_file = os.path.join(self.root, ".night_shift", "state.json")
         self.context_reduction = self.settings.get("context_reduction", {})
 
     def _merge_dict(self, base, override):
@@ -397,33 +395,46 @@ Return ONLY valid JSON:
         return response
 
     def _handle_quota_limit(self, error_message):
+        logging.warning(f"🚨 Quota limit hit detected! Analyzing reset time: {error_message[:100]}...")
         try:
-            match_abs = re.search(r"resets\s+(\d+(?:am|pm))", error_message, re.IGNORECASE)
+            # Robust regex for absolute time: resets 12pm, resets at 12:00 PM, etc.
+            match_abs = re.search(r"resets\s+(?:at\s+)?(\d+(?::\d+)?\s*[ap]m)", error_message, re.IGNORECASE)
             match_rel = re.search(r"after\s+(?:(\d+)h)?\s*(?:(\d+)m)?\s*(?:(\d+)s)?", error_message, re.IGNORECASE)
             now = datetime.now()
             target = None
+            
             if match_abs:
-                time_str = match_abs.group(1)
-                target = datetime.strptime(time_str, "%I%p").replace(year=now.year, month=now.month, day=now.day)
-                if target < now:
-                    target += timedelta(days=1)
-                target += timedelta(minutes=1)
+                time_str = match_abs.group(1).strip().lower()
+                # Try multiple common time formats
+                for fmt in ["%I%p", "%I:%M%p", "%I %p", "%I:%M %p"]:
+                    try:
+                        target = datetime.strptime(time_str, fmt).replace(year=now.year, month=now.month, day=now.day)
+                        break
+                    except ValueError:
+                        continue
+                
+                if target:
+                    if target < now:
+                        target += timedelta(days=1)
+                    target += timedelta(minutes=1) # Buffer
+                    
             elif match_rel and any(match_rel.groups()):
                 h, m, s = int(match_rel.group(1) or 0), int(match_rel.group(2) or 0), int(match_rel.group(3) or 0)
                 target = now + timedelta(hours=h, minutes=m, seconds=s + 30)
 
             if not target:
+                logging.warning("⚠️ Could not parse exact reset time. Waiting for 1 hour by default.")
                 time.sleep(3600)
                 return
 
-            while True:
-                remaining = (target - datetime.now()).total_seconds()
-                if remaining <= 0:
-                    break
-                logging.info(f"💤 Waiting for quota reset... {remaining/60:.1f} minutes left.")
-                time.sleep(min(1800, remaining))
-        except Exception:
-            time.sleep(3600)
+            wait_seconds = (target - datetime.now()).total_seconds()
+            if wait_seconds > 0:
+                logging.info(f"💤 Quota will reset at {target.strftime('%H:%M:%S')}. Waiting for {wait_seconds/60:.1f} minutes...")
+                time.sleep(wait_seconds)
+            logging.info("🌅 Quota reset period has passed. Resuming mission.")
+        except Exception as e:
+            logging.error(f"❌ Error in quota handling: {e}. Waiting for 10 minutes as fallback.")
+            time.sleep(600)
 
     def _get_git_head(self):
         try:
@@ -431,7 +442,7 @@ Return ONLY valid JSON:
                 ["git", "rev-parse", "HEAD"],
                 capture_output=True,
                 text=True,
-                cwd=self.mission_config.get("project_path", os.getcwd()),
+                cwd=self.root,
             )
             return res.stdout.strip() if res.returncode == 0 else None
         except Exception:
@@ -443,7 +454,7 @@ Return ONLY valid JSON:
                 ["git", "status", "--porcelain"],
                 capture_output=True,
                 text=True,
-                cwd=self.mission_config.get("project_path", os.getcwd()),
+                cwd=self.root,
             )
             return res.returncode == 0 and bool(res.stdout.strip())
         except Exception:
@@ -453,7 +464,7 @@ Return ONLY valid JSON:
         try:
             subprocess.run(
                 ["git", "stash", "push", "-u", "-m", message],
-                cwd=self.mission_config.get("project_path", os.getcwd()),
+                cwd=self.root,
             )
         except Exception as e:
             logging.error(f"❌ Failed to stash changes: {e}")
@@ -468,7 +479,7 @@ Return ONLY valid JSON:
                 self._git_stash(f"night-shift-auto-stash-{datetime.now().strftime('%Y%m%d-%H%M%S')}")
             subprocess.run(
                 ["git", "reset", "--hard", commit_hash],
-                cwd=self.mission_config.get("project_path", os.getcwd()),
+                cwd=self.root,
             )
             logging.info("✅ Rollback successful.")
         except Exception as e:
@@ -478,7 +489,7 @@ Return ONLY valid JSON:
         try:
             subprocess.run(
                 ["git", "worktree", "add", "--force", work_dir, commit_hash],
-                cwd=self.mission_config.get("project_path", os.getcwd()),
+                cwd=self.root,
             )
             return True
         except Exception as e:
@@ -489,7 +500,7 @@ Return ONLY valid JSON:
         try:
             subprocess.run(
                 ["git", "worktree", "remove", "--force", work_dir],
-                cwd=self.mission_config.get("project_path", os.getcwd()),
+                cwd=self.root,
             )
         except Exception as e:
             logging.error(f"❌ Failed to remove worktree: {e}")
@@ -566,7 +577,7 @@ Return ONLY valid JSON:
         task_start_time = datetime.now()
 
         is_parallel = self.mission_config.get("parallel", False)
-        project_root = self.mission_config.get("project_path", os.getcwd())
+        project_root = self.root
         work_dir = project_root
         use_worktrees = (
             self.settings.get("parallel", {}).get("use_worktrees", False)
@@ -655,8 +666,8 @@ You are a code reviewer. Provide a concise review plan and key changes you would
         initial_query = f"Start Task {i}: {task_block}\n\n[PROJECT CONTEXT]\n{layer0_context}"
         # ---------------------------------------
 
-        orig_path = self.hassan.mission_config.get("project_path", os.getcwd())
-        self.hassan.mission_config["project_path"] = work_dir
+        orig_path = self.hassan.mission_config.get("root", os.getcwd())
+        self.hassan.mission_config["root"] = work_dir
 
         task_completed = False
         last_check_command = None
@@ -688,6 +699,7 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                 
                 if "hit your limit" in last_output and "resets" in last_output:
                     self._handle_quota_limit(last_output)
+                    last_output = "SYSTEM: Quota reset period has passed. Please continue the task."
 
                 # Inject Reflexion Context into Brain
                 next_action = self.brain.think(
@@ -723,7 +735,7 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                 next_action_lower = next_action.lower()
                 if "hit your limit" in next_action_lower and "resets" in next_action_lower:
                     self._handle_quota_limit(next_action)
-                    last_output = next_action
+                    last_output = "SYSTEM: Quota reset period has passed. Please continue the task."
                     continue
 
                 if "capacity" in next_action or "quota" in next_action_lower:
@@ -761,7 +773,7 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                             if not test_command:
                                 test_command = (
                                     "pytest"
-                                    if os.path.exists(os.path.join(self.hassan.mission_config.get("project_path", os.getcwd()), "tests"))
+                                    if os.path.exists(os.path.join(self.hassan.mission_config.get("root", os.getcwd()), "tests"))
                                     else ""
                                 )
                             if test_command:
@@ -917,7 +929,7 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                         else:
                             logging.error("❌ Failed to apply worktree changes.")
                 self._git_worktree_remove(work_dir)
-            self.hassan.mission_config["project_path"] = orig_path
+            self.hassan.mission_config["root"] = orig_path
 
     def start(self):
         logging.info(f"🌙 Night Shift Starting with default persona: {self.default_persona_name}")
@@ -933,7 +945,7 @@ You are a code reviewer. Provide a concise review plan and key changes you would
             branch_name = f"night-shift-backup-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
             subprocess.run(
                 ["git", "branch", branch_name, mission_start_commit],
-                cwd=self.mission_config.get("project_path", os.getcwd()),
+                cwd=self.root,
             )
             logging.info(f"🛡️ Created backup branch (no checkout): {branch_name}")
 
@@ -1000,7 +1012,7 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                 if not test_command:
                     test_command = (
                         "pytest"
-                        if os.path.exists(os.path.join(self.hassan.mission_config.get("project_path", os.getcwd()), "tests"))
+                        if os.path.exists(os.path.join(self.hassan.mission_config.get("root", os.getcwd()), "tests"))
                         else ""
                     )
                 if test_command:

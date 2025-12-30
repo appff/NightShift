@@ -1,0 +1,40 @@
+2025-12-30 10:32:27,781 - INFO - ✅ Connected to MCP server 'sequential_thinking' with 1 tools.
+2025-12-30 10:32:27,831 - INFO - ✅ Connected to MCP server 'context7' with 2 tools.
+2025-12-30 10:32:29,178 - INFO - ✅ Connected to MCP server 'serena' with 29 tools.
+2025-12-30 10:32:29,179 - INFO - 🧠 Brain Initialized: [CLAUDE] CLI Mode
+2025-12-30 10:32:29,180 - WARNING - ⚠️ Hassan is configured to use the REAL SYSTEM HOME directory. Sandbox isolation is disabled.
+2025-12-30 10:32:29,180 - INFO - 🦾 Hassan Initialized: [CODEX] Driver
+2025-12-30 10:32:29,180 - INFO - 🎭 Default Persona: [GENERAL] loaded from file.
+2025-12-30 10:32:29,180 - INFO - 🌙 Night Shift Starting with default persona: general
+2025-12-30 10:32:29,199 - INFO - ℹ️ Planner is enabled but ignored for repo-scoped missions. Define tasks in mission.yaml.
+2025-12-30 10:32:29,200 - INFO - 📋 Mission loaded with 2 task(s). Mode: SEQUENTIAL
+2025-12-30 10:32:29,200 - INFO - 🔎 Running Pre-Flight Check for Task 1...
+2025-12-30 10:32:29,200 - INFO -    Score: 0.7 (GREEN)
+2025-12-30 10:32:29,200 - INFO -    - ❌ Missing documentation (running blind?)
+2025-12-30 10:32:29,200 - INFO -    - ✅ No obvious duplication detected
+2025-12-30 10:32:29,200 - INFO -    - ✅ Task description seems detailed
+2025-12-30 10:32:29,218 - INFO - ⚡ Message Efficiency Mode Active: Suppressing persona guidelines.
+2025-12-30 10:32:29,218 - INFO - 
+============================================================
+🚀 STARTING TASK 1 (Persona: general)
+============================================================
+폴더 내 모든 YAML 미션 파일 분석
+============================================================
+
+2025-12-30 10:32:29,221 - INFO - ⚠️ Warning: No README.md found in /Users/jeongminkim/Downloads/NightShift/sample_missions. Brain may lack project overview.
+2025-12-30 10:32:29,221 - INFO - 
+--- 🚀 Running Hassan (codex) ---
+2025-12-30 10:32:58,052 - INFO - 
+==================== TURN 1: START ====================
+2025-12-30 10:32:58,053 - INFO - 🧠 Brain(Claude) Thinking via claude (Context: 25097 chars)...
+2025-12-30 10:32:58,053 - INFO - 🧠 Brain(Claude) Thinking via claude...
+2025-12-30 10:33:02,773 - ERROR - 🧠 Brain CLI Error (1): You've hit your limit · resets 12pm (Asia/Seoul)
+2025-12-30 10:33:02,774 - INFO - 🧠 Brain has formulated a plan.
+2025-12-30 10:33:02,774 - INFO - 🧠 Brain Decision: 🛠️  Execute Command -> MISSION_FAILED: Brain CLI Error - You've hit your limit · resets 12pm (Asia/Seoul)
+2025-12-30 10:33:02,774 - WARNING - 🚨 Quota limit hit detected! Analyzing reset time: MISSION_FAILED: Brain CLI Error - You've hit your limit · resets 12pm (Asia/Seoul)...
+2025-12-30 10:33:02,776 - INFO - 💤 Quota will reset at 12:01:00. Waiting for 88.0 minutes...
+2025-12-30 10:33:18,046 - WARNING - 
+🛑 Night Shift interrupted by user. Saving logs and shutting down...
+2025-12-30 10:33:18,048 - INFO - 📝 Full history saved: logs/night_shift_history_20251230_103227.txt
+2025-12-30 10:33:18,048 - INFO - 📝 Runtime log saved: logs/night_shift_log_20251230_103227.txt
+2025-12-30 10:33:18,049 - INFO - 🧾 Summary saved: logs/night_shift_summary_20251230_103229.json

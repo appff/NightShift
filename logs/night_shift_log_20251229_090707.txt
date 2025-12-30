@@ -1,0 +1,44 @@
+2025-12-29 09:07:07,970 - INFO - 🧠 Brain Initialized: [CODEX] CLI Mode
+2025-12-29 09:07:07,970 - WARNING - ⚠️ Hassan is configured to use the REAL SYSTEM HOME directory. Sandbox isolation is disabled.
+2025-12-29 09:07:07,970 - INFO - 🦾 Hassan Initialized: [CODEX] Driver
+2025-12-29 09:07:07,970 - INFO - 📚 Long-term memories loaded. Brain is feeling experienced.
+2025-12-29 09:07:07,971 - INFO - 🎭 Default Persona: [DEEP-RESEARCH] loaded from file.
+2025-12-29 09:07:07,971 - INFO - 🌙 Night Shift Starting with default persona: deep-research
+2025-12-29 09:07:07,986 - INFO - ℹ️ Planner is enabled but ignored for repo-scoped missions. Define tasks in mission.yaml.
+2025-12-29 09:07:07,987 - INFO - 📋 Mission loaded with 1 task(s). Mode: SEQUENTIAL
+2025-12-29 09:07:07,987 - INFO - 🔎 Running Pre-Flight Check for Task 1...
+2025-12-29 09:07:08,092 - INFO -    Score: 0.7 (GREEN)
+2025-12-29 09:07:08,092 - INFO -    - ❌ Missing documentation (running blind?)
+2025-12-29 09:07:08,092 - INFO -    - ✅ No obvious duplication detected
+2025-12-29 09:07:08,092 - INFO -    - ✅ Task description seems detailed
+2025-12-29 09:07:08,106 - INFO - 
+============================================================
+🚀 STARTING TASK 1 (Persona: deep-research)
+============================================================
+TASK ID: BTC-001
+MAIN TASK: Bitcoin 시황조사 및 2026년 Bitcoin 전망
+SUB-TASKS:
+  - 최신 뉴스기사 3개만 찾아서 작성할 것
+  - report.md에 보고서를 작성해줄 것 A4 반 정도 분량
+
+============================================================
+
+2025-12-29 09:07:08,108 - INFO - ⚠️ Warning: No README.md found in /Users/jeongminkim/Downloads/NightShift/jobs. Brain may lack project overview.
+2025-12-29 09:07:08,110 - INFO - 
+--- 🚀 Running Hassan (codex) ---
+2025-12-29 09:07:57,188 - INFO - 
+==================== TURN 1: START ====================
+2025-12-29 09:07:57,189 - INFO - 🧠 Brain Thinking via codex (Context: 19752 chars)...
+2025-12-29 09:07:57,221 - WARNING - ⚠️ Codex CLI does not support approval flags; skipping 'approval' setting.
+2025-12-29 09:07:57,288 - INFO - 🧠 Brain Thinking via codex...
+2025-12-29 09:08:02,850 - INFO - 🧠 Brain has formulated a plan.
+2025-12-29 09:08:02,850 - INFO - 🧠 Brain Decision: ✅ MISSION COMPLETED
+2025-12-29 09:08:02,850 - INFO - ✅ Self-Check Passed (or forced).
+2025-12-29 09:08:02,850 - INFO - ✅ Task 1 Verified and Completed!
+2025-12-29 09:08:02,852 - INFO - 🧠 Reflecting on mission to store memories...
+2025-12-29 09:08:02,852 - WARNING - ⚠️ Codex CLI does not support approval flags; skipping 'approval' setting.
+2025-12-29 09:08:02,852 - INFO - 🧠 Brain Thinking via codex...
+2025-12-29 09:08:13,407 - INFO - ℹ️ Auto commit/push disabled. Review and commit changes manually.
+2025-12-29 09:08:13,408 - INFO - 📝 Full history saved: logs/night_shift_history_20251229_090707.txt
+2025-12-29 09:08:13,408 - INFO - 📝 Runtime log saved: logs/night_shift_log_20251229_090707.txt
+2025-12-29 09:08:13,408 - INFO - 🧾 Summary saved: logs/night_shift_summary_20251229_090707.json

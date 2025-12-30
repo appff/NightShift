@@ -28,7 +28,10 @@ class Brain:
     def __init__(self, settings, mission_config, log_dir):
         self.settings = settings
         self.mission_config = mission_config
-        self.project_path = os.path.abspath(self.mission_config.get("project_path", os.getcwd()))
+        
+        # Robust root detection
+        project_root = self.mission_config.get("project", {}).get("project_root")
+        self.root = os.path.abspath(self.mission_config.get("root") or project_root or os.getcwd())
         self.log_dir = log_dir
 
         self.brain_config = self.settings.get("brain", {})
@@ -43,7 +46,7 @@ class Brain:
         if configured_home:
             self.brain_env_dir = os.path.abspath(os.path.expanduser(configured_home))
         else:
-            self.brain_env_dir = os.path.join(self.project_path, BRAIN_WORKSPACE_DIR)
+            self.brain_env_dir = os.path.join(self.root, BRAIN_WORKSPACE_DIR)
         if not os.path.exists(self.brain_env_dir):
             os.makedirs(self.brain_env_dir, exist_ok=True)
 
@@ -200,23 +203,33 @@ class Brain:
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE, # Capture separately
                     text=True,
-                    cwd=self.project_path,
+                    cwd=self.root,
                     env=brain_env,
                     check=False,
                     timeout=self.timeout,
                 )
 
                 if process.returncode != 0:
-                    error_msg = process.stderr.strip()
-                    logging.error(f"🧠 Brain CLI Error ({process.returncode}): {error_msg}")
+                    # Capture both stderr and stdout as some CLIs output errors to stdout
+                    raw_stderr = process.stderr.strip()
+                    raw_stdout = process.stdout.strip()
+                    
+                    # Combine and handle newlines to prevent log truncation
+                    error_msg = raw_stderr if raw_stderr else raw_stdout
+                    if not error_msg:
+                        error_msg = f"Exit code {process.returncode} (No output)"
+                    
+                    # Replace newlines with a visible separator for single-line loggers
+                    safe_error_msg = error_msg.replace("\n", " | ")
+                    
+                    logging.error(f"🧠 Brain CLI Error ({process.returncode}): {safe_error_msg}")
                     if attempt < self.retries:
                         attempt += 1
                         time.sleep(self.retry_backoff**attempt)
                         continue
-                    return f"MISSION_FAILED: Brain CLI Error - {error_msg}"
+                    return f"MISSION_FAILED: Brain CLI Error - {safe_error_msg}"
 
-                # For Ollama, we strictly return stdout. 
-                # Other drivers might mix useful info in stderr, but typically stdout is what we want.
+                # Success case
                 return process.stdout.strip()
 
             except subprocess.TimeoutExpired:
@@ -301,9 +314,22 @@ OR
         memory_section = f"\n[PAST MEMORIES / LESSONS LEARNED]\n{past_memories}\n" if past_memories else ""
         reflexion_section = f"\n{reflexion_context}\n" if reflexion_context else ""
 
-        cognitive_strategy = """
+        # --- DYNAMIC THINKING STRATEGY ---
+        thinking_budget = self.brain_config.get("thinking_budget", 5)
+        thinking_strategy = self.brain_config.get("thinking_strategy", "balanced")
+        
+        strategy_prompts = {
+            "concise": "Minimize thinking steps. Use sequential_thinking ONLY for high-risk architectural decisions.",
+            "balanced": "Scale thinking based on complexity. For routine tasks, be direct. For novel or complex logic, use sequential_thinking moderately.",
+            "thorough": "Prioritize correctness over speed. Use sequential_thinking proactively for all non-trivial logic."
+        }
+        selected_strategy = strategy_prompts.get(thinking_strategy, strategy_prompts["balanced"])
+
+        cognitive_strategy = f"""
 [COGNITIVE STRATEGY (AUTONOMOUS TOOL USAGE)]
-- If a task is complex or requires multi-step planning, you MUST proactively use 'sequential_thinking' tools to explore logic before issuing commands.
+- STRATEGY: {selected_strategy}
+- BUDGET: Do not exceed {thinking_budget} thinking steps for this turn.
+- If a task is complex or requires multi-step planning, you may use 'sequential_thinking' tools to explore logic before issuing commands.
 - If you lack specific project knowledge, check 'serena' memory tools or 'context7' documentation before guessing.
 - Save critical architectural insights using memory tools to ensure project continuity.
 """
@@ -415,9 +441,9 @@ Output ONLY the raw JSON string.
 class MemoryManager:
     """Handles long-term memory (lessons learned) for the Brain."""
 
-    def __init__(self, project_path, scope="project"):
+    def __init__(self, root, scope="project"):
         self.scope = scope
-        self.project_memory_file = os.path.join(project_path, ".night_shift", "memories.md")
+        self.project_memory_file = os.path.join(root, ".night_shift", "memories.md")
         self.global_memory_file = os.path.expanduser("~/.night_shift/memories.md")
         try:
             if not os.path.exists(os.path.dirname(self.project_memory_file)):
@@ -625,12 +651,15 @@ class Hassan:
         attempt = 0
         while True:
             try:
+                project_root = self.mission_config.get("project", {}).get("project_root")
+                cwd = self.mission_config.get("root") or project_root or os.getcwd()
+                
                 process = subprocess.Popen(
                     cmd_list,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT,
                     text=True,
-                    cwd=self.mission_config.get("project_path", os.getcwd()),
+                    cwd=cwd,
                     env=current_env,
                     bufsize=1,
                 )

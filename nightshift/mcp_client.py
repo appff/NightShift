@@ -12,13 +12,22 @@ except ImportError:
     HAS_MCP = False
 
 class MCPClient:
-    def __init__(self, name: str, command: str, args: List[str]):
+    def __init__(self, name: str, command: str, args: List[str], root: Optional[str] = None):
         self.name = name
+        # Replace {root} placeholder in args if root path is provided
+        processed_args = []
+        for arg in args:
+            if root and isinstance(arg, str):
+                processed_args.append(arg.replace("{root}", root))
+            else:
+                processed_args.append(arg)
+                
         self.server_params = StdioServerParameters(
             command=command,
-            args=args,
+            args=processed_args,
             env=None
         )
+        self.root = root
         self.session: Optional[ClientSession] = None
         self._client_context = None
         self.tools = []
@@ -27,6 +36,8 @@ class MCPClient:
         if not HAS_MCP:
             return
         try:
+            # Note: stdio_client doesn't natively support cwd in all versions of the SDK, 
+            # but we pass the correct absolute paths via args which usually fixes it.
             self._client_context = stdio_client(self.server_params)
             read, write = await self._client_context.__aenter__()
             self.session = ClientSession(read, write)
@@ -74,8 +85,9 @@ class MCPClient:
             pass
 
 class MCPManager:
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: Dict[str, Any], root: Optional[str] = None):
         self.config = config
+        self.root = root
         self.clients: Dict[str, MCPClient] = {}
         self.enabled = HAS_MCP and bool(config)
         self.loop = None
@@ -104,7 +116,7 @@ class MCPManager:
             cmd = server_cfg.get("command")
             if not cmd: continue
             
-            client = MCPClient(name, cmd, server_cfg.get("args", []))
+            client = MCPClient(name, cmd, server_cfg.get("args", []), root=self.root)
             self.clients[name] = client
             futures.append(asyncio.run_coroutine_threadsafe(client.connect(), self.loop))
         

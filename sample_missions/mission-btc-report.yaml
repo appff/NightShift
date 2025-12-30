@@ -22,4 +22,3 @@ tasks:
 constraints:
 - 보고서는 한국어로 작성해 줄 것
 - DO NOT COMMIT AND PUSH
-project_path: /Users/jeongminkim/Downloads/NightShift/jobs

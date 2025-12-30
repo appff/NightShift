@@ -69,4 +69,3 @@ constraints:
 - Use file system (fs/promises) for data persistence
 - Store todos in todos.json file
 - DO NOT use external CLI libraries - implement argument parsing manually
-project_path: /Users/jeongminkim/Downloads/NightShift/jobs/typescript-todo

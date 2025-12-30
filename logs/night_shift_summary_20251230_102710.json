@@ -1,0 +1,14 @@
+{
+  "started_at": "2025-12-30T10:27:10.392071",
+  "ended_at": "2025-12-30T10:27:50.667357",
+  "tasks": [
+    {
+      "task": "\ud604\uc7ac \ud3f4\ub354\uc5d0 \uc788\ub294 mission yaml\uc744 \ubd84\uc11d\ud574\uc11c \uc694\uc57d review.md\ub97c \uc791\uc131\ud574\uc918. \ud544\uc694\uc2dc sequential_thinking \uc744 \uc0ac\uc6a9\ud574",
+      "persona": "architect",
+      "status": "failed",
+      "duration_seconds": 36.175671
+    }
+  ],
+  "parallel": false,
+  "reviewer_mode": false
+}

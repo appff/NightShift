@@ -1,0 +1,26 @@
+2025-12-30 10:36:35,133 - INFO - ✅ Connected to MCP server 'sequential_thinking' with 1 tools.
+2025-12-30 10:36:35,186 - INFO - ✅ Connected to MCP server 'context7' with 2 tools.
+2025-12-30 10:36:35,509 - ERROR - ❌ Failed to connect to MCP server 'serena': Connection closed
+2025-12-30 10:36:35,510 - INFO - 🧠 Brain Initialized: [GEMINI] CLI Mode
+2025-12-30 10:36:35,511 - WARNING - ⚠️ Hassan is configured to use the REAL SYSTEM HOME directory. Sandbox isolation is disabled.
+2025-12-30 10:36:35,511 - INFO - 🦾 Hassan Initialized: [CODEX] Driver
+2025-12-30 10:36:35,511 - INFO - 🎭 Default Persona: [GENERAL] loaded from file.
+2025-12-30 10:36:35,511 - INFO - 🌙 Night Shift Starting with default persona: general
+2025-12-30 10:36:35,526 - INFO - ℹ️ Planner is enabled but ignored for repo-scoped missions. Define tasks in mission.yaml.
+2025-12-30 10:36:35,526 - INFO - 📋 Mission loaded with 2 task(s). Mode: SEQUENTIAL
+2025-12-30 10:36:35,526 - INFO - 🔎 Running Pre-Flight Check for Task 1...
+2025-12-30 10:36:35,527 - INFO -    Score: 0.7 (GREEN)
+2025-12-30 10:36:35,527 - INFO -    - ❌ Missing documentation (running blind?)
+2025-12-30 10:36:35,527 - INFO -    - ✅ No obvious duplication detected
+2025-12-30 10:36:35,527 - INFO -    - ✅ Task description seems detailed
+2025-12-30 10:36:35,540 - INFO - ⚡ Message Efficiency Mode Active: Suppressing persona guidelines.
+2025-12-30 10:36:35,540 - INFO - 
+============================================================
+🚀 STARTING TASK 1 (Persona: general)
+============================================================
+폴더 내 모든 YAML 미션 파일 분석
+============================================================
+
+2025-12-30 10:36:35,542 - INFO - ⚠️ Warning: No README.md found in /Users/jeongminkim/Downloads/NightShift/sample_missions. Brain may lack project overview.
+2025-12-30 10:36:35,542 - INFO - 
+--- 🚀 Running Hassan (codex) ---

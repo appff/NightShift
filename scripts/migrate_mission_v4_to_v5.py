@@ -30,7 +30,7 @@ def _task_title(item):
 
 
 def migrate(old_config, state_config=None):
-    project_path = old_config.get("project_path", ".")
+    root = old_config.get("root") or old_config.get("project_path", ".")
     mission_name = old_config.get("mission_name") or old_config.get("name") or "Project Mission"
     persona = old_config.get("persona")
     constraints = old_config.get("constraints", [])
@@ -62,7 +62,7 @@ def migrate(old_config, state_config=None):
     new_config = {
         "project": {
             "name": mission_name,
-            "project_root": project_path,
+            "project_root": root,
             "owner": "",
             "tags": [],
         },
@@ -106,8 +106,8 @@ def main():
     state_config = None
     state_path = args.state_path
     if not state_path:
-        project_path = config.get("project_path", ".")
-        state_path = os.path.join(project_path, ".night_shift", "state.json")
+        root = config.get("root") or config.get("project_path", ".")
+        state_path = os.path.join(root, ".night_shift", "state.json")
     if os.path.exists(state_path):
         state_config = _load_yaml(state_path)
 
