@@ -18,7 +18,6 @@ tasks:
   sub_tasks:
   - 최신 뉴스기사 3개만 찾아서 작성할 것
   - report.md에 보고서를 작성해줄 것 A4 반 정도 분량
-  status: done
 constraints:
 - 보고서는 한국어로 작성해 줄 것
 - DO NOT COMMIT AND PUSH

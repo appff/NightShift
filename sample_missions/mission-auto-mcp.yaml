@@ -10,4 +10,3 @@ tasks:
 - title: Perform a high-level review of the current MCP integration logic and identify
     one potential bottleneck.
   id: auto_review
-  status: done
