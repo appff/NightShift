@@ -1,3 +1,0 @@
-
-
-[SYSTEM] Execution interrupted by user (KeyboardInterrupt).

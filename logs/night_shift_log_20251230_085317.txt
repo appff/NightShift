@@ -1,6 +1,0 @@
-2025-12-30 08:53:17,726 - WARNING - ⚠️ MCP servers configured but 'mcp' SDK is not installed.
-2025-12-30 08:53:17,726 - INFO - 🧠 Brain Initialized: [CLAUDE] CLI Mode
-2025-12-30 08:53:17,726 - WARNING - ⚠️ Hassan is configured to use the REAL SYSTEM HOME directory. Sandbox isolation is disabled.
-2025-12-30 08:53:17,727 - INFO - 🦾 Hassan Initialized: [CODEX] Driver
-2025-12-30 08:53:17,727 - INFO - 📚 Long-term memories loaded. Brain is feeling experienced.
-2025-12-30 08:53:17,727 - INFO - 🎭 Default Persona: [GENERAL] loaded from file.
