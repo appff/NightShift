@@ -1,18 +1,21 @@
 project:
   project_root: /Users/jeongminkim/Downloads/NightShift
 mission:
-  title: Mandatory MCP Tool Usage Test
+  title: Mandatory MCP Tool Usage Test (Demo Version)
   persona: architect
   constraints:
   - You MUST use the 'mcp_run sequential_thinking' tool to analyze the project in
     at least 3 steps.
-  - You MUST use Serena's 'write_memory' tool to save the results. Do not finish without
-    calling this tool.
+  - You MUST use Serena's 'write_memory' tool to save the results.
+  - You MUST output the final architectural review to 'review.md' in the project root.
   status: active
   created_at: '2025-12-30'
-  updated_at: '2025-12-30T09:14:01.500672'
+  updated_at: '2025-12-30T09:52:34.616361'
 tasks:
 - title: Deep analysis using sequential_thinking and save to Serena memory
   id: mcp_mandatory_use
-  status: done
+  status: todo
+- title: Generate final report in review.md
+  id: create_review_md
+  status: todo
 project_path: /Users/jeongminkim/Downloads/NightShift
