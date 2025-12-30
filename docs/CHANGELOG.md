@@ -4,7 +4,7 @@ All notable changes to Night Shift will be documented in this file.
 
 ## [5.6.0] - 2025-12-30
 ### 🚀 Integrated Installation & Control
-- **Unified Installer**: `install.sh` updated to check for optional MCP prerequisites (`uv`, `npx`) and ensure all dependencies are ready for a full-featured experience.
+- **Unified Installer**: `install.sh` updated to **automatically install** recommended MCP servers (Serena, Sequential Thinking, Context7) if `uv` and `npm` are available.
 - **Global MCP Toggle**: Added `mcp_enabled: true/false` in `settings.yaml` to allow users to completely disable MCP features if desired.
 - **Robust Orchestration**: Orchestrator now gracefully handles the absence of MCP when disabled or not configured.
 

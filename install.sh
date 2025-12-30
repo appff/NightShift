@@ -22,9 +22,20 @@ command -v git >/dev/null 2>&1 || { echo -e "${RED}Error: git is not installed.$
 command -v python3 >/dev/null 2>&1 || { echo -e "${RED}Error: python3 is not installed.${NC}"; exit 1; }
 
 # Recommended but optional for core (required for MCP)
-echo -e "${BLUE}Checking optional prerequisites for MCP features...${NC}"
-command -v uv >/dev/null 2>&1 || echo -e "${YELLOW}Warning: 'uv' not found. Recommended for Serena MCP.${NC}"
-command -v npx >/dev/null 2>&1 || echo -e "${YELLOW}Warning: 'npx' not found. Required for Sequential Thinking MCP.${NC}"
+echo -e "${BLUE}Checking/Installing optional MCP prerequisites...${NC}"
+if command -v uv >/dev/null 2>&1; then
+    echo -e "${GREEN}Installing Serena MCP via uv...${NC}"
+    uv tool install git+https://github.com/oraios/serena.git --force || echo -e "${YELLOW}Warning: Serena install failed, but continuing...${NC}"
+else
+    echo -e "${YELLOW}Warning: 'uv' not found. Skipping Serena MCP automatic install.${NC}"
+fi
+
+if command -v npm >/dev/null 2>&1; then
+    echo -e "${GREEN}Installing Node-based MCP servers...${NC}"
+    npm install -g @modelcontextprotocol/server-sequential-thinking @upstash/context7-mcp || echo -e "${YELLOW}Warning: npm install failed. You may need sudo or permission fix.${NC}"
+else
+    echo -e "${YELLOW}Warning: 'npm' not found. Skipping Sequential Thinking & Context7 MCP install.${NC}"
+fi
 
 # 2. Clone or Update Repo
 if [ -d "$INSTALL_DIR" ]; then
