@@ -26,7 +26,7 @@ This separation of duties—strategic planning and verification (Brain) vs. simp
 
 ---
 
-## ✨ Why Night Shift (v5.2)?
+## ✨ Why Night Shift (v5)?
 
 *   **🔍 Evidence-Based Done**: The Brain (Director) no longer blindly trusts the Worker's reports. Completion is only granted when **physical evidence** (file content, test logs, or command output) is visible in the session history.
 *   **⚖️ Brain as Auditor & Architect**: The Brain's identity is fixed as a high-level Auditor. It remains objective and skeptical, ensuring the Worker (Hassan) adheres to mission constraints regardless of their persona.
