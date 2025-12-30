@@ -26,17 +26,17 @@ This separation of duties—strategic planning and verification (Brain) vs. simp
 
 ---
 
-## ✨ Why Night Shift (v5)?
+## ✨ Why Night Shift (v5.6)?
 
 *   **🔍 Evidence-Based Done**: The Brain (Director) no longer blindly trusts the Worker's reports. Completion is only granted when **physical evidence** (file content, test logs, or command output) is visible in the session history.
 *   **⚖️ Brain as Auditor & Architect**: The Brain's identity is fixed as a high-level Auditor. It remains objective and skeptical, ensuring the Worker (Hassan) adheres to mission constraints regardless of their persona.
 *   **🛠️ Optimized for Local LLMs**: Enhanced support for models like DeepSeek, Qwen, and Llama via **Smart Tools** (`view`, `list`, `edit`). Advanced prompt engineering combats recency bias in local models.
 *   **📉 Lean Orchestration**: The separate Critic module has been integrated into the Brain's verification logic, reducing token overhead and eliminating agent-to-agent friction.
 *   **🧠 Cognitive Architecture**: Agents learn from past mistakes (`ReflexionMemory`) and apply rigorous structural integrity checks before declaring a mission success.
+*   **🔌 MCP Support**: Seamlessly integrate external tools and memory via Model Context Protocol (Serena, Sequential Thinking, etc.).
+*   **📉 Message Efficiency**: Suppress redundant persona text in long sessions to save tokens and costs.
 *   **📋 Project-as-a-Dashboard**: Manage your entire project via `mission.yaml`. Statuses (`todo`, `in_progress`, `done`) update in real-time as the dashboard evolves.
 *   **⚡ Parallel Execution**: Run independent tasks simultaneously by setting `parallel: true`.
-*   **📉 Message Efficiency Mode**: Reduce token consumption by suppressing redundant persona guidelines in long sessions.
-*   **🔌 Model Context Protocol (MCP)**: Native support for external MCP servers (Serena, Sequential Thinking, etc.) to give agents dynamic memory and reasoning tools.
 *   **⏪ Safety Net**: Automatic Git checkpoints and auto-rollback on failure.
 
 ## 🚀 Installation
@@ -51,13 +51,14 @@ This script will:
 - Clone the repository to `~/.night_shift_app`
 - Set up a dedicated Python virtual environment
 - Install all dependencies
+- **Auto-install MCP servers** (Serena, etc.) if `uv` and `npm` are detected.
 - Add the `nightshift` command to your `PATH`
 
 *To update your installation, simply run the same command again.*
 
 ---
 
-## 🚀 Quick Start (v5.2 Project-Based Workflow)
+## 🚀 Quick Start (v5.6 Project-Based Workflow)
 
 ### Step 1: Initialize Your Project
 
@@ -107,17 +108,29 @@ Night Shift is designed to be low-maintenance. When you run it:
 
 ## 📚 Documentation
 
-- `docs/architecture.md`: System structure and data flow (v5.2 Auditor Model).
+- `docs/architecture.md`: System structure and data flow (v5.6 Auditor Model).
 - `docs/features.md`: Capability overview and all available personas.
 - `docs/quality_gates.md`: How Night Shift ensures "true completion".
 
 ## ⚙️ Configuration
 
-For detailed configuration of drivers (AI models), safety settings, and persona rules, see `settings.example.yaml`.
+Configure Night Shift via `settings.yaml` in the project root. Key sections include:
 
-### Model Context Protocol (MCP)
+### 🧠 Intelligence (Brain & Body)
+*   `active_driver`: Choose your LLM engine (e.g., `claude`, `gemini`, `deepseek`, `llama`).
+*   `output_format`: Set to `json` for more reliable autonomous operation.
 
-NightShift can connect to any MCP-compliant server. Configure your servers in `settings.yaml`. You can globally disable MCP by setting `mcp_enabled: false`.
+### 🛡️ Safety & Verification
+*   `auto_rollback_on_failure`: Roll back changes if a task fails.
+*   `require_approval_for_destructive`: Gate commands like `rm -rf`.
+*   `qa.run_tests`: Automatically run your test suite after tasks.
+
+### 📉 Efficiency & Context
+*   `message_efficiency`: Set to `true` to save tokens by suppressing redundant persona text.
+*   `context_reduction`: Automatically trim long conversation history.
+
+### 🔌 Model Context Protocol (MCP)
+NightShift can connect to any MCP-compliant server. You can globally disable MCP by setting `mcp_enabled: false`.
 
 ```yaml
 mcp_enabled: true
