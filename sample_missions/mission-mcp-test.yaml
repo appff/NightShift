@@ -9,7 +9,7 @@ mission:
   - 최종 분석 결과를 프로젝트 루트의 'review.md' 파일에 한국어로 저장할 것.
   status: active
   created_at: '2025-12-30'
-  updated_at: '2025-12-30T10:36:35.540905'
+  updated_at: '2025-12-30T10:43:33.555674'
 tasks:
 - title: 폴더 내 모든 YAML 미션 파일 분석
   id: analyze_yaml_missions

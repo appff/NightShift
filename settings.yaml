@@ -2,7 +2,7 @@ brain:
   # Select the main intelligence unit (Director).
   # Uses CLI tools instead of API calls for unstructured mission interpretation and command generation.
   # If no driver block is present, NightShift default presets are used.
-  active_driver: "gemini" # options: claude, codex, gemini, deepseek, qwen, llama
+  active_driver: "claude" # options: claude, codex, gemini, deepseek, qwen, llama
   output_format: "json" # text | json
   # Codex CLI specific approval/sandbox options (optional)
   approval: "on-request" # untrusted | on-failure | on-request | never
@@ -257,7 +257,7 @@ mcp_enabled: true
 mcp_servers:
   serena:
     command: "uvx"
-    args: ["--from", "git+https://github.com/oraios/serena.git", "serena", "start-mcp-server", "--project", "{root}", "--language", "yaml", "--language", "markdown"]
+    args: ["--from", "git+https://github.com/oraios/serena.git", "serena", "start-mcp-server", "--project", "{root}"]
     enabled: true
   sequential_thinking:
     command: "npx"

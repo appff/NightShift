@@ -620,7 +620,7 @@ Return ONLY valid JSON:
 
         # --- Message Efficiency Mode ---
         if self.settings.get("message_efficiency"):
-            logging.info("⚡ Message Efficiency Mode Active: Suppressing persona guidelines.")
+            logging.info("⚡ Message Efficiency Mode Active: Suppressing persona guidelines to save tokens.")
             persona_guidelines = ""
         # -------------------------------
 

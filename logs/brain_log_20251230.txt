@@ -53911,3 +53911,1675 @@ OR
 [2025-12-30 10:36:04] BRAIN RESPONSE
 --------------------------------------------------------------------------------
 MISSION_FAILED: Brain CLI Error - You've hit your limit · resets 12pm (Asia/Seoul)
+
+================================================================================
+[2025-12-30 10:37:01] BRAIN REQUEST
+================================================================================
+
+You are the "Director" of an autonomous coding session.
+You are a STRICT, NON-CONVERSATIONAL logic engine.
+Regardless of the Worker's persona, YOUR identity is a high-level Auditor and Architect.
+Your "Hassan" (Worker) is a CLI tool that executes your commands.
+
+[LANGUAGE & REASONING]
+1. **Internal Reasoning**: You SHOULD think in English for the best logic and reasoning performance.
+2. **Context Understanding**: If the [CURRENT ACTIVE TASK HIERARCHY] or [OVERALL MISSION CONTEXT] is in a non-English language (e.g., Korean), you MUST understand and respect it.
+3. **Artifact Generation**: If the task requires writing content in a specific language (e.g., "Write a report in Korean"), ensure your commands to Hassan explicitly preserve that language requirement.
+
+
+[COGNITIVE STRATEGY (AUTONOMOUS TOOL USAGE)]
+- STRATEGY: Scale thinking based on complexity. For routine tasks, be direct. For novel or complex logic, use sequential_thinking moderately.
+- BUDGET: Do not exceed 5 thinking steps for this turn.
+- If a task is complex or requires multi-step planning, you may use 'sequential_thinking' tools to explore logic before issuing commands.
+- If you lack specific project knowledge, check 'serena' memory tools or 'context7' documentation before guessing.
+- Save critical architectural insights using memory tools to ensure project continuity.
+
+
+[DIRECTOR CORE IDENTITY]
+You are currently operating in your pure Auditor/Architect mode. You must apply rigorous logic, structural integrity checks, and precise verification to all of Hassan's actions without being influenced by a specific domain persona.
+
+
+
+
+[CURRENT ACTIVE TASK HIERARCHY]
+폴더 내 모든 YAML 미션 파일 분석
+
+[OVERALL MISSION CONTEXT]
+['폴더 내 모든 YAML 미션 파일 분석', '미션 요약 및 review.md 리포트 생성']
+
+[CONSTRAINTS]
+현재 폴더(sample_missions) 내의 모든 YAML 미션 파일들을 분석할 것.
+각 미션의 핵심 목표와 현재 상태(status)를 요약할 것.
+sequential_thinking 도구를 사용하여 분석 과정을 논리적으로 전개할 것.
+최종 분석 결과를 프로젝트 루트의 'review.md' 파일에 한국어로 저장할 것.
+
+[CONVERSATION HISTORY]
+h -lc 'cat mission-typescript-todo.yaml' in /Users/jeongminkim/Downloads/NightShift/sample_missions succeeded in 9ms:
+project:
+  name: TypeScript TODO CLI Application
+  project_root: /Users/jeongminkim/Downloads/NightShift/jobs/typescript-todo
+  owner: ''
+  tags:
+  - typescript
+  - cli
+  - test
+mission:
+  name: Build a Simple TypeScript TODO CLI Application
+  status: active
+  created_at: '2025-01-01'
+  updated_at: '2025-12-24T15:53:44.881972'
+  persona: system-architect
+parallel: false
+tasks:
+- id: TS-001
+  title: Set up TypeScript project structure
+  status: done
+  priority: P1
+
+thinking
+**Noting sequential_thinking tool absence**
+codex
+요청하신 Task 1을 진행했습니다. 현재 환경에 `sequential_thinking` 도구가 제공되지 않아 해당 도구 사용은 불가합니다. 대신 논리적으로 정리된 형태로 분석 결과를 제공합니다.
+
+분석 결과 (YAML 미션별 핵심 목표 및 상태)
+- `mission-auto-mcp.yaml`: MCP 통합 로직에 대한 고수준 리뷰와 잠재 병목 1건 식별. 상태: mission=active, task=done.
+- `mission-btc-report.yaml`: 최근 Bitcoin 시황 조사 및 2026년 전망 리포트 작성(뉴스 3개, report.md 반페이지, 한국어). 상태: mission=active, task=done.
+- `mission-mcp-test.yaml`: 현재 폴더 내 모든 YAML 미션 분석 및 요약 리포트 작성. 상태: mission=active, task1=in_progress, task2=todo.
+- `mission-typescript-todo.yaml`: TypeScript TODO CLI 앱 구축(구조/모델/스토리지/CLI/테스트/문서). 상태: mission=active, 진행상태는 TS-004만 in_progress, 나머지 done/todo 혼재.
+
+다음 단계로 Task 2(요약 리포트 생성 및 `review.md` 저장)를 진행할까요?
+tokens used
+5,345
+요청하신 Task 1을 진행했습니다. 현재 환경에 `sequential_thinking` 도구가 제공되지 않아 해당 도구 사용은 불가합니다. 대신 논리적으로 정리된 형태로 분석 결과를 제공합니다.
+
+분석 결과 (YAML 미션별 핵심 목표 및 상태)
+- `mission-auto-mcp.yaml`: MCP 통합 로직에 대한 고수준 리뷰와 잠재 병목 1건 식별. 상태: mission=active, task=done.
+- `mission-btc-report.yaml`: 최근 Bitcoin 시황 조사 및 2026년 전망 리포트 작성(뉴스 3개, report.md 반페이지, 한국어). 상태: mission=active, task=done.
+- `mission-mcp-test.yaml`: 현재 폴더 내 모든 YAML 미션 분석 및 요약 리포트 작성. 상태: mission=active, task1=in_progress, task2=todo.
+- `mission-typescript-todo.yaml`: TypeScript TODO CLI 앱 구축(구조/모델/스토리지/CLI/테스트/문서). 상태: mission=active, 진행상태는 TS-004만 in_progress, 나머지 done/todo 혼재.
+
+다음 단계로 Task 2(요약 리포트 생성 및 `review.md` 저장)를 진행할까요?
+
+
+[LAST HASSAN OUTPUT]
+요청하신 Task 1을 진행했습니다. 현재 환경에 `sequential_thinking` 도구가 제공되지 않아 해당 도구 사용은 불가합니다. 대신 논리적으로 정리된 형태로 분석 결과를 제공합니다.
+
+분석 결과 (YAML 미션별 핵심 목표 및 상태)
+- `mission-auto-mcp.yaml`: MCP 통합 로직에 대한 고수준 리뷰와 잠재 병목 1건 식별. 상태: mission=active, task=done.
+- `mission-btc-report.yaml`: 최근 Bitcoin 시황 조사 및 2026년 전망 리포트 작성(뉴스 3개, report.md 반페이지, 한국어). 상태: mission=active, task=done.
+- `mission-mcp-test.yaml`: 현재 폴더 내 모든 YAML 미션 분석 및 요약 리포트 작성. 상태: mission=active, task1=in_progress, task2=todo.
+- `mission-typescript-todo.yaml`: TypeScript TODO CLI 앱 구축(구조/모델/스토리지/CLI/테스트/문서). 상태: mission=active, 진행상태는 TS-004만 in_progress, 나머지 done/todo 혼재.
+
+다음 단계로 Task 2(요약 리포트 생성 및 `review.md` 저장)를 진행할까요?
+
+
+[AVAILABLE TOOLS]
+
+- read_file: Reads a file from the local filesystem.
+- write_file: Writes content to a file.
+- run_shell_command: Executes a shell command (ls, grep, find, curl, etc.).
+- glob: Finds files matching a pattern.
+
+view <path_or_url>: Read a local file or fetch and clean a web URL.
+list <path>: List files in a directory with icons.
+edit <path> <old_text> <new_text>: Safely replace exact text in a file.
+run_shell_command <command>: Execute any standard shell command.
+rg -n <pattern> <path>
+python3 night_shift.py --dry-run
+
+[ADVANCED COGNITIVE TOOLS (MCP)]
+These tools extend your intelligence and memory. Use them proactively whenever a task involves complex logic, missing context, or long-term decision making.
+
+[REASONING TOOLS - Provided by sequential_thinking]
+- sequentialthinking: [STRONGLY RECOMMENDED] A detailed tool for dynamic and reflective problem-solving through thoughts.
+This tool helps analyze problems through a flexible thinking process that can adapt and evolve.
+Each thought can build on, question, or revise previous insights as understanding deepens.
+
+When to use this tool:
+- Breaking down complex problems into steps
+- Planning and design with room for revision
+- Analysis that might need course correction
+- Problems where the full scope might not be clear initially
+- Problems that require a multi-step solution
+- Tasks that need to maintain context over multiple steps
+- Situations where irrelevant information needs to be filtered out
+
+Key features:
+- You can adjust total_thoughts up or down as you progress
+- You can question or revise previous thoughts
+- You can add more thoughts even after reaching what seemed like the end
+- You can express uncertainty and explore alternative approaches
+- Not every thought needs to build linearly - you can branch or backtrack
+- Generates a solution hypothesis
+- Verifies the hypothesis based on the Chain of Thought steps
+- Repeats the process until satisfied
+- Provides a correct answer
+
+Parameters explained:
+- thought: Your current thinking step, which can include:
+  * Regular analytical steps
+  * Revisions of previous thoughts
+  * Questions about previous decisions
+  * Realizations about needing more analysis
+  * Changes in approach
+  * Hypothesis generation
+  * Hypothesis verification
+- nextThoughtNeeded: True if you need more thinking, even if at what seemed like the end
+- thoughtNumber: Current number in sequence (can go beyond initial total if needed)
+- totalThoughts: Current estimate of thoughts needed (can be adjusted up/down)
+- isRevision: A boolean indicating if this thought revises previous thinking
+- revisesThought: If is_revision is true, which thought number is being reconsidered
+- branchFromThought: If branching, which thought number is the branching point
+- branchId: Identifier for the current branch (if any)
+- needsMoreThoughts: If reaching end but realizing more thoughts needed
+
+You should:
+1. Start with an initial estimate of needed thoughts, but be ready to adjust
+2. Feel free to question or revise previous thoughts
+3. Don't hesitate to add more thoughts if needed, even at the "end"
+4. Express uncertainty when present
+5. Mark thoughts that revise previous thinking or branch into new paths
+6. Ignore information that is irrelevant to the current step
+7. Generate a solution hypothesis when appropriate
+8. Verify the hypothesis based on the Chain of Thought steps
+9. Repeat the process until satisfied with the solution
+10. Provide a single, ideally correct answer as the final output
+11. Only set nextThoughtNeeded to false when truly done and a satisfactory answer is reached. Use this proactively for complex architectural decisions.
+  Usage: mcp_run sequentialthinking <json_args>
+  Args: ['thought', 'nextThoughtNeeded', 'thoughtNumber', 'totalThoughts', 'isRevision', 'revisesThought', 'branchFromThought', 'branchId', 'needsMoreThoughts']
+
+[DOCUMENTATION TOOLS - Provided by context7]
+- resolve-library-id: Resolves a package/product name to a Context7-compatible library ID and returns matching libraries.
+
+You MUST call this function before 'query-docs' to obtain a valid Context7-compatible library ID UNLESS the user explicitly provides a library ID in the format '/org/project' or '/org/project/version' in their query.
+
+Selection Process:
+1. Analyze the query to understand what library/package the user is looking for
+2. Return the most relevant match based on:
+- Name similarity to the query (exact matches prioritized)
+- Description relevance to the query's intent
+- Documentation coverage (prioritize libraries with higher Code Snippet counts)
+- Source reputation (consider libraries with High or Medium reputation more authoritative)
+- Benchmark Score: Quality indicator (100 is the highest score)
+
+Response Format:
+- Return the selected library ID in a clearly marked section
+- Provide a brief explanation for why this library was chosen
+- If multiple good matches exist, acknowledge this but proceed with the most relevant one
+- If no good matches exist, clearly state this and suggest query refinements
+
+For ambiguous queries, request clarification before proceeding with a best-guess match.
+
+IMPORTANT: Do not call this tool more than 3 times per question. If you cannot find what you need after 3 calls, use the best result you have.
+  Usage: mcp_run resolve-library-id <json_args>
+  Args: ['query', 'libraryName']
+- query-docs: Retrieves and queries up-to-date documentation and code examples from Context7 for any programming library or framework.
+
+You must call 'resolve-library-id' first to obtain the exact Context7-compatible library ID required to use this tool, UNLESS the user explicitly provides a library ID in the format '/org/project' or '/org/project/version' in their query.
+
+IMPORTANT: Do not call this tool more than 3 times per question. If you cannot find what you need after 3 calls, use the best information you have.
+  Usage: mcp_run query-docs <json_args>
+  Args: ['libraryId', 'query']
+Example: mcp_run search_memory {"query": "how to use docker"}
+
+
+
+[DECISION LOGIC & STRICT EVIDENCE CHECK]
+1. **EVIDENCE CHECK (CRITICAL)**: Look at [CONVERSATION HISTORY]. Do you see **PHYSICAL EVIDENCE** of completion?
+   - **File Tasks**: Did you see the *actual content* of created/modified files (either via `read_file`/`view` OR displayed within the shell command used to create/update them)?
+   - **Action Tasks**: Did you see a *verification command output* (e.g., `curl` response, `ps` output, `pytest` logs, `grep` matches) proving success?
+   - **NO (Summary Only)**: You see only Hassan's claims without the raw results. You MUST command a verification step. Do NOT finish.
+   - **YES (Visible Evidence)**: Proceed to step 2.
+
+2. **VERIFICATION**: Compare the *visible evidence* against [CONSTRAINTS] and [CURRENT ACTIVE TASK HIERARCHY].
+   - If the evidence shows errors, wrong language, or missing info: Command Hassan to fix it.
+   - If the evidence confirms success: Proceed to step 3.
+
+3. **COMPLETION**: Set "status": "completed" ONLY IF you have physically verified the results in step 1.
+
+4. **Ignore Extensions**: If Hassan suggests optional expansions (e.g., "I can also do X"), IGNORE THEM. Focus only on the main task.
+
+5. **Format**: Output ONLY the raw JSON object.
+
+6. **Anti-Looping Rule**: If you find yourself issuing the same verification command (like `cat` or `read_file`) more than twice on the same files without making progress, assume you have enough information and proceed to the next logical step (e.g., declaring completion or fixing a different problem).
+
+[INSTRUCTIONS]
+1. Focus ONLY on the [CURRENT ACTIVE TASK HIERARCHY].
+2. Analyze the [CONSTRAINTS] and [LAST HASSAN OUTPUT].
+3. Determine the NEXT single, specific, and actionable command/query for Hassan.
+4. If ALL parts of the [CURRENT ACTIVE TASK HIERARCHY] are complete AND you have physically verified the results in Step 1, set status to "completed".
+5. Output ONLY raw JSON. Start with { and end with }.
+
+[CRITICAL RULE]
+- Keep commands CONCISE.
+- Do NOT repeat the exact same command if it failed.
+
+[FINAL WARNING]
+Your response is piped directly to a parser.
+Any text outside the JSON object will cause a system crash.
+Output ONLY the raw JSON string.
+
+[OUTPUT FORMAT]
+You must output ONLY a single valid JSON object.
+DO NOT use markdown code blocks (e.g., ```json).
+DO NOT include any explanations, reasoning, or conversational text.
+Your entire response must be parseable by `json.loads()`.
+
+Required Schema:
+{"command": "<next CLI command string>", "status": "continue"}
+OR
+{"command": "", "status": "completed"}
+
+
+[2025-12-30 10:37:28] BRAIN RESPONSE
+--------------------------------------------------------------------------------
+MISSION_FAILED: Brain CLI Error - Loaded cached credentials. | Operation cancelled.
+
+================================================================================
+[2025-12-30 10:37:53] BRAIN REQUEST
+================================================================================
+
+You are the "Director" of an autonomous coding session.
+You are a STRICT, NON-CONVERSATIONAL logic engine.
+Regardless of the Worker's persona, YOUR identity is a high-level Auditor and Architect.
+Your "Hassan" (Worker) is a CLI tool that executes your commands.
+
+[LANGUAGE & REASONING]
+1. **Internal Reasoning**: You SHOULD think in English for the best logic and reasoning performance.
+2. **Context Understanding**: If the [CURRENT ACTIVE TASK HIERARCHY] or [OVERALL MISSION CONTEXT] is in a non-English language (e.g., Korean), you MUST understand and respect it.
+3. **Artifact Generation**: If the task requires writing content in a specific language (e.g., "Write a report in Korean"), ensure your commands to Hassan explicitly preserve that language requirement.
+
+
+[COGNITIVE STRATEGY (AUTONOMOUS TOOL USAGE)]
+- STRATEGY: Scale thinking based on complexity. For routine tasks, be direct. For novel or complex logic, use sequential_thinking moderately.
+- BUDGET: Do not exceed 5 thinking steps for this turn.
+- If a task is complex or requires multi-step planning, you may use 'sequential_thinking' tools to explore logic before issuing commands.
+- If you lack specific project knowledge, check 'serena' memory tools or 'context7' documentation before guessing.
+- Save critical architectural insights using memory tools to ensure project continuity.
+
+
+[DIRECTOR CORE IDENTITY]
+You are currently operating in your pure Auditor/Architect mode. You must apply rigorous logic, structural integrity checks, and precise verification to all of Hassan's actions without being influenced by a specific domain persona.
+
+
+
+
+[CURRENT ACTIVE TASK HIERARCHY]
+미션 요약 및 review.md 리포트 생성
+
+[OVERALL MISSION CONTEXT]
+['폴더 내 모든 YAML 미션 파일 분석', '미션 요약 및 review.md 리포트 생성']
+
+[CONSTRAINTS]
+현재 폴더(sample_missions) 내의 모든 YAML 미션 파일들을 분석할 것.
+각 미션의 핵심 목표와 현재 상태(status)를 요약할 것.
+sequential_thinking 도구를 사용하여 분석 과정을 논리적으로 전개할 것.
+최종 분석 결과를 프로젝트 루트의 'review.md' 파일에 한국어로 저장할 것.
+
+[CONVERSATION HISTORY]
+
+목표: 현재 폴더 내 YAML 미션 분석 및 요약을 review.md에 한국어로 작성
+ - 현재 상태: 미션 active
+-  - 분석 작업: in_progress
+-  - 리포트 생성: todo
++  - 분석 작업: blocked (MISSION_FAILED: Brain CLI Error - Loaded cached credentials. | Operation cancelled.)
++  - 리포트 생성: in_progress
+ 
+ ## 도구 관련 메모
+-- 요구된 sequential_thinking 도구가 현재 환경에 उपलब्ध하지 않아 동일 작업을 일반 분석 방식으로 수행함.
++- 요구된 sequential_thinking 도구가 현재 환경에 없어 일반 분석 방식으로 수행함.
+
+
+thinking
+**Summarizing final updates**
+
+I'll note that sequential_thinking tool is missing so I used the normal one instead, then wrap up with final changes and suggest next steps without adding tests.
+codex
+review.md에 모든 YAML 미션 요약을 최신 상태로 정리했고, mission-mcp-test의 작업 상태를 실제 값으로 맞췄습니다. sequential_thinking 도구가 없어서 일반 분석 방식으로 진행했다는 메모도 간결하게 다듬었습니다.
+
+변경 사항
+- `review.md`에 `mission-mcp-test.yaml` 작업 상태를 blocked/in_progress로 수정하고 오류 메시지를 반영
+- `review.md`의 도구 메모 문구를 간결하게 정리
+
+다음 단계 제안
+1) 실제 진행 상태가 바뀌면 `review.md` 업데이트 여부 확인
+2) 필요하면 각 미션별 상세 리포트 파일(예: `report.md`)도 점검
+file update:
+diff --git a/sample_missions/review.md b/sample_missions/review.md
+index 647f67f92ae024ec930d74b8c5268892ea2434d4..d09367602d2936532a85307a787b2c97efa7562c
+--- a/sample_missions/review.md
++++ b/sample_missions/review.md
+@@ -24,8 +24,8 @@
+ ### mission-mcp-test.yaml
+ - 핵심 목표: 현재 폴더 내 YAML 미션 분석 및 요약을 review.md에 한국어로 작성
+ - 현재 상태: 미션 active
+-  - 분석 작업: in_progress
+-  - 리포트 생성: todo
++  - 분석 작업: blocked (MISSION_FAILED: Brain CLI Error - Loaded cached credentials. | Operation cancelled.)
++  - 리포트 생성: in_progress
+ 
+ ## 도구 관련 메모
+-- 요구된 sequential_thinking 도구가 현재 환경에 उपलब्ध하지 않아 동일 작업을 일반 분석 방식으로 수행함.
++- 요구된 sequential_thinking 도구가 현재 환경에 없어 일반 분석 방식으로 수행함.
+
+tokens used
+6,216
+review.md에 모든 YAML 미션 요약을 최신 상태로 정리했고, mission-mcp-test의 작업 상태를 실제 값으로 맞췄습니다. sequential_thinking 도구가 없어서 일반 분석 방식으로 진행했다는 메모도 간결하게 다듬었습니다.
+
+변경 사항
+- `review.md`에 `mission-mcp-test.yaml` 작업 상태를 blocked/in_progress로 수정하고 오류 메시지를 반영
+- `review.md`의 도구 메모 문구를 간결하게 정리
+
+다음 단계 제안
+1) 실제 진행 상태가 바뀌면 `review.md` 업데이트 여부 확인
+2) 필요하면 각 미션별 상세 리포트 파일(예: `report.md`)도 점검
+
+
+[LAST HASSAN OUTPUT]
+review.md에 모든 YAML 미션 요약을 최신 상태로 정리했고, mission-mcp-test의 작업 상태를 실제 값으로 맞췄습니다. sequential_thinking 도구가 없어서 일반 분석 방식으로 진행했다는 메모도 간결하게 다듬었습니다.
+
+변경 사항
+- `review.md`에 `mission-mcp-test.yaml` 작업 상태를 blocked/in_progress로 수정하고 오류 메시지를 반영
+- `review.md`의 도구 메모 문구를 간결하게 정리
+
+다음 단계 제안
+1) 실제 진행 상태가 바뀌면 `review.md` 업데이트 여부 확인
+2) 필요하면 각 미션별 상세 리포트 파일(예: `report.md`)도 점검
+
+
+[AVAILABLE TOOLS]
+
+- read_file: Reads a file from the local filesystem.
+- write_file: Writes content to a file.
+- run_shell_command: Executes a shell command (ls, grep, find, curl, etc.).
+- glob: Finds files matching a pattern.
+
+view <path_or_url>: Read a local file or fetch and clean a web URL.
+list <path>: List files in a directory with icons.
+edit <path> <old_text> <new_text>: Safely replace exact text in a file.
+run_shell_command <command>: Execute any standard shell command.
+rg -n <pattern> <path>
+python3 night_shift.py --dry-run
+
+[ADVANCED COGNITIVE TOOLS (MCP)]
+These tools extend your intelligence and memory. Use them proactively whenever a task involves complex logic, missing context, or long-term decision making.
+
+[REASONING TOOLS - Provided by sequential_thinking]
+- sequentialthinking: [STRONGLY RECOMMENDED] A detailed tool for dynamic and reflective problem-solving through thoughts.
+This tool helps analyze problems through a flexible thinking process that can adapt and evolve.
+Each thought can build on, question, or revise previous insights as understanding deepens.
+
+When to use this tool:
+- Breaking down complex problems into steps
+- Planning and design with room for revision
+- Analysis that might need course correction
+- Problems where the full scope might not be clear initially
+- Problems that require a multi-step solution
+- Tasks that need to maintain context over multiple steps
+- Situations where irrelevant information needs to be filtered out
+
+Key features:
+- You can adjust total_thoughts up or down as you progress
+- You can question or revise previous thoughts
+- You can add more thoughts even after reaching what seemed like the end
+- You can express uncertainty and explore alternative approaches
+- Not every thought needs to build linearly - you can branch or backtrack
+- Generates a solution hypothesis
+- Verifies the hypothesis based on the Chain of Thought steps
+- Repeats the process until satisfied
+- Provides a correct answer
+
+Parameters explained:
+- thought: Your current thinking step, which can include:
+  * Regular analytical steps
+  * Revisions of previous thoughts
+  * Questions about previous decisions
+  * Realizations about needing more analysis
+  * Changes in approach
+  * Hypothesis generation
+  * Hypothesis verification
+- nextThoughtNeeded: True if you need more thinking, even if at what seemed like the end
+- thoughtNumber: Current number in sequence (can go beyond initial total if needed)
+- totalThoughts: Current estimate of thoughts needed (can be adjusted up/down)
+- isRevision: A boolean indicating if this thought revises previous thinking
+- revisesThought: If is_revision is true, which thought number is being reconsidered
+- branchFromThought: If branching, which thought number is the branching point
+- branchId: Identifier for the current branch (if any)
+- needsMoreThoughts: If reaching end but realizing more thoughts needed
+
+You should:
+1. Start with an initial estimate of needed thoughts, but be ready to adjust
+2. Feel free to question or revise previous thoughts
+3. Don't hesitate to add more thoughts if needed, even at the "end"
+4. Express uncertainty when present
+5. Mark thoughts that revise previous thinking or branch into new paths
+6. Ignore information that is irrelevant to the current step
+7. Generate a solution hypothesis when appropriate
+8. Verify the hypothesis based on the Chain of Thought steps
+9. Repeat the process until satisfied with the solution
+10. Provide a single, ideally correct answer as the final output
+11. Only set nextThoughtNeeded to false when truly done and a satisfactory answer is reached. Use this proactively for complex architectural decisions.
+  Usage: mcp_run sequentialthinking <json_args>
+  Args: ['thought', 'nextThoughtNeeded', 'thoughtNumber', 'totalThoughts', 'isRevision', 'revisesThought', 'branchFromThought', 'branchId', 'needsMoreThoughts']
+
+[DOCUMENTATION TOOLS - Provided by context7]
+- resolve-library-id: Resolves a package/product name to a Context7-compatible library ID and returns matching libraries.
+
+You MUST call this function before 'query-docs' to obtain a valid Context7-compatible library ID UNLESS the user explicitly provides a library ID in the format '/org/project' or '/org/project/version' in their query.
+
+Selection Process:
+1. Analyze the query to understand what library/package the user is looking for
+2. Return the most relevant match based on:
+- Name similarity to the query (exact matches prioritized)
+- Description relevance to the query's intent
+- Documentation coverage (prioritize libraries with higher Code Snippet counts)
+- Source reputation (consider libraries with High or Medium reputation more authoritative)
+- Benchmark Score: Quality indicator (100 is the highest score)
+
+Response Format:
+- Return the selected library ID in a clearly marked section
+- Provide a brief explanation for why this library was chosen
+- If multiple good matches exist, acknowledge this but proceed with the most relevant one
+- If no good matches exist, clearly state this and suggest query refinements
+
+For ambiguous queries, request clarification before proceeding with a best-guess match.
+
+IMPORTANT: Do not call this tool more than 3 times per question. If you cannot find what you need after 3 calls, use the best result you have.
+  Usage: mcp_run resolve-library-id <json_args>
+  Args: ['query', 'libraryName']
+- query-docs: Retrieves and queries up-to-date documentation and code examples from Context7 for any programming library or framework.
+
+You must call 'resolve-library-id' first to obtain the exact Context7-compatible library ID required to use this tool, UNLESS the user explicitly provides a library ID in the format '/org/project' or '/org/project/version' in their query.
+
+IMPORTANT: Do not call this tool more than 3 times per question. If you cannot find what you need after 3 calls, use the best information you have.
+  Usage: mcp_run query-docs <json_args>
+  Args: ['libraryId', 'query']
+Example: mcp_run search_memory {"query": "how to use docker"}
+
+
+
+[DECISION LOGIC & STRICT EVIDENCE CHECK]
+1. **EVIDENCE CHECK (CRITICAL)**: Look at [CONVERSATION HISTORY]. Do you see **PHYSICAL EVIDENCE** of completion?
+   - **File Tasks**: Did you see the *actual content* of created/modified files (either via `read_file`/`view` OR displayed within the shell command used to create/update them)?
+   - **Action Tasks**: Did you see a *verification command output* (e.g., `curl` response, `ps` output, `pytest` logs, `grep` matches) proving success?
+   - **NO (Summary Only)**: You see only Hassan's claims without the raw results. You MUST command a verification step. Do NOT finish.
+   - **YES (Visible Evidence)**: Proceed to step 2.
+
+2. **VERIFICATION**: Compare the *visible evidence* against [CONSTRAINTS] and [CURRENT ACTIVE TASK HIERARCHY].
+   - If the evidence shows errors, wrong language, or missing info: Command Hassan to fix it.
+   - If the evidence confirms success: Proceed to step 3.
+
+3. **COMPLETION**: Set "status": "completed" ONLY IF you have physically verified the results in step 1.
+
+4. **Ignore Extensions**: If Hassan suggests optional expansions (e.g., "I can also do X"), IGNORE THEM. Focus only on the main task.
+
+5. **Format**: Output ONLY the raw JSON object.
+
+6. **Anti-Looping Rule**: If you find yourself issuing the same verification command (like `cat` or `read_file`) more than twice on the same files without making progress, assume you have enough information and proceed to the next logical step (e.g., declaring completion or fixing a different problem).
+
+[INSTRUCTIONS]
+1. Focus ONLY on the [CURRENT ACTIVE TASK HIERARCHY].
+2. Analyze the [CONSTRAINTS] and [LAST HASSAN OUTPUT].
+3. Determine the NEXT single, specific, and actionable command/query for Hassan.
+4. If ALL parts of the [CURRENT ACTIVE TASK HIERARCHY] are complete AND you have physically verified the results in Step 1, set status to "completed".
+5. Output ONLY raw JSON. Start with { and end with }.
+
+[CRITICAL RULE]
+- Keep commands CONCISE.
+- Do NOT repeat the exact same command if it failed.
+
+[FINAL WARNING]
+Your response is piped directly to a parser.
+Any text outside the JSON object will cause a system crash.
+Output ONLY the raw JSON string.
+
+[OUTPUT FORMAT]
+You must output ONLY a single valid JSON object.
+DO NOT use markdown code blocks (e.g., ```json).
+DO NOT include any explanations, reasoning, or conversational text.
+Your entire response must be parseable by `json.loads()`.
+
+Required Schema:
+{"command": "<next CLI command string>", "status": "continue"}
+OR
+{"command": "", "status": "completed"}
+
+
+[2025-12-30 10:38:30] BRAIN RESPONSE
+--------------------------------------------------------------------------------
+{
+  "command": "read_file sample_missions/review.md",
+  "status": "continue"
+}
+
+================================================================================
+[2025-12-30 10:38:30] BRAIN REQUEST
+================================================================================
+
+You are the "Director" of an autonomous coding session.
+You are a STRICT, NON-CONVERSATIONAL logic engine.
+Regardless of the Worker's persona, YOUR identity is a high-level Auditor and Architect.
+Your "Hassan" (Worker) is a CLI tool that executes your commands.
+
+[LANGUAGE & REASONING]
+1. **Internal Reasoning**: You SHOULD think in English for the best logic and reasoning performance.
+2. **Context Understanding**: If the [CURRENT ACTIVE TASK HIERARCHY] or [OVERALL MISSION CONTEXT] is in a non-English language (e.g., Korean), you MUST understand and respect it.
+3. **Artifact Generation**: If the task requires writing content in a specific language (e.g., "Write a report in Korean"), ensure your commands to Hassan explicitly preserve that language requirement.
+
+
+[COGNITIVE STRATEGY (AUTONOMOUS TOOL USAGE)]
+- STRATEGY: Scale thinking based on complexity. For routine tasks, be direct. For novel or complex logic, use sequential_thinking moderately.
+- BUDGET: Do not exceed 5 thinking steps for this turn.
+- If a task is complex or requires multi-step planning, you may use 'sequential_thinking' tools to explore logic before issuing commands.
+- If you lack specific project knowledge, check 'serena' memory tools or 'context7' documentation before guessing.
+- Save critical architectural insights using memory tools to ensure project continuity.
+
+
+[DIRECTOR CORE IDENTITY]
+You are currently operating in your pure Auditor/Architect mode. You must apply rigorous logic, structural integrity checks, and precise verification to all of Hassan's actions without being influenced by a specific domain persona.
+
+
+
+
+[CURRENT ACTIVE TASK HIERARCHY]
+미션 요약 및 review.md 리포트 생성
+
+[OVERALL MISSION CONTEXT]
+['폴더 내 모든 YAML 미션 파일 분석', '미션 요약 및 review.md 리포트 생성']
+
+[CONSTRAINTS]
+현재 폴더(sample_missions) 내의 모든 YAML 미션 파일들을 분석할 것.
+각 미션의 핵심 목표와 현재 상태(status)를 요약할 것.
+sequential_thinking 도구를 사용하여 분석 과정을 논리적으로 전개할 것.
+최종 분석 결과를 프로젝트 루트의 'review.md' 파일에 한국어로 저장할 것.
+
+[CONVERSATION HISTORY]
+ED: Brain CLI Error - Loaded cached credentials. | Operation cancelled.)
++  - 리포트 생성: in_progress
+ 
+ ## 도구 관련 메모
+-- 요구된 sequential_thinking 도구가 현재 환경에 उपलब्ध하지 않아 동일 작업을 일반 분석 방식으로 수행함.
++- 요구된 sequential_thinking 도구가 현재 환경에 없어 일반 분석 방식으로 수행함.
+
+
+thinking
+**Summarizing final updates**
+
+I'll note that sequential_thinking tool is missing so I used the normal one instead, then wrap up with final changes and suggest next steps without adding tests.
+codex
+review.md에 모든 YAML 미션 요약을 최신 상태로 정리했고, mission-mcp-test의 작업 상태를 실제 값으로 맞췄습니다. sequential_thinking 도구가 없어서 일반 분석 방식으로 진행했다는 메모도 간결하게 다듬었습니다.
+
+변경 사항
+- `review.md`에 `mission-mcp-test.yaml` 작업 상태를 blocked/in_progress로 수정하고 오류 메시지를 반영
+- `review.md`의 도구 메모 문구를 간결하게 정리
+
+다음 단계 제안
+1) 실제 진행 상태가 바뀌면 `review.md` 업데이트 여부 확인
+2) 필요하면 각 미션별 상세 리포트 파일(예: `report.md`)도 점검
+file update:
+diff --git a/sample_missions/review.md b/sample_missions/review.md
+index 647f67f92ae024ec930d74b8c5268892ea2434d4..d09367602d2936532a85307a787b2c97efa7562c
+--- a/sample_missions/review.md
++++ b/sample_missions/review.md
+@@ -24,8 +24,8 @@
+ ### mission-mcp-test.yaml
+ - 핵심 목표: 현재 폴더 내 YAML 미션 분석 및 요약을 review.md에 한국어로 작성
+ - 현재 상태: 미션 active
+-  - 분석 작업: in_progress
+-  - 리포트 생성: todo
++  - 분석 작업: blocked (MISSION_FAILED: Brain CLI Error - Loaded cached credentials. | Operation cancelled.)
++  - 리포트 생성: in_progress
+ 
+ ## 도구 관련 메모
+-- 요구된 sequential_thinking 도구가 현재 환경에 उपलब्ध하지 않아 동일 작업을 일반 분석 방식으로 수행함.
++- 요구된 sequential_thinking 도구가 현재 환경에 없어 일반 분석 방식으로 수행함.
+
+tokens used
+6,216
+review.md에 모든 YAML 미션 요약을 최신 상태로 정리했고, mission-mcp-test의 작업 상태를 실제 값으로 맞췄습니다. sequential_thinking 도구가 없어서 일반 분석 방식으로 진행했다는 메모도 간결하게 다듬었습니다.
+
+변경 사항
+- `review.md`에 `mission-mcp-test.yaml` 작업 상태를 blocked/in_progress로 수정하고 오류 메시지를 반영
+- `review.md`의 도구 메모 문구를 간결하게 정리
+
+다음 단계 제안
+1) 실제 진행 상태가 바뀌면 `review.md` 업데이트 여부 확인
+2) 필요하면 각 미션별 상세 리포트 파일(예: `report.md`)도 점검
+
+--- 🧠 DIRECTOR DECISION ---
+read_file sample_missions/review.md
+
+--- 🔍 LOCAL CHECK OUTPUT ---
+ERROR: File not found: sample_missions/review.md
+
+
+[LAST HASSAN OUTPUT]
+ERROR: File not found: sample_missions/review.md
+
+
+[AVAILABLE TOOLS]
+
+- read_file: Reads a file from the local filesystem.
+- write_file: Writes content to a file.
+- run_shell_command: Executes a shell command (ls, grep, find, curl, etc.).
+- glob: Finds files matching a pattern.
+
+view <path_or_url>: Read a local file or fetch and clean a web URL.
+list <path>: List files in a directory with icons.
+edit <path> <old_text> <new_text>: Safely replace exact text in a file.
+run_shell_command <command>: Execute any standard shell command.
+rg -n <pattern> <path>
+python3 night_shift.py --dry-run
+
+[ADVANCED COGNITIVE TOOLS (MCP)]
+These tools extend your intelligence and memory. Use them proactively whenever a task involves complex logic, missing context, or long-term decision making.
+
+[REASONING TOOLS - Provided by sequential_thinking]
+- sequentialthinking: [STRONGLY RECOMMENDED] A detailed tool for dynamic and reflective problem-solving through thoughts.
+This tool helps analyze problems through a flexible thinking process that can adapt and evolve.
+Each thought can build on, question, or revise previous insights as understanding deepens.
+
+When to use this tool:
+- Breaking down complex problems into steps
+- Planning and design with room for revision
+- Analysis that might need course correction
+- Problems where the full scope might not be clear initially
+- Problems that require a multi-step solution
+- Tasks that need to maintain context over multiple steps
+- Situations where irrelevant information needs to be filtered out
+
+Key features:
+- You can adjust total_thoughts up or down as you progress
+- You can question or revise previous thoughts
+- You can add more thoughts even after reaching what seemed like the end
+- You can express uncertainty and explore alternative approaches
+- Not every thought needs to build linearly - you can branch or backtrack
+- Generates a solution hypothesis
+- Verifies the hypothesis based on the Chain of Thought steps
+- Repeats the process until satisfied
+- Provides a correct answer
+
+Parameters explained:
+- thought: Your current thinking step, which can include:
+  * Regular analytical steps
+  * Revisions of previous thoughts
+  * Questions about previous decisions
+  * Realizations about needing more analysis
+  * Changes in approach
+  * Hypothesis generation
+  * Hypothesis verification
+- nextThoughtNeeded: True if you need more thinking, even if at what seemed like the end
+- thoughtNumber: Current number in sequence (can go beyond initial total if needed)
+- totalThoughts: Current estimate of thoughts needed (can be adjusted up/down)
+- isRevision: A boolean indicating if this thought revises previous thinking
+- revisesThought: If is_revision is true, which thought number is being reconsidered
+- branchFromThought: If branching, which thought number is the branching point
+- branchId: Identifier for the current branch (if any)
+- needsMoreThoughts: If reaching end but realizing more thoughts needed
+
+You should:
+1. Start with an initial estimate of needed thoughts, but be ready to adjust
+2. Feel free to question or revise previous thoughts
+3. Don't hesitate to add more thoughts if needed, even at the "end"
+4. Express uncertainty when present
+5. Mark thoughts that revise previous thinking or branch into new paths
+6. Ignore information that is irrelevant to the current step
+7. Generate a solution hypothesis when appropriate
+8. Verify the hypothesis based on the Chain of Thought steps
+9. Repeat the process until satisfied with the solution
+10. Provide a single, ideally correct answer as the final output
+11. Only set nextThoughtNeeded to false when truly done and a satisfactory answer is reached. Use this proactively for complex architectural decisions.
+  Usage: mcp_run sequentialthinking <json_args>
+  Args: ['thought', 'nextThoughtNeeded', 'thoughtNumber', 'totalThoughts', 'isRevision', 'revisesThought', 'branchFromThought', 'branchId', 'needsMoreThoughts']
+
+[DOCUMENTATION TOOLS - Provided by context7]
+- resolve-library-id: Resolves a package/product name to a Context7-compatible library ID and returns matching libraries.
+
+You MUST call this function before 'query-docs' to obtain a valid Context7-compatible library ID UNLESS the user explicitly provides a library ID in the format '/org/project' or '/org/project/version' in their query.
+
+Selection Process:
+1. Analyze the query to understand what library/package the user is looking for
+2. Return the most relevant match based on:
+- Name similarity to the query (exact matches prioritized)
+- Description relevance to the query's intent
+- Documentation coverage (prioritize libraries with higher Code Snippet counts)
+- Source reputation (consider libraries with High or Medium reputation more authoritative)
+- Benchmark Score: Quality indicator (100 is the highest score)
+
+Response Format:
+- Return the selected library ID in a clearly marked section
+- Provide a brief explanation for why this library was chosen
+- If multiple good matches exist, acknowledge this but proceed with the most relevant one
+- If no good matches exist, clearly state this and suggest query refinements
+
+For ambiguous queries, request clarification before proceeding with a best-guess match.
+
+IMPORTANT: Do not call this tool more than 3 times per question. If you cannot find what you need after 3 calls, use the best result you have.
+  Usage: mcp_run resolve-library-id <json_args>
+  Args: ['query', 'libraryName']
+- query-docs: Retrieves and queries up-to-date documentation and code examples from Context7 for any programming library or framework.
+
+You must call 'resolve-library-id' first to obtain the exact Context7-compatible library ID required to use this tool, UNLESS the user explicitly provides a library ID in the format '/org/project' or '/org/project/version' in their query.
+
+IMPORTANT: Do not call this tool more than 3 times per question. If you cannot find what you need after 3 calls, use the best information you have.
+  Usage: mcp_run query-docs <json_args>
+  Args: ['libraryId', 'query']
+Example: mcp_run search_memory {"query": "how to use docker"}
+
+
+
+[DECISION LOGIC & STRICT EVIDENCE CHECK]
+1. **EVIDENCE CHECK (CRITICAL)**: Look at [CONVERSATION HISTORY]. Do you see **PHYSICAL EVIDENCE** of completion?
+   - **File Tasks**: Did you see the *actual content* of created/modified files (either via `read_file`/`view` OR displayed within the shell command used to create/update them)?
+   - **Action Tasks**: Did you see a *verification command output* (e.g., `curl` response, `ps` output, `pytest` logs, `grep` matches) proving success?
+   - **NO (Summary Only)**: You see only Hassan's claims without the raw results. You MUST command a verification step. Do NOT finish.
+   - **YES (Visible Evidence)**: Proceed to step 2.
+
+2. **VERIFICATION**: Compare the *visible evidence* against [CONSTRAINTS] and [CURRENT ACTIVE TASK HIERARCHY].
+   - If the evidence shows errors, wrong language, or missing info: Command Hassan to fix it.
+   - If the evidence confirms success: Proceed to step 3.
+
+3. **COMPLETION**: Set "status": "completed" ONLY IF you have physically verified the results in step 1.
+
+4. **Ignore Extensions**: If Hassan suggests optional expansions (e.g., "I can also do X"), IGNORE THEM. Focus only on the main task.
+
+5. **Format**: Output ONLY the raw JSON object.
+
+6. **Anti-Looping Rule**: If you find yourself issuing the same verification command (like `cat` or `read_file`) more than twice on the same files without making progress, assume you have enough information and proceed to the next logical step (e.g., declaring completion or fixing a different problem).
+
+[INSTRUCTIONS]
+1. Focus ONLY on the [CURRENT ACTIVE TASK HIERARCHY].
+2. Analyze the [CONSTRAINTS] and [LAST HASSAN OUTPUT].
+3. Determine the NEXT single, specific, and actionable command/query for Hassan.
+4. If ALL parts of the [CURRENT ACTIVE TASK HIERARCHY] are complete AND you have physically verified the results in Step 1, set status to "completed".
+5. Output ONLY raw JSON. Start with { and end with }.
+
+[CRITICAL RULE]
+- Keep commands CONCISE.
+- Do NOT repeat the exact same command if it failed.
+
+[FINAL WARNING]
+Your response is piped directly to a parser.
+Any text outside the JSON object will cause a system crash.
+Output ONLY the raw JSON string.
+
+[OUTPUT FORMAT]
+You must output ONLY a single valid JSON object.
+DO NOT use markdown code blocks (e.g., ```json).
+DO NOT include any explanations, reasoning, or conversational text.
+Your entire response must be parseable by `json.loads()`.
+
+Required Schema:
+{"command": "<next CLI command string>", "status": "continue"}
+OR
+{"command": "", "status": "completed"}
+
+
+[2025-12-30 10:38:59] BRAIN RESPONSE
+--------------------------------------------------------------------------------
+MISSION_FAILED: Brain CLI Error - Loaded cached credentials. |  | Cancelling... | [Routing] ClassifierStrategy failed: GaxiosError: The user aborted a request. |     at Gaxios._request (/Users/jeongminkim/.nvm/versions/node/v22.18.0/lib/node_modules/@google/gemini-cli/node_modules/gaxios/build/src/gaxios.js:149:19) |     at async OAuth2Client.requestAsync (/Users/jeongminkim/.nvm/versions/node/v22.18.0/lib/node_modules/@google/gemini-cli/node_modules/google-auth-library/build/src/auth/oauth2client.js:429:18) |     at async CodeAssistServer.requestPost (file:///Users/jeongminkim/.nvm/versions/node/v22.18.0/lib/node_modules/@google/gemini-cli/node_modules/@google/gemini-cli-core/dist/src/code_assist/server.js:82:21) |     at async CodeAssistServer.generateContent (file:///Users/jeongminkim/.nvm/versions/node/v22.18.0/lib/node_modules/@google/gemini-cli/node_modules/@google/gemini-cli-core/dist/src/code_assist/server.js:33:22) |     at async file:///Users/jeongminkim/.nvm/versions/node/v22.18.0/lib/node_modules/@google/gemini-cli/node_modules/@google/gemini-cli-core/dist/src/core/loggingContentGenerator.js:94:34 |     at async retryWithBackoff (file:///Users/jeongminkim/.nvm/versions/node/v22.18.0/lib/node_modules/@google/gemini-cli/node_modules/@google/gemini-cli-core/dist/src/utils/retry.js:108:28) |     at async BaseLlmClient._generateWithRetry (file:///Users/jeongminkim/.nvm/versions/node/v22.18.0/lib/node_modules/@google/gemini-cli/node_modules/@google/gemini-cli-core/dist/src/core/baseLlmClient.js:140:20) |     at async BaseLlmClient.generateJson (file:///Users/jeongminkim/.nvm/versions/node/v22.18.0/lib/node_modules/@google/gemini-cli/node_modules/@google/gemini-cli-core/dist/src/core/baseLlmClient.js:44:24) |     at async ClassifierStrategy.route (file:///Users/jeongminkim/.nvm/versions/node/v22.18.0/lib/node_modules/@google/gemini-cli/node_modules/@google/gemini-cli-core/dist/src/routing/strategies/classifierStrategy.js:126:34) |     at async CompositeStrategy.route (file:///Users/jeongminkim/.nvm/versions/node/v22.18.0/lib/node_modules/@google/gemini-cli/node_modules/@google/gemini-cli-core/dist/src/routing/strategies/compositeStrategy.js:30:34) { |   config: { |     url: 'https://cloudcode-pa.googleapis.com/v1internal:generateContent', |     method: 'POST', |     headers: { |       'Content-Type': 'application/json', |       'User-Agent': 'GeminiCLI/0.22.4/gemini-3-pro-preview (darwin; arm64) google-api-nodejs-client/9.15.1', |       Authorization: '<<REDACTED> - See `errorRedactor` option in `gaxios` for configuration>.', |       'x-goog-api-client': 'gl-node/22.18.0', |       Accept: 'application/json' |     }, |     responseType: 'json', |     body: '{"model":"gemini-2.5-flash-lite","project":"tribal-rush-r2qrn","user_prompt_id":"21ce57db8ef0a","request":{"contents":[{"role":"user","parts":[{"text":"This is the Gemini CLI. We are setting up the context for our chat.\\nToday\'s date is 2025년 12월 30일 화요일 (formatted according to the user\'s locale).\\nMy operating system is: darwin\\nThe project\'s temporary directory is: /Users/jeongminkim/.gemini/tmp/446097a74a999424cb925905e7c565d59cd906503bc6b7b9704fb1671a8b4c6d\\nI\'m currently working in the directory: /Users/jeongminkim/Downloads/NightShift/sample_missions\\nHere is the folder structure of the current working directories:\\n\\nShowing up to 200 items (files + folders).\\n\\n/Users/jeongminkim/Downloads/NightShift/sample_missions/\\n├───mission-auto-mcp.yaml\\n├───mission-btc-report.yaml\\n├───mission-mcp-test.yaml\\n├───mission-typescript-todo.yaml\\n├───review.md\\n└───.night_shift/\\n    ├───reflexion.jsonl\\n    └───state.json\\n\\nReminder: Do not return an empty response when a tool call is required.\\n\\nMy setup is complete. I will provide my first command in the next turn."}]},{"role":"user","parts":[{"text":"You are the \\"Director\\" of an autonomous coding session.\\nYou are a STRICT, NON-CONVERSATIONAL logic engine.\\nRegardless of the Worker\'s persona, YOUR identity is a high-level Auditor and Architect.\\nYour \\"Hassan\\" (Worker) is a CLI tool that executes your commands.\\n\\n[LANGUAGE & REASONING]\\n1. **Internal Reasoning**: You SHOULD think in English for the best logic and reasoning performance.\\n2. **Context Understanding**: If the [CURRENT ACTIVE TASK HIERARCHY] or [OVERALL MISSION CONTEXT] is in a non-English language (e.g., Korean), you MUST understand and respect it.\\n3. **Artifact Generation**: If the task requires writing content in a specific language (e.g., \\"Write a report in Korean\\"), ensure your commands to Hassan explicitly preserve that language requirement.\\n\\n\\n[COGNITIVE STRATEGY (AUTONOMOUS TOOL USAGE)]\\n- STRATEGY: Scale thinking based on complexity. For routine tasks, be direct. For novel or complex logic, use sequential_thinking moderately.\\n- BUDGET: Do not exceed 5 thinking steps for this turn.\\n- If a task is complex or requires multi-step planning, you may use \'sequential_thinking\' tools to explore logic before issuing commands.\\n- If you lack specific project knowledge, check \'serena\' memory tools or \'context7\' documentation before guessing.\\n- Save critical architectural insights using memory tools to ensure project continuity.\\n\\n\\n[DIRECTOR CORE IDENTITY]\\nYou are currently operating in your pure Auditor/Architect mode. You must apply rigorous logic, structural integrity checks, and precise verification to all of Hassan\'s actions without being influenced by a specific domain persona.\\n\\n\\n\\n\\n[CURRENT ACTIVE TASK HIERARCHY]\\n미션 요약 및 review.md 리포트 생성\\n\\n[OVERALL MISSION CONTEXT]\\n[\'폴더 내 모든 YAML 미션 파일 분석\', \'미션 요약 및 review.md 리포트 생성\']\\n\\n[CONSTRAINTS]\\n현재 폴더(sample_missions) 내의 모든 YAML 미션 파일들을 분석할 것.\\n각 미션의 핵심 목표와 현재 상태(status)를 요약할 것.\\nsequential_thinking 도구를 사용하여 분석 과정을 논리적으로 전개할 것.\\n최종 분석 결과를 프로젝트 루트의 \'review.md\' 파일에 한국어로 저장할 것.\\n\\n[CONVERSATION HISTORY]\\nED: Brain CLI Error - Loaded cached credentials. | Operation cancelled.)\\n+  - 리포트 생성: in_progress\\n \\n ## 도구 관련 메모\\n-- 요구된 sequential_thinking 도구가 현재 환경에 उपलब्ध하지 않아 동일 작업을 일반 분석 방식으로 수행함.\\n+- 요구된 sequential_thinking 도구가 현재 환경에 없어 일반 분석 방식으로 수행함.\\n\\n\\nthinking\\n**Summarizing final updates**\\n\\nI\'ll note that sequential_thinking tool is missing so I used the normal one instead, then wrap up with final changes and suggest next steps without adding tests.\\ncodex\\nreview.md에 모든 YAML 미션 요약을 최신 상태로 정리했고, mission-mcp-test의 작업 상태를 실제 값으로 맞췄습니다. sequential_thinking 도구가 없어서 일반 분석 방식으로 진행했다는 메모도 간결하게 다듬었습니다.\\n\\n변경 사항\\n- `review.md`에 `mission-mcp-test.yaml` 작업 상태를 blocked/in_progress로 수정하고 오류 메시지를 반영\\n- `review.md`의 도구 메모 문구를 간결하게 정리\\n\\n다음 단계 제안\\n1) 실제 진행 상태가 바뀌면 `review.md` 업데이트 여부 확인\\n2) 필요하면 각 미션별 상세 리포트 파일(예: `report.md`)도 점검\\nfile update:\\ndiff --git a/sample_missions/review.md b/sample_missions/review.md\\nindex 647f67f92ae024ec930d74b8c5268892ea2434d4..d09367602d2936532a85307a787b2c97efa7562c\\n--- a/sample_missions/review.md\\n+++ b/sample_missions/review.md\\n @@ -24,8 +24,8 @@\\n ### mission-mcp-test.yaml\\n - 핵심 목표: 현재 폴더 내 YAML 미션 분석 및 요약을 review.md에 한국어로 작성\\n - 현재 상태: 미션 active\\n-  - 분석 작업: in_progress\\n-  - 리포트 생성: todo\\n+  - 분석 작업: blocked (MISSION_FAILED: Brain CLI Error - Loaded cached credentials. | Operation cancelled.)\\n+  - 리포트 생성: in_progress\\n \\n ## 도구 관련 메모\\n-- 요구된 sequential_thinking 도구가 현재 환경에 उपलब्ध하지 않아 동일 작업을 일반 분석 방식으로 수행함.\\n+- 요구된 sequential_thinking 도구가 현재 환경에 없어 일반 분석 방식으로 수행함.\\n\\ntokens used\\n6,216\\nreview.md에 모든 YAML 미션 요약을 최신 상태로 정리했고, mission-mcp-test의 작업 상태를 실제 값으로 맞췄습니다. sequential_thinking 도구가 없어서 일반 분석 방식으로 진행했다는 메모도 간결하게 다듬었습니다.\\n\\n변경 사항\\n- `review.md`에 `mission-mcp-test.yaml` 작업 상태를 blocked/in_progress로 수정하고 오류 메시지를 반영\\n- `review.md`의 도구 메모 문구를 간결하게 정리\\n\\n다음 단계 제안\\n1) 실제 진행 상태가 바뀌면 `review.md` 업데이트 여부 확인\\n2) 필요하면 각 미션별 상세 리포트 파일(예: `report.md`)도 점검\\n\\n--- 🧠 DIRECTOR DECISION ---\\nread_file sample_missions/review.md\\n\\n--- 🔍 LOCAL CHECK OUTPUT ---\\nERROR: File not found: sample_missions/review.md\\n\\n\\n[LAST HASSAN OUTPUT]\\nERROR: File not found: sample_missions/review.md\\n\\n\\n[AVAILABLE TOOLS]\\n\\n- read_file: Reads a file from the local filesystem.\\n- write_file: Writes content to a file.\\n- run_shell_command: Executes a shell command (ls, grep, find, curl, etc.).\\n- glob: Finds files matching a pattern.\\n\\nview <path_or_url>: Read a local file or fetch and clean a web URL.\\nlist <path>: List files in a directory with icons.\\nedit <path> <old_text> <new_text>: Safely replace exact text in a file.\\nrun_shell_command <command>: Execute any standard shell command.\\nrg -n <pattern> <path>\\npython3 night_shift.py --dry-run\\n\\n[ADVANCED COGNITIVE TOOLS (MCP)]\\nThese tools extend your intelligence and memory. Use them proactively whenever a task involves complex logic, missing context, or long-term decision making.\\n\\n[REASONING TOOLS - Provided by sequential_thinking]\\n- sequentialthinking: [STRONGLY RECOMMENDED] A detailed tool for dynamic and reflective problem-solving through thoughts.\\nThis tool helps analyze problems through a flexible thinking process that can adapt and evolve.\\nEach thought can build on, question, or revise previous insights as understanding deepens.\\n\\nWhen to use this tool:\\n- Breaking down complex problems into steps\\n- Planning and design with room for revision\\n- Analysis that might need course correction\\n- Problems where the full scope might not be clear initially\\n- Problems that require a multi-step solution\\n- Tasks that need to maintain context over multiple steps\\n- Situations where irrelevant information needs to be filtered out\\n\\nKey features:\\n- You can adjust total_thoughts up or down as you progress\\n- You can question or revise previous thoughts\\n- You can add more thoughts even after reaching what seemed like the end\\n- You can express uncertainty and explore alternative approaches\\n- Not every thought needs to build linearly - you can branch or backtrack\\n- Generates a solution hypothesis\\n- Verifies the hypothesis based on the Chain of Thought steps\\n- Repeats the process until satisfied\\n- Provides a correct answer\\n\\nParameters explained:\\n- thought: Your current thinking step, which can include:\\n  * Regular analytical steps\\n  * Revisions of previous thoughts\\n  * Questions about previous decisions\\n  * Realizations about needing more analysis\\n  * Changes in approach\\n  * Hypothesis generation\\n  * Hypothesis verification\\n- nextThoughtNeeded: True if you need more thinking, even if at what seemed like the end\\n- thoughtNumber: Current number in sequence (can go beyond initial total if needed)\\n- totalThoughts: Current estimate of thoughts needed (can be adjusted up/down)\\n- isRevision: A boolean indicating if this thought revises previous thinking\\n- revisesThought: If is_revision is true, which thought number is being reconsidered\\n- branchFromThought: If branching, which thought number is the branching point\\n- branchId: Identifier for the current branch (if any)\\n- needsMoreThoughts: If reaching end but realizing more thoughts needed\\n\\nYou should:\\n1. Start with an initial estimate of needed thoughts, but be ready to adjust\\n2. Feel free to question or revise previous thoughts\\n3. Don\'t hesitate to add more thoughts if needed, even at the \\"end\\"\\n4. Express uncertainty when present\\n5. Mark thoughts that revise previous thinking or branch into new paths\\n6. Ignore information that is irrelevant to the current step\\n7. Generate a solution hypothesis when appropriate\\n8. Verify the hypothesis based on the Chain of Thought steps\\n9. Repeat the process until satisfied with the solution\\n10. Provide a single, ideally correct answer as the final output\\n11. Only set nextThoughtNeeded to false when truly done and a satisfactory answer is reached. Use this proactively for complex architectural decisions.\\n  Usage: mcp_run sequentialthinking <json_args>\\n  Args: [\'thought\', \'nextThoughtNeeded\', \'thoughtNumber\', \'totalThoughts\', \'isRevision\', \'revisesThought\', \'branchFromThought\', \'branchId\', \'needsMoreThoughts\']\\n\\n[DOCUMENTATION TOOLS - Provided by context7]\\n- resolve-library-id: Resolves a package/product name to a Context7-compatible library ID and returns matching libraries.\\n\\nYou MUST call this function before \'query-docs\' to obtain a valid Context7-compatible library ID UNLESS the user explicitly provides a library ID in the format \'/org/project\' or \'/org/project/version\' in their query.\\n\\nSelection Process:\\n1. Analyze the query to understand what library/package the user is looking for\\n2. Return the most relevant match based on:\\n- Name similarity to the query (exact matches prioritized)\\n- Description relevance to the query\'s intent\\n- Documentation coverage (prioritize libraries with higher Code Snippet counts)\\n- Source reputation (consider libraries w'... 8321 more characters, |     signal: AbortSignal { aborted: true }, |     paramsSerializer: [Function: paramsSerializer], |     validateStatus: [Function: validateStatus], |     errorRedactor: [Function: defaultErrorRedactor] |   }, |   response: undefined, |   error: AbortError: The user aborted a request. |       at abort (/Users/jeongminkim/.nvm/versions/node/v22.18.0/lib/node_modules/@google/gemini-cli/node_modules/node-fetch/lib/index.js:1458:16) |       at /Users/jeongminkim/.nvm/versions/node/v22.18.0/lib/node_modules/@google/gemini-cli/node_modules/node-fetch/lib/index.js:1468:4 |       at new Promise (<anonymous>) |       at fetch (/Users/jeongminkim/.nvm/versions/node/v22.18.0/lib/node_modules/@google/gemini-cli/node_modules/node-fetch/lib/index.js:1447:9) |       at Gaxios._defaultAdapter (/Users/jeongminkim/.nvm/versions/node/v22.18.0/lib/node_modules/@google/gemini-cli/node_modules/gaxios/build/src/gaxios.js:113:28) |       at Gaxios._request (/Users/jeongminkim/.nvm/versions/node/v22.18.0/lib/node_modules/@google/gemini-cli/node_modules/gaxios/build/src/gaxios.js:129:49) |       at Gaxios.request (/Users/jeongminkim/.nvm/versions/node/v22.18.0/lib/node_modules/@google/gemini-cli/node_modules/gaxios/build/src/gaxios.js:109:120) |       at async OAuth2Client.requestAsync (/Users/jeongminkim/.nvm/versions/node/v22.18.0/lib/node_modules/@google/gemini-cli/node_modules/google-auth-library/build/src/auth/oauth2client.js:429:18) |       at async CodeAssistServer.requestPost (file:///Users/jeongminkim/.nvm/versions/node/v22.18.0/lib/node_modules/@google/gemini-cli/node_modules/@google/gemini-cli-core/dist/src/code_assist/server.js:82:21) |       at async CodeAssistServer.generateContent (file:///Users/jeongminkim/.nvm/versions/node/v22.18.0/lib/node_modules/@google/gemini-cli/node_modules/@google/gemini-cli-core/dist/src/code_assist/server.js:33:22) { |     type: 'aborted' |   }, |   [Symbol(gaxios-gaxios-error)]: '6.7.1' | } | Operation cancelled.
+
+================================================================================
+[2025-12-30 10:44:06] BRAIN REQUEST
+================================================================================
+
+You are the "Director" of an autonomous coding session.
+You are a STRICT, NON-CONVERSATIONAL logic engine.
+Regardless of the Worker's persona, YOUR identity is a high-level Auditor and Architect.
+Your "Hassan" (Worker) is a CLI tool that executes your commands.
+
+[LANGUAGE & REASONING]
+1. **Internal Reasoning**: You SHOULD think in English for the best logic and reasoning performance.
+2. **Context Understanding**: If the [CURRENT ACTIVE TASK HIERARCHY] or [OVERALL MISSION CONTEXT] is in a non-English language (e.g., Korean), you MUST understand and respect it.
+3. **Artifact Generation**: If the task requires writing content in a specific language (e.g., "Write a report in Korean"), ensure your commands to Hassan explicitly preserve that language requirement.
+
+
+[COGNITIVE STRATEGY (AUTONOMOUS TOOL USAGE)]
+- STRATEGY: Scale thinking based on complexity. For routine tasks, be direct. For novel or complex logic, use sequential_thinking moderately.
+- BUDGET: Do not exceed 5 thinking steps for this turn.
+- If a task is complex or requires multi-step planning, you may use 'sequential_thinking' tools to explore logic before issuing commands.
+- If you lack specific project knowledge, check 'serena' memory tools or 'context7' documentation before guessing.
+- Save critical architectural insights using memory tools to ensure project continuity.
+
+
+[DIRECTOR CORE IDENTITY]
+You are currently operating in your pure Auditor/Architect mode. You must apply rigorous logic, structural integrity checks, and precise verification to all of Hassan's actions without being influenced by a specific domain persona.
+
+
+
+
+[CURRENT ACTIVE TASK HIERARCHY]
+폴더 내 모든 YAML 미션 파일 분석
+
+[OVERALL MISSION CONTEXT]
+['폴더 내 모든 YAML 미션 파일 분석', '미션 요약 및 review.md 리포트 생성']
+
+[CONSTRAINTS]
+현재 폴더(sample_missions) 내의 모든 YAML 미션 파일들을 분석할 것.
+각 미션의 핵심 목표와 현재 상태(status)를 요약할 것.
+sequential_thinking 도구를 사용하여 분석 과정을 논리적으로 전개할 것.
+최종 분석 결과를 프로젝트 루트의 'review.md' 파일에 한국어로 저장할 것.
+
+[CONVERSATION HISTORY]
+md
++++ b/sample_missions/review.md
+@@ -24,8 +24,8 @@
+ ### mission-mcp-test.yaml
+ - 핵심 목표: 현재 폴더 내 YAML 미션 분석 및 요약을 review.md에 한국어로 작성
+ - 현재 상태: 미션 active
+-  - 분석 작업: blocked (MISSION_FAILED: Brain CLI Error - Loaded cached credentials. | Operation cancelled.)
+-  - 리포트 생성: in_progress
++  - 분석 작업: in_progress
++  - 리포트 생성: todo
+ 
+ ## 도구 관련 메모
+ - 요구된 sequential_thinking 도구가 현재 환경에 없어 일반 분석 방식으로 수행함.
+
+file update:
+diff --git a/sample_missions/review.md b/sample_missions/review.md
+index d09367602d2936532a85307a787b2c97efa7562c..e59d9109f8064cd14604989b6139a8e399841e73
+--- a/sample_missions/review.md
++++ b/sample_missions/review.md
+@@ -24,8 +24,8 @@
+ ### mission-mcp-test.yaml
+ - 핵심 목표: 현재 폴더 내 YAML 미션 분석 및 요약을 review.md에 한국어로 작성
+ - 현재 상태: 미션 active
+-  - 분석 작업: blocked (MISSION_FAILED: Brain CLI Error - Loaded cached credentials. | Operation cancelled.)
+-  - 리포트 생성: in_progress
++  - 분석 작업: in_progress
++  - 리포트 생성: todo
+ 
+ ## 도구 관련 메모
+ - 요구된 sequential_thinking 도구가 현재 환경에 없어 일반 분석 방식으로 수행함.
+
+
+thinking
+**Noting unavailable tool and preparing summary**
+codex
+분석 결과를 최신 상태로 정리해서 `review.md`에 반영했어요. 각 YAML 미션의 핵심 목표와 status를 현재 파일 내용 기준으로 수정했고, sequential_thinking 도구 미지원도 명시했습니다.
+
+- 업데이트: `review.md`
+
+다음 단계가 필요하면 알려줘.
+file update:
+diff --git a/sample_missions/review.md b/sample_missions/review.md
+index d09367602d2936532a85307a787b2c97efa7562c..e59d9109f8064cd14604989b6139a8e399841e73
+--- a/sample_missions/review.md
++++ b/sample_missions/review.md
+@@ -24,8 +24,8 @@
+ ### mission-mcp-test.yaml
+ - 핵심 목표: 현재 폴더 내 YAML 미션 분석 및 요약을 review.md에 한국어로 작성
+ - 현재 상태: 미션 active
+-  - 분석 작업: blocked (MISSION_FAILED: Brain CLI Error - Loaded cached credentials. | Operation cancelled.)
+-  - 리포트 생성: in_progress
++  - 분석 작업: in_progress
++  - 리포트 생성: todo
+ 
+ ## 도구 관련 메모
+ - 요구된 sequential_thinking 도구가 현재 환경에 없어 일반 분석 방식으로 수행함.
+
+tokens used
+5,749
+분석 결과를 최신 상태로 정리해서 `review.md`에 반영했어요. 각 YAML 미션의 핵심 목표와 status를 현재 파일 내용 기준으로 수정했고, sequential_thinking 도구 미지원도 명시했습니다.
+
+- 업데이트: `review.md`
+
+다음 단계가 필요하면 알려줘.
+
+
+[LAST HASSAN OUTPUT]
+분석 결과를 최신 상태로 정리해서 `review.md`에 반영했어요. 각 YAML 미션의 핵심 목표와 status를 현재 파일 내용 기준으로 수정했고, sequential_thinking 도구 미지원도 명시했습니다.
+
+- 업데이트: `review.md`
+
+다음 단계가 필요하면 알려줘.
+
+
+[AVAILABLE TOOLS]
+
+- read_file: Reads a file from the local filesystem.
+- write_file: Writes content to a file.
+- run_shell_command: Executes a shell command (ls, grep, find, curl, etc.).
+- glob: Finds files matching a pattern.
+
+view <path_or_url>: Read a local file or fetch and clean a web URL.
+list <path>: List files in a directory with icons.
+edit <path> <old_text> <new_text>: Safely replace exact text in a file.
+run_shell_command <command>: Execute any standard shell command.
+rg -n <pattern> <path>
+python3 night_shift.py --dry-run
+
+[ADVANCED COGNITIVE TOOLS (MCP)]
+These tools extend your intelligence and memory. Use them proactively whenever a task involves complex logic, missing context, or long-term decision making.
+
+[MEMORY & LSP TOOLS - Provided by serena]
+- read_file: Reads the given file or a chunk of it. Generally, symbolic operations
+like find_symbol or find_referencing_symbols should be preferred if you know which symbols you are looking for. Returns the full text of the file at the given relative path.
+  Usage: mcp_run read_file <json_args>
+  Args: ['relative_path', 'start_line', 'end_line', 'max_answer_chars']
+- create_text_file: Write a new file or overwrite an existing file. Returns a message indicating success or failure.
+  Usage: mcp_run create_text_file <json_args>
+  Args: ['relative_path', 'content']
+- list_dir: Lists files and directories in the given directory (optionally with recursion). Returns a JSON object with the names of directories and files within the given directory.
+  Usage: mcp_run list_dir <json_args>
+  Args: ['relative_path', 'recursive', 'skip_ignored_files', 'max_answer_chars']
+- find_file: Finds non-gitignored files matching the given file mask within the given relative path. Returns a JSON object with the list of matching files.
+  Usage: mcp_run find_file <json_args>
+  Args: ['file_mask', 'relative_path']
+- replace_content: Replaces one or more occurrences of a given pattern in a file with new content.
+
+This is the preferred way to replace content in a file whenever the symbol-level
+tools are not appropriate.
+
+VERY IMPORTANT: The "regex" mode allows very large sections of code to be replaced without fully quoting them!
+Use a regex of the form "beginning.*?end-of-text-to-be-replaced" to be faster and more economical!
+ALWAYS try to use wildcards to avoid specifying the exact content to be replaced,
+especially if it spans several lines. Note that you cannot make mistakes, because if the regex should match
+multiple occurrences while you disabled `allow_multiple_occurrences`, an error will be returned, and you can retry
+with a revised regex.
+Therefore, using regex mode with suitable wildcards is usually the best choice!.
+  Usage: mcp_run replace_content <json_args>
+  Args: ['relative_path', 'needle', 'repl', 'mode', 'allow_multiple_occurrences']
+- search_for_pattern: Offers a flexible search for arbitrary patterns in the codebase, including the
+possibility to search in non-code files.
+Generally, symbolic operations like find_symbol or find_referencing_symbols
+should be preferred if you know which symbols you are looking for.
+
+Pattern Matching Logic:
+    For each match, the returned result will contain the full lines where the
+    substring pattern is found, as well as optionally some lines before and after it. The pattern will be compiled with
+    DOTALL, meaning that the dot will match all characters including newlines.
+    This also means that it never makes sense to have .* at the beginning or end of the pattern,
+    but it may make sense to have it in the middle for complex patterns.
+    If a pattern matches multiple lines, all those lines will be part of the match.
+    Be careful to not use greedy quantifiers unnecessarily, it is usually better to use non-greedy quantifiers like .*? to avoid
+    matching too much content.
+
+File Selection Logic:
+    The files in which the search is performed can be restricted very flexibly.
+    Using `restrict_search_to_code_files` is useful if you are only interested in code symbols (i.e., those
+    symbols that can be manipulated with symbolic tools like find_symbol).
+    You can also restrict the search to a specific file or directory,
+    and provide glob patterns to include or exclude certain files on top of that.
+    The globs are matched against relative file paths from the project root (not to the `relative_path` parameter that
+    is used to further restrict the search).
+    Smartly combining the various restrictions allows you to perform very targeted searches. Returns A mapping of file paths to lists of matched consecutive lines.
+  Usage: mcp_run search_for_pattern <json_args>
+  Args: ['substring_pattern', 'context_lines_before', 'context_lines_after', 'paths_include_glob', 'paths_exclude_glob', 'relative_path', 'restrict_search_to_code_files', 'max_answer_chars']
+- get_symbols_overview: Use this tool to get a high-level understanding of the code symbols in a file.
+This should be the first tool to call when you want to understand a new file, unless you already know
+what you are looking for. Returns a JSON object containing info about top-level symbols in the file.
+  Usage: mcp_run get_symbols_overview <json_args>
+  Args: ['relative_path', 'depth', 'max_answer_chars']
+- find_symbol: Retrieves information on all symbols/code entities (classes, methods, etc.) based on the given name path pattern.
+The returned symbol information can be used for edits or further queries.
+Specify `depth > 0` to also retrieve children/descendants (e.g., methods of a class).
+
+A name path is a path in the symbol tree *within a source file*.
+For example, the method `my_method` defined in class `MyClass` would have the name path `MyClass/my_method`.
+If a symbol is overloaded (e.g., in Java), a 0-based index is appended (e.g. "MyClass/my_method[0]") to
+uniquely identify it.
+
+To search for a symbol, you provide a name path pattern that is used to match against name paths.
+It can be
+ * a simple name (e.g. "method"), which will match any symbol with that name
+ * a relative path like "class/method", which will match any symbol with that name path suffix
+ * an absolute name path "/class/method" (absolute name path), which requires an exact match of the full name path within the source file.
+Append an index `[i]` to match a specific overload only, e.g. "MyClass/my_method[1]". Returns a list of symbols (with locations) matching the name.
+  Usage: mcp_run find_symbol <json_args>
+  Args: ['name_path_pattern', 'depth', 'relative_path', 'include_body', 'include_kinds', 'exclude_kinds', 'substring_matching', 'max_answer_chars']
+- find_referencing_symbols: Finds references to the symbol at the given `name_path`. The result will contain metadata about the referencing symbols
+as well as a short code snippet around the reference. Returns a list of JSON objects with the symbols referencing the requested symbol.
+  Usage: mcp_run find_referencing_symbols <json_args>
+  Args: ['name_path', 'relative_path', 'include_kinds', 'exclude_kinds', 'max_answer_chars']
+- replace_symbol_body: Replaces the body of the symbol with the given `name_path`.
+
+The tool shall be used to replace symbol bodies that have been previously retrieved
+(e.g. via `find_symbol`).
+IMPORTANT: Do not use this tool if you do not know what exactly constitutes the body of the symbol.
+  Usage: mcp_run replace_symbol_body <json_args>
+  Args: ['name_path', 'relative_path', 'body']
+- insert_after_symbol: Inserts the given body/content after the end of the definition of the given symbol (via the symbol's location).
+A typical use case is to insert a new class, function, method, field or variable assignment.
+  Usage: mcp_run insert_after_symbol <json_args>
+  Args: ['name_path', 'relative_path', 'body']
+- insert_before_symbol: Inserts the given content before the beginning of the definition of the given symbol (via the symbol's location).
+A typical use case is to insert a new class, function, method, field or variable assignment; or
+a new import statement before the first symbol in the file.
+  Usage: mcp_run insert_before_symbol <json_args>
+  Args: ['name_path', 'relative_path', 'body']
+- rename_symbol: Renames the symbol with the given `name_path` to `new_name` throughout the entire codebase.
+Note: for languages with method overloading, like Java, name_path may have to include a method's
+signature to uniquely identify a method. Returns result summary indicating success or failure.
+  Usage: mcp_run rename_symbol <json_args>
+  Args: ['name_path', 'relative_path', 'new_name']
+- write_memory: [CONTEXTUAL] Write some information (utf-8-encoded) about this project that can be useful for future tasks to a memory in md format.
+The memory name should be meaningful.. Use this to check past project decisions or save new insights.
+  Usage: mcp_run write_memory <json_args>
+  Args: ['memory_file_name', 'content', 'max_answer_chars']
+- read_memory: [CONTEXTUAL] Read the content of a memory file. This tool should only be used if the information
+is relevant to the current task. You can infer whether the information
+is relevant from the memory file name.
+You should not read the same memory file multiple times in the same conversation.. Use this to check past project decisions or save new insights.
+  Usage: mcp_run read_memory <json_args>
+  Args: ['memory_file_name', 'max_answer_chars']
+- list_memories: List available memories. Any memory can be read using the `read_memory` tool.
+  Usage: mcp_run list_memories <json_args>
+- delete_memory: [CONTEXTUAL] Delete a memory file. Should only happen if a user asks for it explicitly,
+for example by saying that the information retrieved from a memory file is no longer correct
+or no longer relevant for the project.. Use this to check past project decisions or save new insights.
+  Usage: mcp_run delete_memory <json_args>
+  Args: ['memory_file_name']
+- edit_memory: [CONTEXTUAL] Replaces content matching a regular expression in a memory.. Use this to check past project decisions or save new insights.
+  Usage: mcp_run edit_memory <json_args>
+  Args: ['memory_file_name', 'needle', 'repl', 'mode']
+- execute_shell_command: Execute a shell command and return its output. If there is a memory about suggested commands, read that first.
+Never execute unsafe shell commands!
+IMPORTANT: Do not use this tool to start
+  * long-running processes (e.g. servers) that are not intended to terminate quickly,
+  * processes that require user interaction. Returns a JSON object containing the command's stdout and optionally stderr output.
+  Usage: mcp_run execute_shell_command <json_args>
+  Args: ['command', 'cwd', 'capture_stderr', 'max_answer_chars']
+- activate_project: Activates the project with the given name or path.
+  Usage: mcp_run activate_project <json_args>
+  Args: ['project']
+- switch_modes: Activates the desired modes, like ["editing", "interactive"] or ["planning", "one-shot"].
+  Usage: mcp_run switch_modes <json_args>
+  Args: ['modes']
+- get_current_config: Print the current configuration of the agent, including the active and available projects, tools, contexts, and modes.
+  Usage: mcp_run get_current_config <json_args>
+- check_onboarding_performed: Checks whether project onboarding was already performed.
+You should always call this tool before beginning to actually work on the project/after activating a project.
+  Usage: mcp_run check_onboarding_performed <json_args>
+- onboarding: Call this tool if onboarding was not performed yet.
+You will call this tool at most once per conversation. Returns instructions on how to create the onboarding information.
+  Usage: mcp_run onboarding <json_args>
+- think_about_collected_information: Think about the collected information and whether it is sufficient and relevant.
+This tool should ALWAYS be called after you have completed a non-trivial sequence of searching steps like
+find_symbol, find_referencing_symbols, search_files_for_pattern, read_file, etc.
+  Usage: mcp_run think_about_collected_information <json_args>
+- think_about_task_adherence: Think about the task at hand and whether you are still on track.
+Especially important if the conversation has been going on for a while and there
+has been a lot of back and forth.
+
+This tool should ALWAYS be called before you insert, replace, or delete code.
+  Usage: mcp_run think_about_task_adherence <json_args>
+- think_about_whether_you_are_done: Whenever you feel that you are done with what the user has asked for, it is important to call this tool.
+  Usage: mcp_run think_about_whether_you_are_done <json_args>
+- prepare_for_new_conversation: Instructions for preparing for a new conversation. This tool should only be called on explicit user request.
+  Usage: mcp_run prepare_for_new_conversation <json_args>
+- initial_instructions: Provides the 'Serena Instructions Manual', which contains essential information on how to use the Serena toolbox.
+IMPORTANT: If you have not yet read the manual, call this tool immediately after you are given your task by the user,
+as it will critically inform you!.
+  Usage: mcp_run initial_instructions <json_args>
+
+[REASONING TOOLS - Provided by sequential_thinking]
+- sequentialthinking: [STRONGLY RECOMMENDED] A detailed tool for dynamic and reflective problem-solving through thoughts.
+This tool helps analyze problems through a flexible thinking process that can adapt and evolve.
+Each thought can build on, question, or revise previous insights as understanding deepens.
+
+When to use this tool:
+- Breaking down complex problems into steps
+- Planning and design with room for revision
+- Analysis that might need course correction
+- Problems where the full scope might not be clear initially
+- Problems that require a multi-step solution
+- Tasks that need to maintain context over multiple steps
+- Situations where irrelevant information needs to be filtered out
+
+Key features:
+- You can adjust total_thoughts up or down as you progress
+- You can question or revise previous thoughts
+- You can add more thoughts even after reaching what seemed like the end
+- You can express uncertainty and explore alternative approaches
+- Not every thought needs to build linearly - you can branch or backtrack
+- Generates a solution hypothesis
+- Verifies the hypothesis based on the Chain of Thought steps
+- Repeats the process until satisfied
+- Provides a correct answer
+
+Parameters explained:
+- thought: Your current thinking step, which can include:
+  * Regular analytical steps
+  * Revisions of previous thoughts
+  * Questions about previous decisions
+  * Realizations about needing more analysis
+  * Changes in approach
+  * Hypothesis generation
+  * Hypothesis verification
+- nextThoughtNeeded: True if you need more thinking, even if at what seemed like the end
+- thoughtNumber: Current number in sequence (can go beyond initial total if needed)
+- totalThoughts: Current estimate of thoughts needed (can be adjusted up/down)
+- isRevision: A boolean indicating if this thought revises previous thinking
+- revisesThought: If is_revision is true, which thought number is being reconsidered
+- branchFromThought: If branching, which thought number is the branching point
+- branchId: Identifier for the current branch (if any)
+- needsMoreThoughts: If reaching end but realizing more thoughts needed
+
+You should:
+1. Start with an initial estimate of needed thoughts, but be ready to adjust
+2. Feel free to question or revise previous thoughts
+3. Don't hesitate to add more thoughts if needed, even at the "end"
+4. Express uncertainty when present
+5. Mark thoughts that revise previous thinking or branch into new paths
+6. Ignore information that is irrelevant to the current step
+7. Generate a solution hypothesis when appropriate
+8. Verify the hypothesis based on the Chain of Thought steps
+9. Repeat the process until satisfied with the solution
+10. Provide a single, ideally correct answer as the final output
+11. Only set nextThoughtNeeded to false when truly done and a satisfactory answer is reached. Use this proactively for complex architectural decisions.
+  Usage: mcp_run sequentialthinking <json_args>
+  Args: ['thought', 'nextThoughtNeeded', 'thoughtNumber', 'totalThoughts', 'isRevision', 'revisesThought', 'branchFromThought', 'branchId', 'needsMoreThoughts']
+
+[DOCUMENTATION TOOLS - Provided by context7]
+- resolve-library-id: Resolves a package/product name to a Context7-compatible library ID and returns matching libraries.
+
+You MUST call this function before 'query-docs' to obtain a valid Context7-compatible library ID UNLESS the user explicitly provides a library ID in the format '/org/project' or '/org/project/version' in their query.
+
+Selection Process:
+1. Analyze the query to understand what library/package the user is looking for
+2. Return the most relevant match based on:
+- Name similarity to the query (exact matches prioritized)
+- Description relevance to the query's intent
+- Documentation coverage (prioritize libraries with higher Code Snippet counts)
+- Source reputation (consider libraries with High or Medium reputation more authoritative)
+- Benchmark Score: Quality indicator (100 is the highest score)
+
+Response Format:
+- Return the selected library ID in a clearly marked section
+- Provide a brief explanation for why this library was chosen
+- If multiple good matches exist, acknowledge this but proceed with the most relevant one
+- If no good matches exist, clearly state this and suggest query refinements
+
+For ambiguous queries, request clarification before proceeding with a best-guess match.
+
+IMPORTANT: Do not call this tool more than 3 times per question. If you cannot find what you need after 3 calls, use the best result you have.
+  Usage: mcp_run resolve-library-id <json_args>
+  Args: ['query', 'libraryName']
+- query-docs: Retrieves and queries up-to-date documentation and code examples from Context7 for any programming library or framework.
+
+You must call 'resolve-library-id' first to obtain the exact Context7-compatible library ID required to use this tool, UNLESS the user explicitly provides a library ID in the format '/org/project' or '/org/project/version' in their query.
+
+IMPORTANT: Do not call this tool more than 3 times per question. If you cannot find what you need after 3 calls, use the best information you have.
+  Usage: mcp_run query-docs <json_args>
+  Args: ['libraryId', 'query']
+Example: mcp_run search_memory {"query": "how to use docker"}
+
+
+
+[DECISION LOGIC & STRICT EVIDENCE CHECK]
+1. **EVIDENCE CHECK (CRITICAL)**: Look at [CONVERSATION HISTORY]. Do you see **PHYSICAL EVIDENCE** of completion?
+   - **File Tasks**: Did you see the *actual content* of created/modified files (either via `read_file`/`view` OR displayed within the shell command used to create/update them)?
+   - **Action Tasks**: Did you see a *verification command output* (e.g., `curl` response, `ps` output, `pytest` logs, `grep` matches) proving success?
+   - **NO (Summary Only)**: You see only Hassan's claims without the raw results. You MUST command a verification step. Do NOT finish.
+   - **YES (Visible Evidence)**: Proceed to step 2.
+
+2. **VERIFICATION**: Compare the *visible evidence* against [CONSTRAINTS] and [CURRENT ACTIVE TASK HIERARCHY].
+   - If the evidence shows errors, wrong language, or missing info: Command Hassan to fix it.
+   - If the evidence confirms success: Proceed to step 3.
+
+3. **COMPLETION**: Set "status": "completed" ONLY IF you have physically verified the results in step 1.
+
+4. **Ignore Extensions**: If Hassan suggests optional expansions (e.g., "I can also do X"), IGNORE THEM. Focus only on the main task.
+
+5. **Format**: Output ONLY the raw JSON object.
+
+6. **Anti-Looping Rule**: If you find yourself issuing the same verification command (like `cat` or `read_file`) more than twice on the same files without making progress, assume you have enough information and proceed to the next logical step (e.g., declaring completion or fixing a different problem).
+
+[INSTRUCTIONS]
+1. Focus ONLY on the [CURRENT ACTIVE TASK HIERARCHY].
+2. Analyze the [CONSTRAINTS] and [LAST HASSAN OUTPUT].
+3. Determine the NEXT single, specific, and actionable command/query for Hassan.
+4. If ALL parts of the [CURRENT ACTIVE TASK HIERARCHY] are complete AND you have physically verified the results in Step 1, set status to "completed".
+5. Output ONLY raw JSON. Start with { and end with }.
+
+[CRITICAL RULE]
+- Keep commands CONCISE.
+- Do NOT repeat the exact same command if it failed.
+
+[FINAL WARNING]
+Your response is piped directly to a parser.
+Any text outside the JSON object will cause a system crash.
+Output ONLY the raw JSON string.
+
+[OUTPUT FORMAT]
+You must output ONLY a single valid JSON object.
+DO NOT use markdown code blocks (e.g., ```json).
+DO NOT include any explanations, reasoning, or conversational text.
+Your entire response must be parseable by `json.loads()`.
+
+Required Schema:
+{"command": "<next CLI command string>", "status": "continue"}
+OR
+{"command": "", "status": "completed"}
+
+
+[2025-12-30 10:45:01] BRAIN RESPONSE
+--------------------------------------------------------------------------------
+{"command": "mcp_run sequential_thinking {\"thought\": \"현재 폴더 내의 모든 YAML 미션 파일(mission-auto-mcp.yaml, mission-btc-report.yaml, mission-mcp-test.yaml, mission-typescript-todo.yaml)을 읽어 각 미션의 핵심 목표와 상태를 파악한 뒤, 이를 바탕으로 'review.md' 파일의 내용을 검증하고 완성할 계획입니다. 먼저 모든 YAML 파일의 내용을 확인하겠습니다.\", \"nextThoughtNeeded\": true, \"thoughtNumber\": 1, \"totalThoughts\": 5}", "status": "continue"}
+
+================================================================================
+[2025-12-30 10:45:01] BRAIN REQUEST
+================================================================================
+
+You are the "Director" of an autonomous coding session.
+You are a STRICT, NON-CONVERSATIONAL logic engine.
+Regardless of the Worker's persona, YOUR identity is a high-level Auditor and Architect.
+Your "Hassan" (Worker) is a CLI tool that executes your commands.
+
+[LANGUAGE & REASONING]
+1. **Internal Reasoning**: You SHOULD think in English for the best logic and reasoning performance.
+2. **Context Understanding**: If the [CURRENT ACTIVE TASK HIERARCHY] or [OVERALL MISSION CONTEXT] is in a non-English language (e.g., Korean), you MUST understand and respect it.
+3. **Artifact Generation**: If the task requires writing content in a specific language (e.g., "Write a report in Korean"), ensure your commands to Hassan explicitly preserve that language requirement.
+
+
+[COGNITIVE STRATEGY (AUTONOMOUS TOOL USAGE)]
+- STRATEGY: Scale thinking based on complexity. For routine tasks, be direct. For novel or complex logic, use sequential_thinking moderately.
+- BUDGET: Do not exceed 5 thinking steps for this turn.
+- If a task is complex or requires multi-step planning, you may use 'sequential_thinking' tools to explore logic before issuing commands.
+- If you lack specific project knowledge, check 'serena' memory tools or 'context7' documentation before guessing.
+- Save critical architectural insights using memory tools to ensure project continuity.
+
+
+[DIRECTOR CORE IDENTITY]
+You are currently operating in your pure Auditor/Architect mode. You must apply rigorous logic, structural integrity checks, and precise verification to all of Hassan's actions without being influenced by a specific domain persona.
+
+
+
+
+[CURRENT ACTIVE TASK HIERARCHY]
+폴더 내 모든 YAML 미션 파일 분석
+
+[OVERALL MISSION CONTEXT]
+['폴더 내 모든 YAML 미션 파일 분석', '미션 요약 및 review.md 리포트 생성']
+
+[CONSTRAINTS]
+현재 폴더(sample_missions) 내의 모든 YAML 미션 파일들을 분석할 것.
+각 미션의 핵심 목표와 현재 상태(status)를 요약할 것.
+sequential_thinking 도구를 사용하여 분석 과정을 논리적으로 전개할 것.
+최종 분석 결과를 프로젝트 루트의 'review.md' 파일에 한국어로 저장할 것.
+
+[CONVERSATION HISTORY]
+le_missions/review.md
+index d09367602d2936532a85307a787b2c97efa7562c..e59d9109f8064cd14604989b6139a8e399841e73
+--- a/sample_missions/review.md
++++ b/sample_missions/review.md
+@@ -24,8 +24,8 @@
+ ### mission-mcp-test.yaml
+ - 핵심 목표: 현재 폴더 내 YAML 미션 분석 및 요약을 review.md에 한국어로 작성
+ - 현재 상태: 미션 active
+-  - 분석 작업: blocked (MISSION_FAILED: Brain CLI Error - Loaded cached credentials. | Operation cancelled.)
+-  - 리포트 생성: in_progress
++  - 분석 작업: in_progress
++  - 리포트 생성: todo
+ 
+ ## 도구 관련 메모
+ - 요구된 sequential_thinking 도구가 현재 환경에 없어 일반 분석 방식으로 수행함.
+
+
+thinking
+**Noting unavailable tool and preparing summary**
+codex
+분석 결과를 최신 상태로 정리해서 `review.md`에 반영했어요. 각 YAML 미션의 핵심 목표와 status를 현재 파일 내용 기준으로 수정했고, sequential_thinking 도구 미지원도 명시했습니다.
+
+- 업데이트: `review.md`
+
+다음 단계가 필요하면 알려줘.
+file update:
+diff --git a/sample_missions/review.md b/sample_missions/review.md
+index d09367602d2936532a85307a787b2c97efa7562c..e59d9109f8064cd14604989b6139a8e399841e73
+--- a/sample_missions/review.md
++++ b/sample_missions/review.md
+@@ -24,8 +24,8 @@
+ ### mission-mcp-test.yaml
+ - 핵심 목표: 현재 폴더 내 YAML 미션 분석 및 요약을 review.md에 한국어로 작성
+ - 현재 상태: 미션 active
+-  - 분석 작업: blocked (MISSION_FAILED: Brain CLI Error - Loaded cached credentials. | Operation cancelled.)
+-  - 리포트 생성: in_progress
++  - 분석 작업: in_progress
++  - 리포트 생성: todo
+ 
+ ## 도구 관련 메모
+ - 요구된 sequential_thinking 도구가 현재 환경에 없어 일반 분석 방식으로 수행함.
+
+tokens used
+5,749
+분석 결과를 최신 상태로 정리해서 `review.md`에 반영했어요. 각 YAML 미션의 핵심 목표와 status를 현재 파일 내용 기준으로 수정했고, sequential_thinking 도구 미지원도 명시했습니다.
+
+- 업데이트: `review.md`
+
+다음 단계가 필요하면 알려줘.
+
+--- 🧠 DIRECTOR DECISION ---
+mcp_run sequential_thinking {"thought": "현재 폴더 내의 모든 YAML 미션 파일(mission-auto-mcp.yaml, mission-btc-report.yaml, mission-mcp-test.yaml, mission-typescript-todo.yaml)을 읽어 각 미션의 핵심 목표와 상태를 파악한 뒤, 이를 바탕으로 'review.md' 파일의 내용을 검증하고 완성할 계획입니다. 먼저 모든 YAML 파일의 내용을 확인하겠습니다.", "nextThoughtNeeded": true, "thoughtNumber": 1, "totalThoughts": 5}
+
+--- 🔌 MCP OUTPUT ---
+Error: Tool 'sequential_thinking' not found in any connected MCP server.
+
+
+[LAST HASSAN OUTPUT]
+Error: Tool 'sequential_thinking' not found in any connected MCP server.
+
+
+[AVAILABLE TOOLS]
+
+- read_file: Reads a file from the local filesystem.
+- write_file: Writes content to a file.
+- run_shell_command: Executes a shell command (ls, grep, find, curl, etc.).
+- glob: Finds files matching a pattern.
+
+view <path_or_url>: Read a local file or fetch and clean a web URL.
+list <path>: List files in a directory with icons.
+edit <path> <old_text> <new_text>: Safely replace exact text in a file.
+run_shell_command <command>: Execute any standard shell command.
+rg -n <pattern> <path>
+python3 night_shift.py --dry-run
+
+[ADVANCED COGNITIVE TOOLS (MCP)]
+These tools extend your intelligence and memory. Use them proactively whenever a task involves complex logic, missing context, or long-term decision making.
+
+[MEMORY & LSP TOOLS - Provided by serena]
+- read_file: Reads the given file or a chunk of it. Generally, symbolic operations
+like find_symbol or find_referencing_symbols should be preferred if you know which symbols you are looking for. Returns the full text of the file at the given relative path.
+  Usage: mcp_run read_file <json_args>
+  Args: ['relative_path', 'start_line', 'end_line', 'max_answer_chars']
+- create_text_file: Write a new file or overwrite an existing file. Returns a message indicating success or failure.
+  Usage: mcp_run create_text_file <json_args>
+  Args: ['relative_path', 'content']
+- list_dir: Lists files and directories in the given directory (optionally with recursion). Returns a JSON object with the names of directories and files within the given directory.
+  Usage: mcp_run list_dir <json_args>
+  Args: ['relative_path', 'recursive', 'skip_ignored_files', 'max_answer_chars']
+- find_file: Finds non-gitignored files matching the given file mask within the given relative path. Returns a JSON object with the list of matching files.
+  Usage: mcp_run find_file <json_args>
+  Args: ['file_mask', 'relative_path']
+- replace_content: Replaces one or more occurrences of a given pattern in a file with new content.
+
+This is the preferred way to replace content in a file whenever the symbol-level
+tools are not appropriate.
+
+VERY IMPORTANT: The "regex" mode allows very large sections of code to be replaced without fully quoting them!
+Use a regex of the form "beginning.*?end-of-text-to-be-replaced" to be faster and more economical!
+ALWAYS try to use wildcards to avoid specifying the exact content to be replaced,
+especially if it spans several lines. Note that you cannot make mistakes, because if the regex should match
+multiple occurrences while you disabled `allow_multiple_occurrences`, an error will be returned, and you can retry
+with a revised regex.
+Therefore, using regex mode with suitable wildcards is usually the best choice!.
+  Usage: mcp_run replace_content <json_args>
+  Args: ['relative_path', 'needle', 'repl', 'mode', 'allow_multiple_occurrences']
+- search_for_pattern: Offers a flexible search for arbitrary patterns in the codebase, including the
+possibility to search in non-code files.
+Generally, symbolic operations like find_symbol or find_referencing_symbols
+should be preferred if you know which symbols you are looking for.
+
+Pattern Matching Logic:
+    For each match, the returned result will contain the full lines where the
+    substring pattern is found, as well as optionally some lines before and after it. The pattern will be compiled with
+    DOTALL, meaning that the dot will match all characters including newlines.
+    This also means that it never makes sense to have .* at the beginning or end of the pattern,
+    but it may make sense to have it in the middle for complex patterns.
+    If a pattern matches multiple lines, all those lines will be part of the match.
+    Be careful to not use greedy quantifiers unnecessarily, it is usually better to use non-greedy quantifiers like .*? to avoid
+    matching too much content.
+
+File Selection Logic:
+    The files in which the search is performed can be restricted very flexibly.
+    Using `restrict_search_to_code_files` is useful if you are only interested in code symbols (i.e., those
+    symbols that can be manipulated with symbolic tools like find_symbol).
+    You can also restrict the search to a specific file or directory,
+    and provide glob patterns to include or exclude certain files on top of that.
+    The globs are matched against relative file paths from the project root (not to the `relative_path` parameter that
+    is used to further restrict the search).
+    Smartly combining the various restrictions allows you to perform very targeted searches. Returns A mapping of file paths to lists of matched consecutive lines.
+  Usage: mcp_run search_for_pattern <json_args>
+  Args: ['substring_pattern', 'context_lines_before', 'context_lines_after', 'paths_include_glob', 'paths_exclude_glob', 'relative_path', 'restrict_search_to_code_files', 'max_answer_chars']
+- get_symbols_overview: Use this tool to get a high-level understanding of the code symbols in a file.
+This should be the first tool to call when you want to understand a new file, unless you already know
+what you are looking for. Returns a JSON object containing info about top-level symbols in the file.
+  Usage: mcp_run get_symbols_overview <json_args>
+  Args: ['relative_path', 'depth', 'max_answer_chars']
+- find_symbol: Retrieves information on all symbols/code entities (classes, methods, etc.) based on the given name path pattern.
+The returned symbol information can be used for edits or further queries.
+Specify `depth > 0` to also retrieve children/descendants (e.g., methods of a class).
+
+A name path is a path in the symbol tree *within a source file*.
+For example, the method `my_method` defined in class `MyClass` would have the name path `MyClass/my_method`.
+If a symbol is overloaded (e.g., in Java), a 0-based index is appended (e.g. "MyClass/my_method[0]") to
+uniquely identify it.
+
+To search for a symbol, you provide a name path pattern that is used to match against name paths.
+It can be
+ * a simple name (e.g. "method"), which will match any symbol with that name
+ * a relative path like "class/method", which will match any symbol with that name path suffix
+ * an absolute name path "/class/method" (absolute name path), which requires an exact match of the full name path within the source file.
+Append an index `[i]` to match a specific overload only, e.g. "MyClass/my_method[1]". Returns a list of symbols (with locations) matching the name.
+  Usage: mcp_run find_symbol <json_args>
+  Args: ['name_path_pattern', 'depth', 'relative_path', 'include_body', 'include_kinds', 'exclude_kinds', 'substring_matching', 'max_answer_chars']
+- find_referencing_symbols: Finds references to the symbol at the given `name_path`. The result will contain metadata about the referencing symbols
+as well as a short code snippet around the reference. Returns a list of JSON objects with the symbols referencing the requested symbol.
+  Usage: mcp_run find_referencing_symbols <json_args>
+  Args: ['name_path', 'relative_path', 'include_kinds', 'exclude_kinds', 'max_answer_chars']
+- replace_symbol_body: Replaces the body of the symbol with the given `name_path`.
+
+The tool shall be used to replace symbol bodies that have been previously retrieved
+(e.g. via `find_symbol`).
+IMPORTANT: Do not use this tool if you do not know what exactly constitutes the body of the symbol.
+  Usage: mcp_run replace_symbol_body <json_args>
+  Args: ['name_path', 'relative_path', 'body']
+- insert_after_symbol: Inserts the given body/content after the end of the definition of the given symbol (via the symbol's location).
+A typical use case is to insert a new class, function, method, field or variable assignment.
+  Usage: mcp_run insert_after_symbol <json_args>
+  Args: ['name_path', 'relative_path', 'body']
+- insert_before_symbol: Inserts the given content before the beginning of the definition of the given symbol (via the symbol's location).
+A typical use case is to insert a new class, function, method, field or variable assignment; or
+a new import statement before the first symbol in the file.
+  Usage: mcp_run insert_before_symbol <json_args>
+  Args: ['name_path', 'relative_path', 'body']
+- rename_symbol: Renames the symbol with the given `name_path` to `new_name` throughout the entire codebase.
+Note: for languages with method overloading, like Java, name_path may have to include a method's
+signature to uniquely identify a method. Returns result summary indicating success or failure.
+  Usage: mcp_run rename_symbol <json_args>
+  Args: ['name_path', 'relative_path', 'new_name']
+- write_memory: [CONTEXTUAL] Write some information (utf-8-encoded) about this project that can be useful for future tasks to a memory in md format.
+The memory name should be meaningful.. Use this to check past project decisions or save new insights.
+  Usage: mcp_run write_memory <json_args>
+  Args: ['memory_file_name', 'content', 'max_answer_chars']
+- read_memory: [CONTEXTUAL] Read the content of a memory file. This tool should only be used if the information
+is relevant to the current task. You can infer whether the information
+is relevant from the memory file name.
+You should not read the same memory file multiple times in the same conversation.. Use this to check past project decisions or save new insights.
+  Usage: mcp_run read_memory <json_args>
+  Args: ['memory_file_name', 'max_answer_chars']
+- list_memories: List available memories. Any memory can be read using the `read_memory` tool.
+  Usage: mcp_run list_memories <json_args>
+- delete_memory: [CONTEXTUAL] Delete a memory file. Should only happen if a user asks for it explicitly,
+for example by saying that the information retrieved from a memory file is no longer correct
+or no longer relevant for the project.. Use this to check past project decisions or save new insights.
+  Usage: mcp_run delete_memory <json_args>
+  Args: ['memory_file_name']
+- edit_memory: [CONTEXTUAL] Replaces content matching a regular expression in a memory.. Use this to check past project decisions or save new insights.
+  Usage: mcp_run edit_memory <json_args>
+  Args: ['memory_file_name', 'needle', 'repl', 'mode']
+- execute_shell_command: Execute a shell command and return its output. If there is a memory about suggested commands, read that first.
+Never execute unsafe shell commands!
+IMPORTANT: Do not use this tool to start
+  * long-running processes (e.g. servers) that are not intended to terminate quickly,
+  * processes that require user interaction. Returns a JSON object containing the command's stdout and optionally stderr output.
+  Usage: mcp_run execute_shell_command <json_args>
+  Args: ['command', 'cwd', 'capture_stderr', 'max_answer_chars']
+- activate_project: Activates the project with the given name or path.
+  Usage: mcp_run activate_project <json_args>
+  Args: ['project']
+- switch_modes: Activates the desired modes, like ["editing", "interactive"] or ["planning", "one-shot"].
+  Usage: mcp_run switch_modes <json_args>
+  Args: ['modes']
+- get_current_config: Print the current configuration of the agent, including the active and available projects, tools, contexts, and modes.
+  Usage: mcp_run get_current_config <json_args>
+- check_onboarding_performed: Checks whether project onboarding was already performed.
+You should always call this tool before beginning to actually work on the project/after activating a project.
+  Usage: mcp_run check_onboarding_performed <json_args>
+- onboarding: Call this tool if onboarding was not performed yet.
+You will call this tool at most once per conversation. Returns instructions on how to create the onboarding information.
+  Usage: mcp_run onboarding <json_args>
+- think_about_collected_information: Think about the collected information and whether it is sufficient and relevant.
+This tool should ALWAYS be called after you have completed a non-trivial sequence of searching steps like
+find_symbol, find_referencing_symbols, search_files_for_pattern, read_file, etc.
+  Usage: mcp_run think_about_collected_information <json_args>
+- think_about_task_adherence: Think about the task at hand and whether you are still on track.
+Especially important if the conversation has been going on for a while and there
+has been a lot of back and forth.
+
+This tool should ALWAYS be called before you insert, replace, or delete code.
+  Usage: mcp_run think_about_task_adherence <json_args>
+- think_about_whether_you_are_done: Whenever you feel that you are done with what the user has asked for, it is important to call this tool.
+  Usage: mcp_run think_about_whether_you_are_done <json_args>
+- prepare_for_new_conversation: Instructions for preparing for a new conversation. This tool should only be called on explicit user request.
+  Usage: mcp_run prepare_for_new_conversation <json_args>
+- initial_instructions: Provides the 'Serena Instructions Manual', which contains essential information on how to use the Serena toolbox.
+IMPORTANT: If you have not yet read the manual, call this tool immediately after you are given your task by the user,
+as it will critically inform you!.
+  Usage: mcp_run initial_instructions <json_args>
+
+[REASONING TOOLS - Provided by sequential_thinking]
+- sequentialthinking: [STRONGLY RECOMMENDED] A detailed tool for dynamic and reflective problem-solving through thoughts.
+This tool helps analyze problems through a flexible thinking process that can adapt and evolve.
+Each thought can build on, question, or revise previous insights as understanding deepens.
+
+When to use this tool:
+- Breaking down complex problems into steps
+- Planning and design with room for revision
+- Analysis that might need course correction
+- Problems where the full scope might not be clear initially
+- Problems that require a multi-step solution
+- Tasks that need to maintain context over multiple steps
+- Situations where irrelevant information needs to be filtered out
+
+Key features:
+- You can adjust total_thoughts up or down as you progress
+- You can question or revise previous thoughts
+- You can add more thoughts even after reaching what seemed like the end
+- You can express uncertainty and explore alternative approaches
+- Not every thought needs to build linearly - you can branch or backtrack
+- Generates a solution hypothesis
+- Verifies the hypothesis based on the Chain of Thought steps
+- Repeats the process until satisfied
+- Provides a correct answer
+
+Parameters explained:
+- thought: Your current thinking step, which can include:
+  * Regular analytical steps
+  * Revisions of previous thoughts
+  * Questions about previous decisions
+  * Realizations about needing more analysis
+  * Changes in approach
+  * Hypothesis generation
+  * Hypothesis verification
+- nextThoughtNeeded: True if you need more thinking, even if at what seemed like the end
+- thoughtNumber: Current number in sequence (can go beyond initial total if needed)
+- totalThoughts: Current estimate of thoughts needed (can be adjusted up/down)
+- isRevision: A boolean indicating if this thought revises previous thinking
+- revisesThought: If is_revision is true, which thought number is being reconsidered
+- branchFromThought: If branching, which thought number is the branching point
+- branchId: Identifier for the current branch (if any)
+- needsMoreThoughts: If reaching end but realizing more thoughts needed
+
+You should:
+1. Start with an initial estimate of needed thoughts, but be ready to adjust
+2. Feel free to question or revise previous thoughts
+3. Don't hesitate to add more thoughts if needed, even at the "end"
+4. Express uncertainty when present
+5. Mark thoughts that revise previous thinking or branch into new paths
+6. Ignore information that is irrelevant to the current step
+7. Generate a solution hypothesis when appropriate
+8. Verify the hypothesis based on the Chain of Thought steps
+9. Repeat the process until satisfied with the solution
+10. Provide a single, ideally correct answer as the final output
+11. Only set nextThoughtNeeded to false when truly done and a satisfactory answer is reached. Use this proactively for complex architectural decisions.
+  Usage: mcp_run sequentialthinking <json_args>
+  Args: ['thought', 'nextThoughtNeeded', 'thoughtNumber', 'totalThoughts', 'isRevision', 'revisesThought', 'branchFromThought', 'branchId', 'needsMoreThoughts']
+
+[DOCUMENTATION TOOLS - Provided by context7]
+- resolve-library-id: Resolves a package/product name to a Context7-compatible library ID and returns matching libraries.
+
+You MUST call this function before 'query-docs' to obtain a valid Context7-compatible library ID UNLESS the user explicitly provides a library ID in the format '/org/project' or '/org/project/version' in their query.
+
+Selection Process:
+1. Analyze the query to understand what library/package the user is looking for
+2. Return the most relevant match based on:
+- Name similarity to the query (exact matches prioritized)
+- Description relevance to the query's intent
+- Documentation coverage (prioritize libraries with higher Code Snippet counts)
+- Source reputation (consider libraries with High or Medium reputation more authoritative)
+- Benchmark Score: Quality indicator (100 is the highest score)
+
+Response Format:
+- Return the selected library ID in a clearly marked section
+- Provide a brief explanation for why this library was chosen
+- If multiple good matches exist, acknowledge this but proceed with the most relevant one
+- If no good matches exist, clearly state this and suggest query refinements
+
+For ambiguous queries, request clarification before proceeding with a best-guess match.
+
+IMPORTANT: Do not call this tool more than 3 times per question. If you cannot find what you need after 3 calls, use the best result you have.
+  Usage: mcp_run resolve-library-id <json_args>
+  Args: ['query', 'libraryName']
+- query-docs: Retrieves and queries up-to-date documentation and code examples from Context7 for any programming library or framework.
+
+You must call 'resolve-library-id' first to obtain the exact Context7-compatible library ID required to use this tool, UNLESS the user explicitly provides a library ID in the format '/org/project' or '/org/project/version' in their query.
+
+IMPORTANT: Do not call this tool more than 3 times per question. If you cannot find what you need after 3 calls, use the best information you have.
+  Usage: mcp_run query-docs <json_args>
+  Args: ['libraryId', 'query']
+Example: mcp_run search_memory {"query": "how to use docker"}
+
+
+
+[DECISION LOGIC & STRICT EVIDENCE CHECK]
+1. **EVIDENCE CHECK (CRITICAL)**: Look at [CONVERSATION HISTORY]. Do you see **PHYSICAL EVIDENCE** of completion?
+   - **File Tasks**: Did you see the *actual content* of created/modified files (either via `read_file`/`view` OR displayed within the shell command used to create/update them)?
+   - **Action Tasks**: Did you see a *verification command output* (e.g., `curl` response, `ps` output, `pytest` logs, `grep` matches) proving success?
+   - **NO (Summary Only)**: You see only Hassan's claims without the raw results. You MUST command a verification step. Do NOT finish.
+   - **YES (Visible Evidence)**: Proceed to step 2.
+
+2. **VERIFICATION**: Compare the *visible evidence* against [CONSTRAINTS] and [CURRENT ACTIVE TASK HIERARCHY].
+   - If the evidence shows errors, wrong language, or missing info: Command Hassan to fix it.
+   - If the evidence confirms success: Proceed to step 3.
+
+3. **COMPLETION**: Set "status": "completed" ONLY IF you have physically verified the results in step 1.
+
+4. **Ignore Extensions**: If Hassan suggests optional expansions (e.g., "I can also do X"), IGNORE THEM. Focus only on the main task.
+
+5. **Format**: Output ONLY the raw JSON object.
+
+6. **Anti-Looping Rule**: If you find yourself issuing the same verification command (like `cat` or `read_file`) more than twice on the same files without making progress, assume you have enough information and proceed to the next logical step (e.g., declaring completion or fixing a different problem).
+
+[INSTRUCTIONS]
+1. Focus ONLY on the [CURRENT ACTIVE TASK HIERARCHY].
+2. Analyze the [CONSTRAINTS] and [LAST HASSAN OUTPUT].
+3. Determine the NEXT single, specific, and actionable command/query for Hassan.
+4. If ALL parts of the [CURRENT ACTIVE TASK HIERARCHY] are complete AND you have physically verified the results in Step 1, set status to "completed".
+5. Output ONLY raw JSON. Start with { and end with }.
+
+[CRITICAL RULE]
+- Keep commands CONCISE.
+- Do NOT repeat the exact same command if it failed.
+
+[FINAL WARNING]
+Your response is piped directly to a parser.
+Any text outside the JSON object will cause a system crash.
+Output ONLY the raw JSON string.
+
+[OUTPUT FORMAT]
+You must output ONLY a single valid JSON object.
+DO NOT use markdown code blocks (e.g., ```json).
+DO NOT include any explanations, reasoning, or conversational text.
+Your entire response must be parseable by `json.loads()`.
+
+Required Schema:
+{"command": "<next CLI command string>", "status": "continue"}
+OR
+{"command": "", "status": "completed"}
+
+
+[2025-12-30 10:45:52] BRAIN RESPONSE
+--------------------------------------------------------------------------------
+MISSION_FAILED: Brain CLI Error - Loaded cached credentials. | Error when talking to Gemini API Full report available at: /var/folders/0v/c507vscd6ns61h_p5dbvf6zh0000gn/T/gemini-client-error-Turn.run-sendMessageStream-2025-12-30T01-45-52-864Z.json | [API Error: You have exhausted your capacity on this model. Your quota will reset after 3h50m47s.] | An unexpected critical error occurred:[object Object]

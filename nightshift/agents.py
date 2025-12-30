@@ -29,9 +29,9 @@ class Brain:
         self.settings = settings
         self.mission_config = mission_config
         
-        # Robust root detection
+        # Robust root detection: Only use project_root
         project_root = self.mission_config.get("project", {}).get("project_root")
-        self.root = os.path.abspath(self.mission_config.get("root") or project_root or os.getcwd())
+        self.root = os.path.abspath(os.path.expanduser(project_root or os.getcwd()))
         self.log_dir = log_dir
 
         self.brain_config = self.settings.get("brain", {})
@@ -652,7 +652,7 @@ class Hassan:
         while True:
             try:
                 project_root = self.mission_config.get("project", {}).get("project_root")
-                cwd = self.mission_config.get("root") or project_root or os.getcwd()
+                cwd = os.path.abspath(os.path.expanduser(project_root or os.getcwd()))
                 
                 process = subprocess.Popen(
                     cmd_list,
