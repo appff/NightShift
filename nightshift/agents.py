@@ -301,6 +301,13 @@ OR
         memory_section = f"\n[PAST MEMORIES / LESSONS LEARNED]\n{past_memories}\n" if past_memories else ""
         reflexion_section = f"\n{reflexion_context}\n" if reflexion_context else ""
 
+        cognitive_strategy = """
+[COGNITIVE STRATEGY (AUTONOMOUS TOOL USAGE)]
+- If a task is complex or requires multi-step planning, you MUST proactively use 'sequential_thinking' tools to explore logic before issuing commands.
+- If you lack specific project knowledge, check 'serena' memory tools or 'context7' documentation before guessing.
+- Save critical architectural insights using memory tools to ensure project continuity.
+"""
+
         output_instruction = "5. Output ONLY the command string."
         if output_format == "json":
             output_instruction = "5. Output ONLY raw JSON. Start with { and end with }."
@@ -316,6 +323,7 @@ Your "Hassan" (Worker) is a CLI tool that executes your commands.
 2. **Context Understanding**: If the [CURRENT ACTIVE TASK HIERARCHY] or [OVERALL MISSION CONTEXT] is in a non-English language (e.g., Korean), you MUST understand and respect it.
 3. **Artifact Generation**: If the task requires writing content in a specific language (e.g., "Write a report in Korean"), ensure your commands to Hassan explicitly preserve that language requirement.
 
+{cognitive_strategy}
 {persona_section}
 {memory_section}
 {reflexion_section}

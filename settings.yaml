@@ -246,6 +246,22 @@ personas:
     - Provide helpful microcopy and actionable guidance.
     - Avoid jargon unless it is clearly defined.
 
+# MCP Servers (optional)
+# Connects to external Model Context Protocol servers to provide dynamic tools.
+mcp_servers:
+  serena:
+    command: "uvx"
+    args: ["--from", "git+https://github.com/oraios/serena.git", "serena", "start-mcp-server"]
+    enabled: true
+  sequential_thinking:
+    command: "npx"
+    args: ["-y", "@modelcontextprotocol/server-sequential-thinking"]
+    enabled: true
+  context7:
+    command: "npx"
+    args: ["-y", "@upstash/context7-mcp@latest"]
+    enabled: true
+
 # Optional: automatic persona selection rules (first match wins).
 # flags: "i" enables case-insensitive matching.
 persona_rules:

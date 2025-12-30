@@ -23,6 +23,7 @@ from .context import ContextLoader
 from .validation import ConfidenceChecker, SelfCheckProtocol
 from .optimizer import TokenOptimizer
 from .tools import SmartTools
+from .mcp_client import MCPManager
 # -------------------
 
 
@@ -87,6 +88,8 @@ class NightShiftAgent:
         self.self_checker = SelfCheckProtocol()
         self.token_optimizer = TokenOptimizer(project_path)
         self.smart_tools = SmartTools(project_path)
+        self.mcp_manager = MCPManager(self.settings.get("mcp_servers", {}))
+        self.mcp_manager.start()
         # -----------------------------
 
         self.brain = Brain(self.settings, self.mission_config, log_dir=self.log_dir)
@@ -120,7 +123,11 @@ class NightShiftAgent:
         self.conversation_history = ""
         self.last_hassan_query = ""
         self.last_hassan_output = ""
-        self.tool_registry = "\n".join(self.settings.get("tools", []))
+        
+        base_tools = self.settings.get("tools", [])
+        mcp_tools = self.mcp_manager.get_tool_definitions()
+        self.tool_registry = "\n".join(base_tools) + "\n" + mcp_tools
+        
         self.brain_output_format = (self.settings.get("brain") or {}).get("output_format", "text")
         self.task_summaries = []
         self.run_start_time = datetime.now()
@@ -847,6 +854,26 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                     last_output = smart_output
                     continue
 
+                # Handle 'mcp_run' command via MCPManager
+                if next_action.startswith("mcp_run "):
+                    logging.info(f"⚙️  Orchestrator Intercept: MCP action detected -> {next_action}")
+                    try:
+                        # Expected format: mcp_run <tool_name> <json_args>
+                        # Using regex to split at first space after tool_name to preserve JSON integrity
+                        match = re.match(r"mcp_run\s+(\S+)\s+(.*)", next_action, re.DOTALL)
+                        if match:
+                            tool_name = match.group(1)
+                            args_json = match.group(2)
+                            mcp_output = self.mcp_manager.call_tool(tool_name, args_json)
+                        else:
+                            mcp_output = "ERROR: Invalid mcp_run format. Usage: mcp_run <tool_name> <json_args>"
+                    except Exception as e:
+                        mcp_output = f"ERROR executing MCP command: {e}"
+                    
+                    task_history += f"\n--- 🔌 MCP OUTPUT ---\n{mcp_output}\n"
+                    last_output = mcp_output
+                    continue
+
                 if safety_config.get("require_approval_for_destructive") and self._requires_approval(next_action) and not self.auto_approve_actions:
                     approval = input("Destructive action detected. Approve? [y/N]: ").strip().lower()
                     if approval != "y":
@@ -1008,6 +1035,8 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                     }
                 )
             self.hassan.cleanup()
+            if hasattr(self, 'mcp_manager'):
+                self.mcp_manager.stop()
             history_file = self.log_file_path.replace("night_shift_log", "night_shift_history")
             with open(history_file, "w", encoding="utf-8") as f:
                 f.write(self.conversation_history)

@@ -2,6 +2,12 @@
 
 All notable changes to Night Shift will be documented in this file.
 
+## [5.5.0] - 2025-12-30
+### 🧠 Autonomous Intelligence & Memory
+- **Autonomous Tool Usage**: Brain now has a fixed "Cognitive Strategy" to proactively use MCP tools (`sequential_thinking`, `serena`) for complex reasoning and memory retrieval, even without explicit mission constraints.
+- **Compelling MCP Definitions**: Enhanced tool descriptions with logical categorization (REASONING, MEMORY, DOCUMENTATION) and usage hints to guide LLM decision-making.
+- **Strategy Persistence**: The cognitive strategy is preserved even in `message_efficiency` mode, ensuring smart behavior in long sessions.
+
 ## [5.4.0] - 2025-12-30
 ### 🔌 Model Context Protocol (MCP) & Efficiency
 - **MCP Native Support**: NightShift now acts as an MCP Client, allowing Brain and Hassan to use dynamic tools from external MCP servers.
