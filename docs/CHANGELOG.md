@@ -2,6 +2,15 @@
 
 All notable changes to Night Shift will be documented in this file.
 
+## [5.4.0] - 2025-12-30
+### 🔌 Model Context Protocol (MCP) & Efficiency
+- **MCP Native Support**: NightShift now acts as an MCP Client, allowing Brain and Hassan to use dynamic tools from external MCP servers.
+  - Support for **Serena** (LSP-based code analysis & long-term memory).
+  - Support for **Sequential Thinking** (structured multi-step reasoning).
+  - Support for **Context7** (documentation-aware context).
+- **Message Efficiency Mode**: Added a new setting `message_efficiency` to suppress redundant persona guidelines in the system prompt, significantly reducing token usage in long-running missions.
+- **Improved Tool Interception**: Orchestrator now intelligently routes `mcp_run` commands to the appropriate MCP server while maintaining standard `SmartTools` for local operations.
+
 ## [5.3.1] - 2025-12-24
 ### Improved
 - **Adaptive Tooling**: The Brain now receives different tool instructions based on its intelligence level.

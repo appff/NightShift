@@ -35,6 +35,8 @@ This separation of duties—strategic planning and verification (Brain) vs. simp
 *   **🧠 Cognitive Architecture**: Agents learn from past mistakes (`ReflexionMemory`) and apply rigorous structural integrity checks before declaring a mission success.
 *   **📋 Project-as-a-Dashboard**: Manage your entire project via `mission.yaml`. Statuses (`todo`, `in_progress`, `done`) update in real-time as the dashboard evolves.
 *   **⚡ Parallel Execution**: Run independent tasks simultaneously by setting `parallel: true`.
+*   **📉 Message Efficiency Mode**: Reduce token consumption by suppressing redundant persona guidelines in long sessions.
+*   **🔌 Model Context Protocol (MCP)**: Native support for external MCP servers (Serena, Sequential Thinking, etc.) to give agents dynamic memory and reasoning tools.
 *   **⏪ Safety Net**: Automatic Git checkpoints and auto-rollback on failure.
 
 ## 🚀 Installation
@@ -112,6 +114,20 @@ Night Shift is designed to be low-maintenance. When you run it:
 ## ⚙️ Configuration
 
 For detailed configuration of drivers (AI models), safety settings, and persona rules, see `settings.example.yaml`.
+
+### Model Context Protocol (MCP)
+
+NightShift can connect to any MCP-compliant server. Configure your servers in `settings.yaml`:
+
+```yaml
+mcp_servers:
+  serena:
+    command: "uvx"
+    args: ["--from", "git+https://github.com/oraios/serena.git", "serena", "start-mcp-server"]
+  sequential_thinking:
+    command: "npx"
+    args: ["-y", "@modelcontextprotocol/server-sequential-thinking"]
+```
 
 ## 📄 License
 
