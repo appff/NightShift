@@ -1,0 +1,14 @@
+project:
+  project_root: /Users/jeongminkim/Downloads/NightShift
+mission:
+  title: Self-Guided Project Review
+  persona: architect
+  status: active
+  created_at: '2025-12-30'
+  updated_at: '2025-12-30T09:29:32.171781'
+tasks:
+- title: Perform a high-level review of the current MCP integration logic and identify
+    one potential bottleneck.
+  id: auto_review
+  status: done
+project_path: /Users/jeongminkim/Downloads/NightShift
