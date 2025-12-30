@@ -16,17 +16,32 @@ Night Shift's architecture is simple and robust, centered around two distinct ag
 
 This separation of duties—strategic planning and verification (Brain) vs. simple execution (Worker)—creates a reliable, debuggable, and effective workflow.
 
+### 📋 System Requirements
+
+To run Night Shift effectively, ensure your system meets the following requirements:
+
+- **OS**: macOS or Linux (WSL2 supported)
+- **Python**: 3.10 or higher
+- **Node.js & npm**: Required for certain MCP servers (e.g., `sequential_thinking`)
+- **uv**: Required for high-performance MCP server management (e.g., `serena`)
+- **Git**: Night Shift works best within a Git repository for safety and state management.
+- **LLM CLI**: At least one supported LLM CLI installed and configured:
+  - `claude` (Claude Code CLI)
+  - `gemini` (Google Gemini CLI)
+  - `ollama` (For local models like DeepSeek-R1, Qwen2.5, Llama3.1)
+  - `@openai/codex` (Codex CLI)
+
 ### Core Philosophy
 
 *   **Autonomy Through Verification**: True autonomy isn't just about executing commands; it's about achieving a goal. Night Shift's **Evidence-Based Done** protocol requires the Brain to find physical proof of completion, significantly reducing agent hallucinations and incomplete work.
 *   **CLI-Native**: Designed for developers, Night Shift operates directly on your filesystem using familiar command-line tools. It is not a chatbot in a browser window.
 *   **Model-Agnostic**: Leverage the power of any local or remote LLM that has a CLI wrapper (Ollama, Claude, Gemini, etc.).
 
-**v5.2** introduces the leaner, more robust **Evidence-Based Architecture**. By unifying verification into the Brain's core identity, Night Shift ensures high-quality results with reduced complexity and faster execution.
+**v5.7** introduces the leaner, more robust **Evidence-Based Architecture**. By unifying verification into the Brain's core identity, Night Shift ensures high-quality results with reduced complexity and faster execution.
 
 ---
 
-## ✨ Why Night Shift (v5.6)?
+## ✨ Why Night Shift (v5.7)?
 
 *   **🔍 Evidence-Based Done**: The Brain (Director) no longer blindly trusts the Worker's reports. Completion is only granted when **physical evidence** (file content, test logs, or command output) is visible in the session history.
 *   **⚖️ Brain as Auditor & Architect**: The Brain's identity is fixed as a high-level Auditor. It remains objective and skeptical, ensuring the Worker (Hassan) adheres to mission constraints regardless of their persona.
@@ -58,7 +73,7 @@ This script will:
 
 ---
 
-## 🚀 Quick Start (v5.6 Project-Based Workflow)
+## 🚀 Quick Start (v5.7 Project-Based Workflow)
 
 ### Step 1: Initialize Your Project
 
@@ -108,7 +123,7 @@ Night Shift is designed to be low-maintenance. When you run it:
 
 ## 📚 Documentation
 
-- `docs/architecture.md`: System structure and data flow (v5.6 Auditor Model).
+- `docs/architecture.md`: System structure and data flow (v5.7 Auditor Model).
 - `docs/features.md`: Capability overview and all available personas.
 - `docs/quality_gates.md`: How Night Shift ensures "true completion".
 
