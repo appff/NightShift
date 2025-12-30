@@ -42,6 +42,14 @@ NightShift doesn't blindly accept the first "done" signal from the Brain. It fol
 
 While these extra validation steps consume a few hundred tokens, they prevent catastrophic failures that would waste tens of thousands of tokens.
 
+## MCP-Enhanced Verification (v5.5+)
+
+With the introduction of **Model Context Protocol (MCP)** support, quality gates have become even more robust:
+
+- **Sequential Thinking**: The Brain can now use structured reasoning to "double-check" its own logic before submitting a task. This reduces the need for Orchestrator-level corrections.
+- **Serena Memory**: Insights from previous tasks are stored and retrieved to ensure cross-task consistency, preventing regressions.
+- **Symbolic Analysis**: Using Serena's LSP tools, the Brain can verify that code changes are semantically correct, not just syntactically valid.
+
 - **Prevents Costly Rework**: It's far cheaper to run a 500-token validation cycle than to re-run an entire 20,000-token task from scratch because the first attempt was subtly flawed.
 - **Ensures High-Quality Output**: It guarantees that the final output is not just complete, but correct and aligned with the persona's role.
 - **Builds Trust**: This systematic verification makes the agent's output more reliable and trustworthy.

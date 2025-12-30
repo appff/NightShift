@@ -43,6 +43,21 @@ Night Shift now incorporates "SuperClaude" inspired cognitive modules for eviden
     - **Layer 0 Bootstrap**: Initially loads only the file tree and README.
     - **Progressive Loading**: Selectively reads file contents based on task intent.
 
+### 6. MCP Native Support (`nightshift/mcp_client.py`)
+- **What**: Direct integration with **Model Context Protocol** servers.
+- **Why**: Gives agents access to external specialized tools (Long-term memory, LSP analysis, Web search).
+- **How**: Orchestrator acts as an MCP Client, routing `mcp_run` commands to servers like **Serena**, **Sequential Thinking**, and **Context7**.
+
+### 7. Autonomous Cognitive Strategy
+- **What**: Hard-coded reasoning guidelines injected into the Brain.
+- **Why**: Compels the agent to think before acting and use dynamic memory tools without being explicitly told.
+- **How**: Brain proactively uses `sequential_thinking` for complex plans and `serena` for project context.
+
+### 8. Message Efficiency Mode
+- **What**: A setting to suppress redundant persona text in long sessions.
+- **Why**: Saves 30-50% of tokens in complex missions by removing large behavioral guidelines once the task is understood.
+- **How**: Enable via `message_efficiency: true` in `settings.yaml`.
+
 ## Available Personas (SuperClaude Framework) 🎭
 
 Night Shift includes a suite of specialized agent personas located in `personas/`. Set `persona: "<name>"` in your `mission.yaml` to use them.

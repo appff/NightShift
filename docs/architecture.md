@@ -19,6 +19,7 @@ The orchestrator coordinates these roles per mission task, writes logs, and mana
 - **`nightshift/context.py`** (New): **Context Loader** for handling Markdown-based personas (`personas/*.md`).
 - **`nightshift/validation.py`** (New): **Confidence Checker** (Pre-flight) and **Self-Check Protocol** (Post-flight).
 - **`nightshift/optimizer.py`** (New): **Token Optimizer** for Layer 0 context bootstrapping.
+- **`nightshift/mcp_client.py`** (New): **MCP Manager** for connecting to external Model Context Protocol servers.
 - `nightshift/utils.py`, `constants.py`: Helpers and global configurations.
 
 ## Data Flow
@@ -27,12 +28,17 @@ The orchestrator coordinates these roles per mission task, writes logs, and mana
     *   `mission.yaml` parsed (repo-scoped missions with task status tracking).
     *   **Context Loader** loads the specific persona (e.g., `architect.md`) from Night Shift's `personas/` directory by default.
     *   **Token Optimizer** generates "Layer 0 Context" (File Tree + README) to minimize initial tokens.
+    *   **MCP Manager** connects to configured servers (Serena, Sequential Thinking, etc.) and discovers available tools.
 
 2.  **Task Execution Loop**:
     *   **Pre-Flight**: **Confidence Checker** evaluates the task. If confidence is low, it warns or suggests research.
     *   **Brain Planning**: Brain receives the task + Layer 0 Context.
-        *   **Reflexion Injection**: If the Brain encounters an error, **Reflexion Memory** injects past solutions for similar errors.
-    *   **Hassan Execution**: Hassan executes commands.
+        *   **Reflexion Injection**: Past solutions for similar errors are injected.
+        *   **Cognitive Strategy**: Permanent strategic guidelines (Autonomous Tool Usage) are applied.
+    *   **Tool Routing**: Orchestrator intercepts commands.
+        *   Local actions (read/write/edit) go to **SmartTools**.
+        *   Intelligence/Memory actions (`mcp_run`) go to **MCP Manager**.
+    *   **Hassan Execution**: Hassan executes remaining CLI commands.
     *   **Structured Reasoning**: Brain outputs JSON (`{"command": "...", "status": "..."}`).
 
 3.  **Completion & Verification**:
@@ -75,3 +81,20 @@ Night Shift uses a **"Context-Oriented Config"** approach. Instead of rigid code
     *   *Effect*: Hassan generates code and executes commands adhering to the persona's constraints and style.
 
 This ensures that both the **Planner (Brain)** and the **Executor (Hassan)** align with the same specialized mindset throughout the task.
+
+### Cognitive Strategy (Autonomous Tool Usage)
+
+Night Shift implements a permanent **Cognitive Strategy** in the Brain's reasoning process. This encourages the agent to:
+- Proactively use **Sequential Thinking** for complex logic.
+- Consult **Serena Memory** or **Context7 Docs** before guessing.
+- Save architectural insights to ensure project continuity.
+
+This strategy is hard-coded into the core prompt, making it mission-independent and highly reliable.
+
+### Message Efficiency Mode
+
+To handle long-running sessions and minimize costs, Night Shift supports a **Message Efficiency Mode** (`message_efficiency: true`).
+- **How it works**: It suppresses the redundant, verbose persona guidelines from every turn of the conversation.
+- **Why**: Standard persona files can be large (1KB+). Removing them after the initial task setup saves significant tokens without losing the Brain's core strategic intelligence.
+- **Persistence**: While persona-specific details are removed, the **Cognitive Strategy** and **Task Constraints** are always preserved.
+
