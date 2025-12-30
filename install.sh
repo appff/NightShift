@@ -21,6 +21,11 @@ echo -e "${BLUE}=======================================${NC}"
 command -v git >/dev/null 2>&1 || { echo -e "${RED}Error: git is not installed.${NC}"; exit 1; }
 command -v python3 >/dev/null 2>&1 || { echo -e "${RED}Error: python3 is not installed.${NC}"; exit 1; }
 
+# Recommended but optional for core (required for MCP)
+echo -e "${BLUE}Checking optional prerequisites for MCP features...${NC}"
+command -v uv >/dev/null 2>&1 || echo -e "${YELLOW}Warning: 'uv' not found. Recommended for Serena MCP.${NC}"
+command -v npx >/dev/null 2>&1 || echo -e "${YELLOW}Warning: 'npx' not found. Required for Sequential Thinking MCP.${NC}"
+
 # 2. Clone or Update Repo
 if [ -d "$INSTALL_DIR" ]; then
     echo -e "${YELLOW}Found existing installation at $INSTALL_DIR${NC}"

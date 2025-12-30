@@ -248,6 +248,7 @@ personas:
 
 # MCP Servers (optional)
 # Connects to external Model Context Protocol servers to provide dynamic tools.
+mcp_enabled: true
 mcp_servers:
   serena:
     command: "uvx"

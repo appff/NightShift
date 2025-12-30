@@ -2,6 +2,12 @@
 
 All notable changes to Night Shift will be documented in this file.
 
+## [5.6.0] - 2025-12-30
+### 🚀 Integrated Installation & Control
+- **Unified Installer**: `install.sh` updated to check for optional MCP prerequisites (`uv`, `npx`) and ensure all dependencies are ready for a full-featured experience.
+- **Global MCP Toggle**: Added `mcp_enabled: true/false` in `settings.yaml` to allow users to completely disable MCP features if desired.
+- **Robust Orchestration**: Orchestrator now gracefully handles the absence of MCP when disabled or not configured.
+
 ## [5.5.0] - 2025-12-30
 ### 🧠 Autonomous Intelligence & Memory
 - **Autonomous Tool Usage**: Brain now has a fixed "Cognitive Strategy" to proactively use MCP tools (`sequential_thinking`, `serena`) for complex reasoning and memory retrieval, even without explicit mission constraints.

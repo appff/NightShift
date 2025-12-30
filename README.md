@@ -117,9 +117,10 @@ For detailed configuration of drivers (AI models), safety settings, and persona 
 
 ### Model Context Protocol (MCP)
 
-NightShift can connect to any MCP-compliant server. Configure your servers in `settings.yaml`:
+NightShift can connect to any MCP-compliant server. Configure your servers in `settings.yaml`. You can globally disable MCP by setting `mcp_enabled: false`.
 
 ```yaml
+mcp_enabled: true
 mcp_servers:
   serena:
     command: "uvx"

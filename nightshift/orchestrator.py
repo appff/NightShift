@@ -88,9 +88,13 @@ class NightShiftAgent:
         self.self_checker = SelfCheckProtocol()
         self.token_optimizer = TokenOptimizer(project_path)
         self.smart_tools = SmartTools(project_path)
-        self.mcp_manager = MCPManager(self.settings.get("mcp_servers", {}))
-        self.mcp_manager.start()
-        # -----------------------------
+        
+        # --- MCP INTEGRATION ---
+        self.mcp_enabled = self.settings.get("mcp_enabled", True)
+        self.mcp_manager = MCPManager(self.settings.get("mcp_servers", {})) if self.mcp_enabled else None
+        if self.mcp_manager:
+            self.mcp_manager.start()
+        # -----------------------
 
         self.brain = Brain(self.settings, self.mission_config, log_dir=self.log_dir)
         self.hassan = Hassan(self.settings, self.mission_config)
@@ -125,7 +129,7 @@ class NightShiftAgent:
         self.last_hassan_output = ""
         
         base_tools = self.settings.get("tools", [])
-        mcp_tools = self.mcp_manager.get_tool_definitions()
+        mcp_tools = self.mcp_manager.get_tool_definitions() if self.mcp_manager else ""
         self.tool_registry = "\n".join(base_tools) + "\n" + mcp_tools
         
         self.brain_output_format = (self.settings.get("brain") or {}).get("output_format", "text")
