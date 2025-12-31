@@ -1,0 +1,52 @@
+project:
+  name: Toy Calculator Project
+  project_root: /Users/jeongminkim/Downloads/NightShift/sample_missions/
+mission:
+  name: Design, implement, and test a simple calculator
+  status: active
+  created_at: '2025-12-31'
+  updated_at: '2025-12-31T16:02:51.891122'
+  persona: general
+parallel: false
+tasks:
+- id: CALC-001
+  title: Define requirements and design
+  status: done
+  priority: P1
+  sub_tasks:
+  - Propose a minimal design for a CLI calculator supporting +, -, *, / with operator
+    precedence.
+  - Define how to handle invalid expressions and division by zero.
+- id: CALC-002
+  title: Implement core parsing and evaluation
+  status: done
+  priority: P1
+  sub_tasks:
+  - Implement a tokenizer for numbers, operators, and parentheses.
+  - Implement expression evaluation with correct precedence.
+- id: CALC-003
+  title: Implement CLI entry point
+  status: done
+  priority: P1
+  sub_tasks:
+  - Provide a CLI that accepts an expression string and prints the result.
+  - Return non-zero exit code for invalid expressions.
+- id: CALC-004
+  title: Add tests for core functionality
+  status: done
+  priority: P1
+  sub_tasks:
+  - Write unit tests for basic operations.
+  - Write unit tests for operator precedence and parentheses.
+- id: CALC-005
+  title: Add tests for errors
+  priority: P1
+  sub_tasks:
+  - Add tests for division by zero.
+  - Add tests for invalid expressions.
+  status: done
+constraints:
+- Use only Python standard library.
+- Keep the code simple and readable.
+- Include tests that can be run with: python -m unittest
+- DO NOT COMMIT AND PUSH

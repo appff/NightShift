@@ -509,6 +509,27 @@ Return ONLY valid JSON:
             return f"read_file {shlex.quote(preferred)}"
         return "ls"
 
+    def _normalize_plan_text(self, plan_text):
+        if not plan_text:
+            return plan_text
+        if "google_web_search" not in plan_text:
+            return plan_text
+        lines = plan_text.splitlines()
+        normalized = []
+        query_pattern = re.compile(r"['\"]([^'\"]+)['\"]")
+        for line in lines:
+            if "google_web_search" not in line:
+                normalized.append(line)
+                continue
+            queries = query_pattern.findall(line)
+            if not queries:
+                normalized.append(line.replace("google_web_search", "view"))
+                continue
+            urls = [f"https://www.google.com/search?q={urllib.parse.quote_plus(q)}" for q in queries]
+            url_text = " and ".join(f"`view {url}`" for url in urls)
+            normalized.append(f"*   **Research:** Use {url_text} to gather sources.")
+        return "\n".join(normalized)
+
     def _handle_quota_limit(self, error_message):
         logging.warning(f"🚨 Quota limit hit detected! Analyzing reset time: {error_message[:100]}...")
         try:
@@ -550,6 +571,22 @@ Return ONLY valid JSON:
         except Exception as e:
             logging.error(f"❌ Error in quota handling: {e}. Waiting for 10 minutes as fallback.")
             time.sleep(600)
+
+    def _is_quota_error(self, text):
+        if not text:
+            return False
+        patterns = [
+            r"resource exhausted",
+            r"ratelimitexceeded",
+            r"status\s*[:=]\s*429",
+            r"error\s*[:=]\s*429",
+            r"quota will reset after",
+            r"too many requests",
+        ]
+        for pattern in patterns:
+            if re.search(pattern, text, re.IGNORECASE):
+                return True
+        return False
 
     def _get_git_head(self):
         try:
@@ -836,17 +873,25 @@ Do NOT execute anything yourself. Output ONLY the plan as bullet points.
 [OUTPUT]
 - Use 3-7 bullets.
 - Use `view <url>` for any web searches (no external browser tools).
+- Do NOT mention `google_web_search`. Use concrete `view https://www.google.com/search?q=...` URLs.
 - For tests/commands, include the exact command Hassan should run (e.g., `python -m unittest ...`).
+- Use `cat <path>` for file content checks (do not use `read_file`).
 - Include explicit file outputs and verification steps for Hassan.
 """
-                plan_text = self.brain._run_cli_command(plan_prompt)
+                plan_text = self._normalize_plan_text(self.brain._run_cli_command(plan_prompt))
+                if self._is_quota_error(plan_text):
+                    self._handle_quota_limit(plan_text)
+                    plan_text = self._normalize_plan_text(self.brain._run_cli_command(plan_prompt))
+                if plan_text.startswith("MISSION_FAILED"):
+                    logging.error(f"❌ Plan generation failed: {plan_text}")
+                    return f"TASK_{i}_FAILED: {plan_text}"
                 self.metrics.record_brain_response(plan_text)
                 logging.info(f"\n--- 🧠 DIRECTOR PLAN ---\n{plan_text}")
                 hassan_instruction = (
                     "Execute the following plan exactly and complete all deliverables.\n"
                     "After finishing, provide a concise summary and include evidence.\n\n"
                     "[EVIDENCE REQUIREMENTS]\n"
-                    "- Files created/modified: show `ls -l <path>` and `read_file <path>`.\n"
+                    "- Files created/modified: show `ls -l <path>` and `cat <path>`.\n"
                     "- Files deleted: show `ls <path>` failure output.\n"
                     "- Commands/tests/builds: include the full command output.\n"
                     "- Git actions: show `git status -sb` and `git log -1 --stat`.\n"
@@ -911,6 +956,10 @@ Do NOT execute anything yourself. Output ONLY the plan as bullet points.
                     reflexion_context=reflexion_context,
                     batch_mode=self.batch_mode
                 )
+                if self._is_quota_error(raw_brain_response):
+                    self._handle_quota_limit(raw_brain_response)
+                    last_output = "SYSTEM: Quota reset period has passed. Please continue the task."
+                    continue
                 self.metrics.record_brain_response(raw_brain_response)
                 
                 # Pre-strip code fences for cleaner logging
@@ -1262,6 +1311,9 @@ Do NOT execute anything yourself. Output ONLY the plan as bullet points.
                 "provide 2-3 concise 'Lessons Learned' for future similar tasks. Output only the bullets."
             )
             insights = self.brain._run_cli_command(reflection_prompt)
+            if self._is_quota_error(insights):
+                self._handle_quota_limit(insights)
+                insights = self.brain._run_cli_command(reflection_prompt)
             if not insights.startswith("MISSION_FAILED"):
                 self.memory_manager.save_memory(insights)
 
