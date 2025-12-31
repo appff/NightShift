@@ -8,7 +8,7 @@ mission:
   name: 최근 Bitcoin 시황조사
   status: active
   created_at: '2025-01-01'
-  updated_at: '2025-12-24T15:28:25.248160'
+  updated_at: '2025-12-31T14:01:57.984762'
   persona: deep-research
 parallel: false
 tasks:
@@ -18,6 +18,7 @@ tasks:
   sub_tasks:
   - 최신 뉴스기사 3개만 찾아서 작성할 것
   - report.md에 보고서를 작성해줄 것 A4 반 정도 분량
+  status: in_progress
 constraints:
 - 보고서는 한국어로 작성해 줄 것
 - DO NOT COMMIT AND PUSH

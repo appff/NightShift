@@ -7,6 +7,7 @@ import subprocess
 import time
 import sys
 import shlex
+import urllib.parse
 from datetime import datetime, timedelta
 from concurrent.futures import ThreadPoolExecutor
 
@@ -90,6 +91,8 @@ class NightShiftAgent:
         self.smart_tools = SmartTools(self.root)
         self.batch_config = self.settings.get("batch", {})
         self.batch_mode = self.batch_config.get("enabled", False)
+        self.two_phase_config = self.settings.get("two_phase", {})
+        self.two_phase_enabled = self.two_phase_config.get("enabled", False)
         metrics_config = self.settings.get("metrics", {})
         self.metrics = PerformanceMetrics(self.root, enabled=metrics_config.get("enabled", True))
         
@@ -425,6 +428,45 @@ Return ONLY valid JSON:
             return False
         return "&&" in command or "\n" in command
 
+    def _map_virtual_command(self, command):
+        if not command:
+            return command
+        stripped = command.strip()
+        if not stripped.startswith("google_web_search"):
+            return command
+        query = ""
+        query_match = re.search(r"\b(?:query|q)\s*=\s*(\".*?\"|\S+)", stripped)
+        if query_match:
+            query = query_match.group(1).strip().strip("\"")
+        if not query:
+            try:
+                parts = shlex.split(stripped)
+            except ValueError:
+                return command
+            if len(parts) < 2:
+                return command
+            query = " ".join(parts[1:]).strip()
+        if not query:
+            return command
+        url = "https://www.google.com/search?q=" + urllib.parse.quote_plus(query)
+        return f"view {url}"
+
+    def _should_block_brain_execution(self, command):
+        if not command:
+            return False
+        stripped = command.strip()
+        read_only_prefixes = ("read_file ", "ls", "rg ", "grep ", "find ", "glob ")
+        if stripped.startswith(read_only_prefixes):
+            return False
+        if stripped.upper().startswith("BATCH:"):
+            return True
+        if stripped.startswith(("run_shell_command ", "write_file ", "edit ", "mcp_run ")):
+            return True
+        shell_tokens = ("&&", ";", "|", ">", "<")
+        if any(token in stripped for token in shell_tokens):
+            return True
+        return False
+
     def _handle_quota_limit(self, error_message):
         logging.warning(f"🚨 Quota limit hit detected! Analyzing reset time: {error_message[:100]}...")
         try:
@@ -589,6 +631,18 @@ Return ONLY valid JSON:
 
     def _execute_single_task(self, i, task_item, all_tasks, constraints, safety_config, reviewer_mode=False):
         task_block = task_item.get("text") if isinstance(task_item, dict) else self._format_task_block(task_item)
+        if isinstance(task_item, dict) and task_item.get("sub_tasks"):
+            sub_tasks = task_item.get("sub_tasks")
+            if isinstance(sub_tasks, list) and sub_tasks:
+                lines = []
+                for entry in sub_tasks:
+                    if isinstance(entry, str):
+                        lines.append(f"- {entry}")
+                    elif isinstance(entry, dict):
+                        for key, value in entry.items():
+                            lines.append(f"- {key}: {value}")
+                sub_tasks_text = "\n".join(lines)
+                task_block = f"{task_block}\n\n[SUB_TASKS]\n{sub_tasks_text}"
         task_id = task_item.get("id") if isinstance(task_item, dict) else None
 
         # --- 1. PRE-FLIGHT CHECK (Confidence) ---
@@ -725,6 +779,43 @@ You are a code reviewer. Provide a concise review plan and key changes you would
             self_check_retry_count = 0  # Prevention for infinite self-check loops
             turn_count = 0
 
+            if self.two_phase_enabled:
+                plan_prompt = f"""
+You are the Director. Create a concise execution plan for Hassan.
+Do NOT execute anything yourself. Output ONLY the plan as bullet points.
+
+[TASK]
+{task_block}
+
+[CONSTRAINTS]
+{constraints}
+
+[OUTPUT]
+- Use 3-7 bullets.
+- Use `view <url>` for any web searches (no external browser tools).
+- Include explicit file outputs and verification steps for Hassan.
+"""
+                plan_text = self.brain._run_cli_command(plan_prompt)
+                self.metrics.record_brain_response(plan_text)
+                logging.info(f"\n--- 🧠 DIRECTOR PLAN ---\n{plan_text}")
+                hassan_instruction = (
+                    "Execute the following plan exactly and complete all deliverables.\n"
+                    "After finishing, provide a concise summary and include evidence.\n\n"
+                    "[EVIDENCE REQUIREMENTS]\n"
+                    "- Files created/modified: show `ls -l <path>` and `read_file <path>`.\n"
+                    "- Files deleted: show `ls <path>` failure output.\n"
+                    "- Commands/tests/builds: include the full command output.\n"
+                    "- Git actions: show `git status -sb` and `git log -1 --stat`.\n"
+                    "- Research/doc: list source URLs and include the final file contents.\n\n"
+                    f"[PLAN]\n{plan_text}"
+                )
+                hassan_output = self.hassan.run(hassan_instruction, print_query=True)
+                self.metrics.record_hassan_response(hassan_output)
+                logging.info(f"\n--- 🦾 HASSAN OUTPUT ---\n{self.brain.clean_ansi(hassan_output)}")
+                task_history += f"\n--- 🧠 DIRECTOR PLAN ---\n{plan_text}\n"
+                task_history += f"\n--- 🦾 HASSAN OUTPUT ---\n{self.brain.clean_ansi(hassan_output)}\n"
+                last_output = hassan_output
+
             while True:
                 turn_count += 1
                 turn_phase = "START" if turn_count == 1 else "CONTINUE"
@@ -768,8 +859,18 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                         raw_brain_response = match.group(1)
 
                 next_action = self._interpret_brain_response(raw_brain_response)
+                mapped_action = self._map_virtual_command(next_action)
+                if mapped_action != next_action:
+                    logging.info(f"⚙️  Orchestrator Map: {next_action} -> {mapped_action}")
+                    next_action = mapped_action
                 if self._should_prefix_batch(next_action):
                     next_action = f"BATCH: {next_action}"
+                if self._should_block_brain_execution(next_action):
+                    logging.info("⚠️  Orchestrator Guard: Blocking Brain execution; requesting Hassan to perform the task.")
+                    next_action = (
+                        "Please complete the task yourself and make sure all required files are created or updated. "
+                        "After finishing, summarize what you did and provide verification steps or output."
+                    )
                 
                 # Log the final decision clearly to the console
                 if next_action == "MISSION_COMPLETED":
@@ -804,7 +905,11 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                         else:
                             logging.warning(f"⚠️ Self-Check Failed (Attempt {self_check_retry_count}): {self_check_result['missing']}")
                             # Feedback to Brain directly via history/output, DO NOT run as command
-                            failure_msg = f"SYSTEM ALERT: Self-Check Failed. Missing evidence for: {self_check_result['missing']}. You must provide evidence or verify the work."
+                            failure_msg = (
+                                "SYSTEM ALERT: Self-Check Failed. Missing evidence for: "
+                                f"{self_check_result['missing']}. "
+                                "Provide verification outputs (ls/read_file/command logs or git status/log) and retry."
+                            )
                             task_history += f"\n--- 🛡️ SELF-CHECK FEEDBACK ---\n{failure_msg}\n"
                             last_output = failure_msg
                             continue # Skip hassan.run and go back to Brain
@@ -891,34 +996,8 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                         logging.info(f"✅ Task {i} likely complete (repeated observations).")
                         break
 
-                # 2. Smart Mutation Tools (Intercept edit/write)
-                elif next_action.startswith("edit "):
-                    logging.info(f"⚙️  Orchestrator Intercept: Smart Edit")
-                    self.metrics.record_command(next_action, local_check=False, batch=False)
-                    try:
-                        parts = shlex.split(next_action)
-                        intercepted_output = self.smart_tools.edit_file(parts[1], parts[2], parts[3]) if len(parts) >= 4 else "ERROR: 'edit' requires path, old, new"
-                    except Exception as e: intercepted_output = f"ERROR: {e}"
-                    task_history += f"\n--- 🛠️ SMART EDIT OUTPUT ---\n{intercepted_output}\n"
-
-                elif next_action.startswith("write_file "):
-                    logging.info(f"⚙️  Orchestrator Intercept: Smart Write")
-                    self.metrics.record_command(next_action, local_check=False, batch=False)
-                    try:
-                        parts = shlex.split(next_action)
-                        intercepted_output = self.smart_tools.write_file(parts[1], parts[2]) if len(parts) >= 3 else "ERROR: 'write_file' requires path, content"
-                    except Exception as e: intercepted_output = f"ERROR: {e}"
-                    task_history += f"\n--- 🛠️ SMART WRITE OUTPUT ---\n{intercepted_output}\n"
-
-                # 3. MCP Tools
-                elif next_action.startswith("mcp_run "):
-                    logging.info(f"⚙️  Orchestrator Intercept: MCP Action -> {next_action}")
-                    self.metrics.record_command(next_action, local_check=False, batch=False)
-                    try:
-                        match = re.match(r"mcp_run\s+(\S+)\s+(.*)", next_action, re.DOTALL)
-                        intercepted_output = self.mcp_manager.call_tool(match.group(1), match.group(2)) if match else "ERROR: Invalid mcp_run format"
-                    except Exception as e: intercepted_output = f"ERROR: {e}"
-                    task_history += f"\n--- 🔌 MCP OUTPUT ---\n{intercepted_output}\n"
+                # 2. Smart Mutation/Execution Tools
+                # Intentionally not intercepted. Hassan should execute all mutations and free-form work.
 
                 # If intercepted, update state and continue loop (bypass Hassan)
                 if intercepted_output is not None:

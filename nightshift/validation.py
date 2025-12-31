@@ -210,7 +210,7 @@ class SelfCheckProtocol:
         
         # 3. Assumptions Verified (Did they look before leaping?)
         # Strict Verification: Must use observation tools to confirm.
-        verification_tools = ["cat ", "grep ", "ls ", "find ", "search_file_content", "read_file", "glob"]
+        verification_tools = ["cat ", "grep ", "ls ", "find ", "search_file_content", "read_file", "glob", "git status", "git log -1"]
         
         if any(tool in execution_log for tool in verification_tools):
             checks["assumptions_verified"] = True

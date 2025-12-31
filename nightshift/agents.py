@@ -292,21 +292,19 @@ class Brain:
             core_tools = """
 - view <path_or_url>: Reads a local file OR a web URL (auto-cleaned).
 - list <path>: Lists files in a directory.
-- edit <path> <old_text> <new_text>: Replaces exact text in a file.
-- run_shell_command <command>: Executes any other shell command.
+- rg -n <pattern> <path>: Search file content.
 
 IMPORTANT:
 - Use `view` for BOTH local files and remote websites.
-- Use `edit` for stable file modifications. It requires the EXACT text to replace.
+- Do NOT modify files directly. Delegate all edits/writes to Hassan via natural language.
 - DO NOT invent flags for `night_shift.py`.
 """
         else:
             # Standard toolset for smart models
             core_tools = """
 - read_file: Reads a file from the local filesystem.
-- write_file: Writes content to a file.
-- run_shell_command: Executes a shell command (ls, grep, find, curl, etc.).
 - glob: Finds files matching a pattern.
+- rg -n <pattern> <path>: Search file content.
 """
 
         tools_section = f"\n[AVAILABLE TOOLS]\n{core_tools}\n{tool_registry}\n" 
@@ -434,6 +432,10 @@ Your "Hassan" (Worker) is a CLI tool that executes your commands.
 1. Focus ONLY on the [CURRENT ACTIVE TASK HIERARCHY].
 2. Analyze the [CONSTRAINTS] and [LAST HASSAN OUTPUT].
 3. Determine the NEXT single, specific, and actionable command/query for Hassan.
+3.1. Your role is audit-only. Do NOT generate final content or perform edits yourself.
+3.2. For any research, drafting, or content creation, send a NATURAL LANGUAGE instruction to Hassan.
+3.3. Use read-only tools only for verification.
+3.4. If [SUB_TASKS] are present, issue ONE natural-language instruction that covers all sub-tasks in a single execution.
 4. If ALL parts of the [CURRENT ACTIVE TASK HIERARCHY] are complete AND you have physically verified the results in Step 1, set status to "completed".
 {output_instruction}
 
@@ -783,10 +785,7 @@ class SmartHassan(Hassan):
         stripped = query.lstrip()
         if stripped.startswith("BATCH:"):
             return True
-        if "&&" in query:
-            return True
-        lines = [line for line in query.splitlines() if line.strip()]
-        return len(lines) > 1
+        return False
 
     def _normalize_batch(self, query):
         if not query:

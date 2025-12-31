@@ -186,6 +186,10 @@ message_efficiency: true
 metrics:
   enabled: true
 
+# Two-phase mode (plan -> execute -> verify)
+two_phase:
+  enabled: true
+
 # Persona Definitions: Professional guidelines shared by Brain and Hassan
 personas:
   architect: |
