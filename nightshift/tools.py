@@ -142,6 +142,25 @@ class SmartTools:
         except Exception as e:
             return f"ERROR executing command: {e}"
 
+    def run_batch_command(self, command):
+        """Executes a batch shell command and returns output + return code."""
+        try:
+            result = subprocess.run(
+                command,
+                shell=True,
+                cwd=self.project_root,
+                capture_output=True,
+                text=True,
+                timeout=300
+            )
+            output = result.stdout
+            if result.stderr:
+                output += f"\n[STDERR]\n{result.stderr}"
+            cleaned = output.strip() if output.strip() else "(Command executed with no output)"
+            return cleaned, result.returncode
+        except Exception as e:
+            return f"ERROR executing batch command: {e}", 1
+
     def edit_file(self, path, old_text, new_text):
         """Replaces exact text in a file."""
         full_path = self._resolve_path(path)

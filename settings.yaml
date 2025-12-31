@@ -71,6 +71,10 @@ body:
   active_driver: "claude"
   use_real_home: true
   auto_verify: true # Automatically verify mutation commands (cat/read_file after write)
+  autonomy: "high" # basic | moderate | high
+  batch_mode: true # Allow batch scripts to run directly (Smart Hassan)
+  auto_fix: true # Allow Smart Hassan to attempt safe auto-fixes on batch failures
+  warm_start: false # If true, run an initial Hassan command before Brain decisions
   # Codex CLI specific approval/sandbox options (optional)
   approval: "on-request"
   sandbox: "workspace-write"
@@ -160,6 +164,10 @@ memory:
 parallel:
   max_workers: 4
   use_worktrees: false
+
+# Batch mode (Phase 3)
+batch:
+  enabled: true
 
 # Resume (optional)
 resume: true

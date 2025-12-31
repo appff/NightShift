@@ -89,3 +89,53 @@ class ReflexionMemory:
                 except:
                     continue
         return fixes
+
+    def get_preventive_rules(
+        self,
+        task_text: str,
+        last_output: str = "",
+        threshold: float = 0.6,
+        max_rules: int = 4,
+    ) -> List[str]:
+        """
+        Return targeted preventive rules based on the current task/output.
+        This keeps the context small while surfacing relevant avoid/fix guidance.
+        """
+        if not os.path.exists(self.memory_path):
+            return []
+
+        query = " ".join([task_text or "", last_output or ""]).strip()
+        if not query:
+            return []
+
+        matches = []
+        with open(self.memory_path, "r", encoding="utf-8") as f:
+            for line in f:
+                try:
+                    entry = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if entry.get("status") != "adopted":
+                    continue
+                error_sig = entry.get("error_signature", "")
+                root_cause = entry.get("root_cause", "")
+                haystack = f"{error_sig} {root_cause}".strip()
+                if not haystack:
+                    continue
+                ratio = SequenceMatcher(None, query, haystack).ratio()
+                if ratio >= threshold:
+                    matches.append((ratio, entry))
+
+        if not matches:
+            return []
+
+        matches.sort(key=lambda item: item[0], reverse=True)
+        rules = []
+        for _, entry in matches[:max_rules]:
+            error_sig = entry.get("error_signature", "").strip()
+            fix = entry.get("fix", "").strip()
+            if error_sig:
+                rules.append(f"AVOID: {error_sig}")
+            if fix:
+                rules.append(f"USE: {fix}")
+        return rules

@@ -14,7 +14,7 @@ The orchestrator coordinates these roles per mission task, writes logs, and mana
 ## Core Modules
 
 - **`nightshift/orchestrator.py`**: The central nervous system. Manages the task loop, safety controls, and integrates all sub-modules.
-- **`nightshift/agents.py`**: Implementation of Brain, Hassan, Critic agents.
+- **`nightshift/agents.py`**: Implementation of Brain, Hassan, Smart Hassan, Critic agents.
 - **`nightshift/memory.py`** (New): **Reflexion Memory** system for storing and retrieving error-fix patterns.
 - **`nightshift/context.py`** (New): **Context Loader** for handling Markdown-based personas (`personas/*.md`).
 - **`nightshift/validation.py`** (New): **Confidence Checker** (Pre-flight) and **Self-Check Protocol** (Post-flight).
@@ -33,12 +33,14 @@ The orchestrator coordinates these roles per mission task, writes logs, and mana
 2.  **Task Execution Loop**:
     *   **Pre-Flight**: **Confidence Checker** evaluates the task. If confidence is low, it warns or suggests research.
     *   **Brain Planning**: Brain receives the task + Layer 0 Context.
-        *   **Reflexion Injection**: Past solutions for similar errors are injected.
+        *   **Reflexion Injection**: Targeted AVOID/USE rules for similar errors are injected.
+        *   **Batch Planning**: For deterministic tasks, Brain can emit a `BATCH:` script.
         *   **Cognitive Strategy**: Permanent strategic guidelines (Autonomous Tool Usage) are applied.
     *   **Tool Routing**: Orchestrator intercepts commands.
         *   Local actions (read/write/edit) go to **SmartTools**.
         *   Intelligence/Memory actions (`mcp_run`) go to **MCP Manager**.
     *   **Hassan Execution**: Hassan executes remaining CLI commands.
+        *   **Smart Hassan**: Executes `BATCH:` scripts and can optionally auto-fix safe failures.
     *   **Structured Reasoning**: Brain outputs JSON (`{"command": "...", "status": "..."}`).
 
 3.  **Completion & Verification**:
@@ -97,4 +99,3 @@ To handle long-running sessions and minimize costs, Night Shift supports a **Mes
 - **How it works**: It suppresses the redundant, verbose persona guidelines from every turn of the conversation.
 - **Why**: Standard persona files can be large (1KB+). Removing them after the initial task setup saves significant tokens without losing the Brain's core strategic intelligence.
 - **Persistence**: While persona-specific details are removed, the **Cognitive Strategy** and **Task Constraints** are always preserved.
-

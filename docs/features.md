@@ -48,12 +48,22 @@ Night Shift now incorporates "SuperClaude" inspired cognitive modules for eviden
 - **Why**: Gives agents access to external specialized tools (Long-term memory, LSP analysis, Web search).
 - **How**: Orchestrator acts as an MCP Client, routing `mcp_run` commands to servers like **Serena**, **Sequential Thinking**, and **Context7**.
 
-### 7. Autonomous Cognitive Strategy
+### 7. Batch Mode + Smart Hassan (Phase 3)
+- **What**: Deterministic multi-step plans can run as a single batch command.
+- **Why**: Reduces back-and-forth and speeds up project setup or repetitive tasks.
+- **How**: Brain emits `BATCH:` scripts and Smart Hassan executes them, with optional safe auto-fix.
+
+### 8. Memory-Driven Loop Prevention
+- **What**: ReflexionMemory injects targeted AVOID/USE rules based on current task/output.
+- **Why**: Prevents repeated errors while keeping context compact.
+- **How**: The orchestrator queries the Reflexion DB for similar failures and injects rules.
+
+### 9. Autonomous Cognitive Strategy
 - **What**: Hard-coded reasoning guidelines injected into the Brain.
 - **Why**: Compels the agent to think before acting and use dynamic memory tools without being explicitly told.
 - **How**: Brain proactively uses `sequential_thinking` for complex plans and `serena` for project context.
 
-### 8. Message Efficiency Mode
+### 10. Message Efficiency Mode
 - **What**: A setting to suppress redundant persona text in long sessions.
 - **Why**: Saves 30-50% of tokens in complex missions by removing large behavioral guidelines once the task is understood.
 - **How**: Enable via `message_efficiency: true` in `settings.yaml`.

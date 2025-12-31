@@ -20,6 +20,7 @@ from .utils import (
     _link_auth_folders,
     _redact_cmd,
 )
+from .tools import SmartTools
 
 
 class Brain:
@@ -277,6 +278,7 @@ class Brain:
         tool_registry="",
         output_format="text",
         reflexion_context="",
+        batch_mode=False,
     ):
         clean_output = self.clean_ansi(last_hassan_output)[-MAX_CONTEXT_CHARS:]
         constraints_text = "\n".join(constraints) if isinstance(constraints, list) else str(constraints)
@@ -308,6 +310,14 @@ IMPORTANT:
 """
 
         tools_section = f"\n[AVAILABLE TOOLS]\n{core_tools}\n{tool_registry}\n" 
+        batch_section = ""
+        if batch_mode:
+            batch_section = """
+[BATCH MODE]
+- If the task is deterministic and involves multiple steps, output a single batch command.
+- You MUST prefix batch commands with "BATCH:" followed by multi-line shell or chained "&&".
+- Avoid batch mode for exploratory debugging or uncertain steps.
+"""
 
         format_section = ""
         if output_format == "json":
@@ -399,6 +409,7 @@ Your "Hassan" (Worker) is a CLI tool that executes your commands.
 {clean_output}
 
 {tools_section}
+{batch_section}
 
 [DECISION LOGIC & STRICT EVIDENCE CHECK]
 1. **EVIDENCE CHECK (CRITICAL)**: Look at [CONVERSATION HISTORY]. Do you see **PHYSICAL EVIDENCE** of completion?
@@ -748,3 +759,96 @@ class Hassan:
                     time.sleep(self.retry_backoff**attempt)
                     continue
                 return f"ERROR running Hassan: {e}"
+
+
+class SmartHassan(Hassan):
+    """A semi-autonomous Hassan that can execute batch scripts and attempt safe fixes."""
+
+    def __init__(self, settings, mission_config):
+        super().__init__(settings, mission_config)
+        self.autonomy_level = self.hassan_config.get("autonomy", "basic")
+        self.batch_mode = self.hassan_config.get("batch_mode", False)
+        self.auto_fix = self.hassan_config.get("auto_fix", False)
+        project_root = self._current_root()
+        self.smart_tools = SmartTools(project_root)
+
+    def run(self, query, print_query=True):
+        if self.batch_mode and self._looks_like_batch(query):
+            return self._run_batch(query, print_query=print_query)
+        return super().run(query, print_query)
+
+    def _looks_like_batch(self, query):
+        if not query:
+            return False
+        stripped = query.lstrip()
+        if stripped.startswith("BATCH:"):
+            return True
+        if "&&" in query:
+            return True
+        lines = [line for line in query.splitlines() if line.strip()]
+        return len(lines) > 1
+
+    def _normalize_batch(self, query):
+        if not query:
+            return ""
+        stripped = query.lstrip()
+        if stripped.startswith("BATCH:"):
+            return stripped[len("BATCH:"):].lstrip()
+        return query.strip()
+
+    def _run_batch(self, query, print_query=True):
+        self._refresh_smart_tools_root()
+        script = self._normalize_batch(query)
+        if print_query:
+            logging.info(f"\n--- 🚀 Running Hassan Batch ---\n{script}")
+        output, returncode = self.smart_tools.run_batch_command(script)
+        self.last_returncode = returncode
+        if returncode != 0 and self.autonomy_level == "high" and self.auto_fix:
+            fix_output = self._attempt_fix(output)
+            if fix_output:
+                output += f"\n\n[AUTO-FIX]\n{fix_output}"
+        return output
+
+    def _current_root(self):
+        return os.path.abspath(
+            os.path.expanduser(
+                self.mission_config.get("project", {}).get("project_root")
+                or os.getcwd()
+            )
+        )
+
+    def _refresh_smart_tools_root(self):
+        self.smart_tools.project_root = self._current_root()
+
+    def _attempt_fix(self, output):
+        missing_dirs = self._infer_missing_dirs(output)
+        if not missing_dirs:
+            return ""
+        commands = []
+        for missing_dir in missing_dirs:
+            commands.append(f"mkdir -p {missing_dir}")
+        if not commands:
+            return ""
+        fix_script = " && ".join(commands)
+        fix_output, _ = self.smart_tools.run_batch_command(fix_script)
+        return fix_output
+
+    def _infer_missing_dirs(self, output):
+        missing_dirs = set()
+        for line in output.splitlines():
+            if "No such file or directory" not in line:
+                continue
+            parts = [part.strip() for part in line.split(":") if part.strip()]
+            if len(parts) >= 3:
+                candidate = parts[1]
+            elif parts:
+                candidate = parts[0]
+            else:
+                continue
+            if candidate in {"cat", "bash", "sh"}:
+                continue
+            if "/" in candidate:
+                dirname = os.path.dirname(candidate)
+                if dirname:
+                    missing_dirs.add(dirname)
+        return sorted(missing_dirs)

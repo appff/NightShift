@@ -34,7 +34,9 @@ class ContextCompressor:
                 i += 1
                 marker = parts[i]
             
-            content = parts[i+1] if i + 1 < len(parts) else ""
+            content = parts[i + 1] if i + 1 < len(parts) else ""
+            if content is None:
+                content = ""
             if marker:
                 sections.append(marker + content)
             i += 2

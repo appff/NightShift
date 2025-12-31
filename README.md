@@ -48,6 +48,7 @@ To run Night Shift effectively, ensure your system meets the following requireme
 *   **🛠️ Optimized for Local LLMs**: Enhanced support for models like DeepSeek, Qwen, and Llama via **Smart Tools** (`view`, `list`, `edit`). Advanced prompt engineering combats recency bias in local models.
 *   **📉 Lean Orchestration**: The separate Critic module has been integrated into the Brain's verification logic, reducing token overhead and eliminating agent-to-agent friction.
 *   **🧠 Cognitive Architecture**: Agents learn from past mistakes (`ReflexionMemory`) and apply rigorous structural integrity checks before declaring a mission success.
+*   **🧩 Batch Mode + Smart Hassan**: Deterministic multi-step tasks can run in a single batch, with optional safe auto-fix on failures.
 *   **🔌 MCP Support**: Seamlessly integrate external tools and memory via Model Context Protocol (Serena, Sequential Thinking, etc.).
 *   **📉 Message Efficiency**: Suppress redundant persona text in long sessions to save tokens and costs.
 *   **📋 Project-as-a-Dashboard**: Manage your entire project via `mission.yaml`. Statuses (`todo`, `in_progress`, `done`) update in real-time as the dashboard evolves.
@@ -143,6 +144,9 @@ Configure Night Shift via `settings.yaml` in the project root. Key sections incl
 ### 📉 Efficiency & Context
 *   `message_efficiency`: Set to `true` to save tokens by suppressing redundant persona text.
 *   `context_reduction`: Automatically trim long conversation history.
+*   `batch.enabled`: Allow the Brain to emit batch command plans for deterministic tasks.
+*   `body.autonomy`: Enable Smart Hassan behavior (`basic`, `moderate`, `high`), including optional batch execution.
+*   `body.auto_fix`: Allow Smart Hassan to attempt safe auto-fixes after batch failures.
 
 ### 🔌 Model Context Protocol (MCP)
 NightShift can connect to any MCP-compliant server. You can globally disable MCP by setting `mcp_enabled: false`.

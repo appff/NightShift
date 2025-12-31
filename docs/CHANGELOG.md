@@ -2,6 +2,12 @@
 
 All notable changes to Night Shift will be documented in this file.
 
+## [5.7.0] - 2025-01-31
+### 🧩 Phase 3 Architecture
+- **Batch Mode**: Brain can emit deterministic multi-step `BATCH:` scripts to reduce turn count.
+- **Smart Hassan**: Optional batch execution with safe auto-fix hooks for missing directories.
+- **Memory-Driven Loop Prevention**: ReflexionMemory now injects targeted AVOID/USE rules based on current task/output.
+
 ## [5.6.0] - 2025-12-30
 ### 🚀 Integrated Installation & Control
 - **Unified Installer**: `install.sh` updated to **automatically install** recommended MCP servers (Serena, Sequential Thinking, Context7) if `uv` and `npm` are available.

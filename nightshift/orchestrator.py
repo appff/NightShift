@@ -12,7 +12,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 import yaml
 
-from .agents import Brain, Hassan, MemoryManager
+from .agents import Brain, Hassan, MemoryManager, SmartHassan
 from .constants import LOG_DIR, RATE_LIMIT_SLEEP, SETTINGS_FILE, SQUAD_WORKSPACE_DIR
 from .utils import _is_ignored, _load_ignore_patterns, setup_logging
 from .validation import validate_mission_schema, validate_settings_schema
@@ -87,6 +87,8 @@ class NightShiftAgent:
         self.token_optimizer = TokenOptimizer(self.root)
         self.context_compressor = ContextCompressor(max_chars=self.settings.get("context_reduction", {}).get("tail_chars", 2000))
         self.smart_tools = SmartTools(self.root)
+        self.batch_config = self.settings.get("batch", {})
+        self.batch_mode = self.batch_config.get("enabled", False)
         
         # --- MCP INTEGRATION ---
         self.mcp_enabled = self.settings.get("mcp_enabled", True)
@@ -96,7 +98,16 @@ class NightShiftAgent:
         # -----------------------
 
         self.brain = Brain(self.settings, self.mission_config, log_dir=self.log_dir)
-        self.hassan = Hassan(self.settings, self.mission_config)
+        hassan_settings = self.settings.get("hassan") or self.settings.get("body") or {}
+        autonomy_level = hassan_settings.get("autonomy", "basic")
+        self.hassan_warm_start = hassan_settings.get("warm_start", False)
+        use_smart_hassan = (
+            self.batch_mode
+            or hassan_settings.get("batch_mode", False)
+            or hassan_settings.get("auto_fix", False)
+            or autonomy_level in ("moderate", "high")
+        )
+        self.hassan = SmartHassan(self.settings, self.mission_config) if use_smart_hassan else Hassan(self.settings, self.mission_config)
 
         if not self.brain.driver_config.get("command") or not shutil.which(self.brain.driver_config.get("command")):
             logging.error("❌ Brain driver not available. Check settings.yaml and PATH.")
@@ -401,6 +412,16 @@ Return ONLY valid JSON:
             
         return response
 
+    def _should_prefix_batch(self, command):
+        if not self.batch_mode:
+            return False
+        if not command:
+            return False
+        stripped = command.lstrip()
+        if stripped.upper().startswith("BATCH:"):
+            return False
+        return "&&" in command or "\n" in command
+
     def _handle_quota_limit(self, error_message):
         logging.warning(f"🚨 Quota limit hit detected! Analyzing reset time: {error_message[:100]}...")
         try:
@@ -676,9 +697,6 @@ You are a code reviewer. Provide a concise review plan and key changes you would
         initial_query = f"Start Task {i}: {task_block}\n\n[PROJECT CONTEXT]\n{layer0_context}"
         # ---------------------------------------
 
-        orig_path = self.hassan.mission_config.get("root", os.getcwd())
-        self.hassan.mission_config["root"] = work_dir
-
         task_completed = False
         last_check_command = None
         last_check_output = None
@@ -687,16 +705,11 @@ You are a code reviewer. Provide a concise review plan and key changes you would
         # Semantic Memory: Load only relevant lessons for this task
         relevant_memories = self.memory_manager.load_memories(query=task_block)
         
-        # --- 3. REFLEXION MEMORY ---
-        # Inject adopted fixes for similar past errors
-        past_fixes = self.reflexion_memory.get_all_adopted_fixes()
-        reflexion_context = ""
-        if past_fixes:
-            reflexion_context = "\n[PAST SOLUTIONS (DO NOT REPEAT MISTAKES)]\n" + "\n".join(past_fixes)
-        # ---------------------------
-
         try:
-            hassan_output = self.hassan.run(initial_query, print_query=False)
+            if self.hassan_warm_start:
+                hassan_output = self.hassan.run(initial_query, print_query=False)
+            else:
+                hassan_output = "READY"
             task_history = f"\n=== TASK {i} START ===\n⚙️ Orchestrator Init: {initial_query}\nHassan Output:\n{hassan_output}\n"
             last_output = hassan_output
             self_check_retry_count = 0  # Prevention for infinite self-check loops
@@ -712,6 +725,15 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                     last_output = "SYSTEM: Quota reset period has passed. Please continue the task."
 
                 # Inject Reflexion Context into Brain
+                preventive_rules = self.reflexion_memory.get_preventive_rules(task_block, last_output)
+                if preventive_rules:
+                    reflexion_context = "\n[LEARNED RULES]\n" + "\n".join(preventive_rules)
+                else:
+                    past_fixes = self.reflexion_memory.get_all_adopted_fixes()
+                    reflexion_context = ""
+                    if past_fixes:
+                        reflexion_context = "\n[PAST SOLUTIONS (DO NOT REPEAT MISTAKES)]\n" + "\n".join(past_fixes)
+
                 combined_constraints = constraints + ([confidence_hint] if confidence_hint else [])
                 next_action = self.brain.think(
                     task_block,
@@ -723,7 +745,8 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                     relevant_memories,
                     self.tool_registry,
                     output_format="json",
-                    reflexion_context=reflexion_context
+                    reflexion_context=reflexion_context,
+                    batch_mode=self.batch_mode
                 )
                 
                 # Pre-strip code fences for cleaner logging
@@ -734,6 +757,8 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                         next_action = match.group(1)
 
                 next_action = self._interpret_brain_response(next_action)
+                if self._should_prefix_batch(next_action):
+                    next_action = f"BATCH: {next_action}"
                 
                 # Log the final decision clearly to the console
                 if next_action == "MISSION_COMPLETED":
@@ -784,7 +809,7 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                             if not test_command:
                                 test_command = (
                                     "pytest"
-                                    if os.path.exists(os.path.join(self.hassan.mission_config.get("root", os.getcwd()), "tests"))
+                                    if os.path.exists(os.path.join(work_dir, "tests"))
                                     else ""
                                 )
                             if test_command:
@@ -919,7 +944,6 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                         else:
                             logging.error("❌ Failed to apply worktree changes.")
                 self._git_worktree_remove(work_dir)
-            self.hassan.mission_config["root"] = orig_path
 
     def start(self):
         logging.info(f"🌙 Night Shift Starting with default persona: {self.default_persona_name}")
@@ -1002,7 +1026,7 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                 if not test_command:
                     test_command = (
                         "pytest"
-                        if os.path.exists(os.path.join(self.hassan.mission_config.get("root", os.getcwd()), "tests"))
+                        if os.path.exists(os.path.join(work_dir, "tests"))
                         else ""
                     )
                 if test_command:

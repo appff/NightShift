@@ -1,5 +1,6 @@
 import os
 import glob
+import re
 from typing import List, Dict, Tuple, Any
 
 # --- Legacy Validation Functions (Restored) ---

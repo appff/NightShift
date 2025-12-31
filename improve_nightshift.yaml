@@ -1,0 +1,20 @@
+project:
+  name: Improve NightShift project
+  project_root: /Users/jeongminkim/Downloads/NightShift/
+parallel: false
+tasks:
+- id: BTC-001
+  title: Brian, Hassan의 성능을 높일 수 있는 기능, 방향 제안
+  priority: P1
+  sub_tasks:
+  - 메시지를 줄이면서도 정확한 업무 수행 (Loop로 빠지는 일이 없도록)
+  - 장기 로드맵이어도 좋음, 아이디어, 구현 계획, 효과 등을 ImprovementPlan.md 에 작성해줄 것
+  status: done
+constraints:
+- Sequential_Thinking 의 deep-level은 5보다 크지 않아야함
+- 보고서는 한국어로 작성해 줄 것
+- DO NOT COMMIT AND PUSH
+mission:
+  status: active
+  created_at: '2025-12-31'
+  updated_at: '2025-12-31T10:53:48.705089'
