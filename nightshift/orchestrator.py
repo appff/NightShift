@@ -362,7 +362,23 @@ Return ONLY valid JSON:
         if "MISSION_COMPLETED" in response:
             return "MISSION_COMPLETED"
 
-        # 2. Try to find JSON code blocks first
+        # 2. Try DSL Parsing (Simplified Output Format)
+        # Format:
+        # ACTION: <command>
+        # STATUS: <status>
+        action_match = re.search(r'^ACTION:\s*(.+)$', response, re.MULTILINE | re.IGNORECASE)
+        status_match = re.search(r'^STATUS:\s*(.+)$', response, re.MULTILINE | re.IGNORECASE)
+        
+        if status_match and "completed" in status_match.group(1).lower():
+            return "MISSION_COMPLETED"
+        
+        if action_match:
+            cmd = action_match.group(1).strip()
+            if cmd.lower() == "none":
+                return "" # No action
+            return cmd
+
+        # 3. Try to find JSON code blocks first
         json_pattern = r"```(?:json)?\s*(\{.*?\})\s*```"
         match = re.search(json_pattern, response, re.DOTALL)
         if match:
@@ -743,7 +759,7 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                     continue
 
                 if next_action == "MISSION_COMPLETED":
-                    # --- 4. SELF-CHECK PROTOCOL (Post-Flight) ---
+                    # ... self-check and completion logic ...
                     # Validate before accepting completion
                     self_check_result = self.self_checker.validate_completion(
                         persona_name, task_block, task_history, []
@@ -815,81 +831,60 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                         self._update_task_status(task_id, "blocked", notes=next_action)
                     return f"TASK_{i}_FAILED: {next_action}"
 
+                # --- 🚀 SMART EXECUTION LAYER (Interception) ---
+                intercepted_output = None
+                
+                # 1. Local Observation Tools (Direct Execution)
                 if self._is_local_check_command(next_action):
-                    logging.info(f"⚙️  Orchestrator Intercept: Executing local observation -> {next_action}")
-                    local_output = self._run_local_check(next_action, work_dir)
-                    task_history += f"\n--- 🔍 LOCAL CHECK OUTPUT ---\n{local_output}\n"
-                    if next_action == last_check_command and local_output == last_check_output:
+                    logging.info(f"⚙️  Orchestrator Intercept: Direct Observation -> {next_action}")
+                    intercepted_output = self._run_local_check(next_action, work_dir)
+                    task_history += f"\n--- 🔍 DIRECT OUTPUT ---\n{intercepted_output}\n"
+                    
+                    # Anti-looping for local checks
+                    if next_action == last_check_command and intercepted_output == last_check_output:
                         repeat_check_count += 1
                     else:
                         repeat_check_count = 0
                     last_check_command = next_action
-                    last_check_output = local_output
-                    last_output = local_output
-                    if repeat_check_count >= 1:
-                        logging.info(f"✅ Task {i} completed after repeated local checks.")
+                    last_check_output = intercepted_output
+                    
+                    if repeat_check_count >= 2:
+                        logging.info(f"✅ Task {i} likely complete (repeated observations).")
                         break
-                    continue
 
-                # Handle 'edit' command via SmartTools (Mutation)
-                if next_action.startswith("edit "):
-                    logging.info(f"⚙️  Orchestrator Intercept: edit action detected")
+                # 2. Smart Mutation Tools (Intercept edit/write)
+                elif next_action.startswith("edit "):
+                    logging.info(f"⚙️  Orchestrator Intercept: Smart Edit")
                     try:
                         parts = shlex.split(next_action)
-                        if len(parts) >= 4:
-                            path, old, new = parts[1], parts[2], parts[3]
-                            smart_output = self.smart_tools.edit_file(path, old, new)
-                        else:
-                            smart_output = "ERROR: 'edit' requires 3 arguments: path, old_text, new_text"
-                    except Exception as e:
-                        smart_output = f"ERROR parsing edit command: {e}"
-                    
-                    task_history += f"\n--- 🛠️ EDIT OUTPUT ---\n{smart_output}\n"
-                    last_output = smart_output
-                    continue
+                        intercepted_output = self.smart_tools.edit_file(parts[1], parts[2], parts[3]) if len(parts) >= 4 else "ERROR: 'edit' requires path, old, new"
+                    except Exception as e: intercepted_output = f"ERROR: {e}"
+                    task_history += f"\n--- 🛠️ SMART EDIT OUTPUT ---\n{intercepted_output}\n"
 
-                # Handle 'write_file' command via SmartTools (Mutation)
-                if next_action.startswith("write_file "):
-                    logging.info(f"⚙️  Orchestrator Intercept: write_file action detected")
+                elif next_action.startswith("write_file "):
+                    logging.info(f"⚙️  Orchestrator Intercept: Smart Write")
                     try:
-                        # We expect write_file <path> <content>
-                        # But content might contain spaces, so we need careful splitting or usage
-                        # Standard write_file tool usually takes JSON or similar, 
-                        # here we assume simple space separation for now or a single line.
-                        # For complex content, Brain should use HEREDOC via run_shell_command.
                         parts = shlex.split(next_action)
-                        if len(parts) >= 3:
-                            path, content = parts[1], parts[2]
-                            smart_output = self.smart_tools.write_file(path, content)
-                        else:
-                            smart_output = "ERROR: 'write_file' requires 2 arguments: path, content"
-                    except Exception as e:
-                        smart_output = f"ERROR parsing write_file command: {e}"
-                    
-                    task_history += f"\n--- 🛠️ WRITE_FILE OUTPUT ---\n{smart_output}\n"
-                    last_output = smart_output
-                    continue
+                        intercepted_output = self.smart_tools.write_file(parts[1], parts[2]) if len(parts) >= 3 else "ERROR: 'write_file' requires path, content"
+                    except Exception as e: intercepted_output = f"ERROR: {e}"
+                    task_history += f"\n--- 🛠️ SMART WRITE OUTPUT ---\n{intercepted_output}\n"
 
-                # Handle 'mcp_run' command via MCPManager
-                if next_action.startswith("mcp_run "):
-                    logging.info(f"⚙️  Orchestrator Intercept: MCP action detected -> {next_action}")
+                # 3. MCP Tools
+                elif next_action.startswith("mcp_run "):
+                    logging.info(f"⚙️  Orchestrator Intercept: MCP Action -> {next_action}")
                     try:
-                        # Expected format: mcp_run <tool_name> <json_args>
-                        # Using regex to split at first space after tool_name to preserve JSON integrity
                         match = re.match(r"mcp_run\s+(\S+)\s+(.*)", next_action, re.DOTALL)
-                        if match:
-                            tool_name = match.group(1)
-                            args_json = match.group(2)
-                            mcp_output = self.mcp_manager.call_tool(tool_name, args_json)
-                        else:
-                            mcp_output = "ERROR: Invalid mcp_run format. Usage: mcp_run <tool_name> <json_args>"
-                    except Exception as e:
-                        mcp_output = f"ERROR executing MCP command: {e}"
-                    
-                    task_history += f"\n--- 🔌 MCP OUTPUT ---\n{mcp_output}\n"
-                    last_output = mcp_output
+                        intercepted_output = self.mcp_manager.call_tool(match.group(1), match.group(2)) if match else "ERROR: Invalid mcp_run format"
+                    except Exception as e: intercepted_output = f"ERROR: {e}"
+                    task_history += f"\n--- 🔌 MCP OUTPUT ---\n{intercepted_output}\n"
+
+                # If intercepted, update state and continue loop (bypass Hassan)
+                if intercepted_output is not None:
+                    last_output = intercepted_output
+                    time.sleep(RATE_LIMIT_SLEEP)
                     continue
 
+                # --- 🦾 STANDARD EXECUTION (Hassan) ---
                 if safety_config.get("require_approval_for_destructive") and self._requires_approval(next_action) and not self.auto_approve_actions:
                     approval = input("Destructive action detected. Approve? [y/N]: ").strip().lower()
                     if approval != "y":
@@ -1087,11 +1082,11 @@ You are a code reviewer. Provide a concise review plan and key changes you would
             return False
         if not parts:
             return False
-        # Hybrid Observation: Allow more read-only tools to run locally for speed
+        # Extended list of safe, read-only tools for direct execution
         allowed = {
-            "ls", "cat", "rg", "grep", "sed", "head", "tail", "stat", "wc", 
+            "ls", "cat", "rg", "grep", "head", "tail", "stat", "wc", 
             "find", "read_file", "search_file_content", "glob",
-            "view", "list"
+            "view", "list", "pwd", "date", "du"
         }
         return parts[0] in allowed
 
@@ -1103,7 +1098,7 @@ You are a code reviewer. Provide a concise review plan and key changes you would
             # Use SmartTools if applicable
             if cmd == "view" and len(parts) > 1:
                 return self.smart_tools.view(parts[1])
-            if (cmd == "read_file" or cmd == "cat") and len(parts) > 1:
+            if (cmd in ["read_file", "cat"]) and len(parts) > 1:
                 # Handle multiple files for cat (e.g., cat file1 file2)
                 if len(parts) > 2 and cmd == "cat":
                     outputs = []
@@ -1116,14 +1111,28 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                 if path.startswith("--"):
                     if len(parts) > 2: path = parts[2]
                 return self.smart_tools.read_file(path)
-            if cmd == "list":
-                return self.smart_tools.list_files(parts[1] if len(parts) > 1 else ".")
-            if cmd == "search_file_content" and len(parts) > 1:
-                return self.smart_tools.search_file_content(parts[1], parts[2] if len(parts) > 2 else ".")
+            if cmd in ["list", "ls"]:
+                target_path = "."
+                if len(parts) > 1:
+                    # Filter out flags like -la, -R
+                    for p in parts[1:]:
+                        if not p.startswith("-"):
+                            target_path = p
+                            break
+                return self.smart_tools.list_files(target_path)
+            if cmd in ["search_file_content", "rg", "grep"] and len(parts) > 1:
+                pattern = ""
+                search_path = "."
+                # Simple heuristic to find pattern and path
+                for p in parts[1:]:
+                    if not p.startswith("-"):
+                        if not pattern: pattern = p
+                        else: search_path = p
+                return self.smart_tools.search_file_content(pattern, search_path)
             if cmd == "glob" and len(parts) > 1:
                 return self.smart_tools.glob(parts[1])
             
-            # Fallback to standard subprocess
+            # Fallback to standard subprocess for simple shell commands (pwd, etc.)
             result = subprocess.run(parts, capture_output=True, text=True, cwd=cwd)
             output = result.stdout.strip()
             if result.stderr:

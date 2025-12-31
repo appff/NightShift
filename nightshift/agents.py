@@ -295,15 +295,17 @@ IMPORTANT:
         if output_format == "json":
             format_section = """
 [OUTPUT FORMAT]
-You must output ONLY a single valid JSON object.
-DO NOT use markdown code blocks (e.g., ```json).
-DO NOT include any explanations, reasoning, or conversational text.
-Your entire response must be parseable by `json.loads()`.
+You must output in one of the following formats.
+Format A is RECOMMENDED for better reliability.
 
-Required Schema:
-{"command": "<next CLI command string>", "status": "continue"}
-OR
-{"command": "", "status": "completed"}
+Format A (Simplified DSL):
+ACTION: <command string>
+STATUS: <continue | completed>
+
+Format B (JSON):
+{"command": "<command string>", "status": "<continue | completed>"}
+
+Choose ONE format. Output ONLY the raw result.
 """
 
         if persona_guidelines:
@@ -336,7 +338,7 @@ OR
 
         output_instruction = "5. Output ONLY the command string."
         if output_format == "json":
-            output_instruction = "5. Output ONLY raw JSON. Start with { and end with }."
+            output_instruction = "5. Output ONLY the raw result (DSL or JSON)."
 
         prompt = f"""
 You are the "Director" of an autonomous coding session.
@@ -403,8 +405,8 @@ Your "Hassan" (Worker) is a CLI tool that executes your commands.
 
 [FINAL WARNING]
 Your response is piped directly to a parser.
-Any text outside the JSON object will cause a system crash.
-Output ONLY the raw JSON string.
+Any text outside the Action/Status block or JSON object will cause a system crash.
+Output ONLY the raw result.
 """
         if format_section:
             prompt += format_section
@@ -570,6 +572,7 @@ class Hassan:
         self.retries = int(self.driver_config.get("retries", 0))
         self.retry_backoff = float(self.driver_config.get("retry_backoff", 1.5))
         self.last_returncode = 0
+        self.auto_verify = self.hassan_config.get("auto_verify", False)
 
         logging.info(f"🦾 Hassan Initialized: [{self.active_driver_name.upper()}] Driver")
 
@@ -585,6 +588,24 @@ class Hassan:
                 self.driver_config = cfg
                 return
         logging.error(f"❌ No available Hassan driver found (last command: {command}).")
+
+    def _is_mutation_command(self, query):
+        """Detects if the command modifies files."""
+        patterns = [r'write_file', r'edit', r'echo.*>', r'cat.*>']
+        return any(re.search(p, query) for p in patterns)
+
+    def _generate_verification(self, query):
+        """Generates a verification command based on the mutation command."""
+        if 'write_file' in query:
+            match = re.search(r'write_file\s+(\S+)', query)
+            if match:
+                return f"cat {match.group(1)}"
+        if 'edit' in query:
+            # edit <path> <old> <new> -> cat <path>
+            parts = query.split()
+            if len(parts) >= 2:
+                return f"cat {parts[1]}"
+        return None
 
     def prepare(self, current_task_text, persona_guidelines="", tool_registry=""):
         """Prepares system prompt files with the task block and persona."""
@@ -610,7 +631,20 @@ class Hassan:
             os.remove(self.system_prompt_file)
 
     def run(self, query, print_query=True):
-        """Executes the driver command with the given query."""
+        """Executes the driver command with the given query, optionally with auto-verification."""
+        output = self._run_command(query, print_query)
+        
+        if self.auto_verify and self.last_returncode == 0:
+            if self._is_mutation_command(query):
+                verify_cmd = self._generate_verification(query)
+                if verify_cmd:
+                    logging.info(f"⚡ Auto-Verifying: {verify_cmd}")
+                    verify_output = self._run_command(verify_cmd, print_query=False)
+                    output += f"\n\n[AUTO-VERIFICATION]\n{verify_output}"
+        return output
+
+    def _run_command(self, query, print_query=True):
+        """Executes the driver command with the given query (Low-level)."""
         if not query:
             return "ERROR: Empty query."
 
