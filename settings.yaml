@@ -182,6 +182,10 @@ context_reduction:
 # If true, excludes detailed persona guidelines from the system prompt to save tokens.
 message_efficiency: true
 
+# Metrics (optional)
+metrics:
+  enabled: true
+
 # Persona Definitions: Professional guidelines shared by Brain and Hassan
 personas:
   architect: |

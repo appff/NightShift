@@ -24,6 +24,7 @@ from .validation import ConfidenceChecker, SelfCheckProtocol
 from .optimizer import TokenOptimizer, ContextCompressor
 from .tools import SmartTools
 from .mcp_client import MCPManager
+from .metrics import PerformanceMetrics
 # -------------------
 
 
@@ -89,6 +90,8 @@ class NightShiftAgent:
         self.smart_tools = SmartTools(self.root)
         self.batch_config = self.settings.get("batch", {})
         self.batch_mode = self.batch_config.get("enabled", False)
+        metrics_config = self.settings.get("metrics", {})
+        self.metrics = PerformanceMetrics(self.root, enabled=metrics_config.get("enabled", True))
         
         # --- MCP INTEGRATION ---
         self.mcp_enabled = self.settings.get("mcp_enabled", True)
@@ -656,6 +659,7 @@ Return ONLY valid JSON:
         # -------------------------------
 
         logging.info(f"\n{'=' * 60}\n🚀 STARTING TASK {i} (Persona: {persona_name})\n{'=' * 60}\n{task_block}\n{'=' * 60}\n")
+        self.metrics.start_task(task_id or f"task_{i}", task_block, persona_name)
 
         if reviewer_mode:
             review_prompt = f"""
@@ -669,12 +673,17 @@ You are a code reviewer. Provide a concise review plan and key changes you would
 """
             review_output = self.brain._run_cli_command(review_prompt)
             logging.info(f"🧑‍⚖️ Reviewer Mode Output:\n{review_output}")
+            review_metrics = self.metrics.finalize_task(
+                "review_only",
+                (datetime.now() - task_start_time).total_seconds(),
+            )
             self.task_summaries.append(
                 {
                     "task": task_block,
                     "persona": persona_name,
                     "status": "review_only",
                     "duration_seconds": (datetime.now() - task_start_time).total_seconds(),
+                    "metrics": review_metrics,
                 }
             )
             return f"\n=== TASK {i} REVIEW ===\n{review_output}\n"
@@ -708,6 +717,7 @@ You are a code reviewer. Provide a concise review plan and key changes you would
         try:
             if self.hassan_warm_start:
                 hassan_output = self.hassan.run(initial_query, print_query=False)
+                self.metrics.record_hassan_response(hassan_output)
             else:
                 hassan_output = "READY"
             task_history = f"\n=== TASK {i} START ===\n⚙️ Orchestrator Init: {initial_query}\nHassan Output:\n{hassan_output}\n"
@@ -735,7 +745,7 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                         reflexion_context = "\n[PAST SOLUTIONS (DO NOT REPEAT MISTAKES)]\n" + "\n".join(past_fixes)
 
                 combined_constraints = constraints + ([confidence_hint] if confidence_hint else [])
-                next_action = self.brain.think(
+                raw_brain_response = self.brain.think(
                     task_block,
                     str([t.get("text", t) if isinstance(t, dict) else t for t in all_tasks]),
                     combined_constraints,
@@ -748,15 +758,16 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                     reflexion_context=reflexion_context,
                     batch_mode=self.batch_mode
                 )
+                self.metrics.record_brain_response(raw_brain_response)
                 
                 # Pre-strip code fences for cleaner logging
                 if self.brain_output_format == "json":
                     json_pattern = r"```(?:json)?\s*(\{.*?\})\s*```"
-                    match = re.search(json_pattern, next_action, re.DOTALL)
+                    match = re.search(json_pattern, raw_brain_response, re.DOTALL)
                     if match:
-                        next_action = match.group(1)
+                        raw_brain_response = match.group(1)
 
-                next_action = self._interpret_brain_response(next_action)
+                next_action = self._interpret_brain_response(raw_brain_response)
                 if self._should_prefix_batch(next_action):
                     next_action = f"BATCH: {next_action}"
                 
@@ -812,12 +823,14 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                                     if os.path.exists(os.path.join(work_dir, "tests"))
                                     else ""
                                 )
-                            if test_command:
-                                logging.info(f"🧪 Running tests: {test_command}")
-                                test_output = self.hassan.run(test_command)
-                                task_history += f"\n--- 🧪 TEST OUTPUT ---\n{test_output}\n"
-                                if self.hassan.last_returncode != 0:
-                                    last_output = f"Tests failed: {test_output}"
+                                if test_command:
+                                    logging.info(f"🧪 Running tests: {test_command}")
+                                    test_output = self.hassan.run(test_command)
+                                    self.metrics.record_hassan_response(test_output)
+                                    self.metrics.record_command(test_command, local_check=False, batch=False)
+                                    task_history += f"\n--- 🧪 TEST OUTPUT ---\n{test_output}\n"
+                                    if self.hassan.last_returncode != 0:
+                                        last_output = f"Tests failed: {test_output}"
                                     
                                     # --- REFLEXION RECORDING ---
                                     # If tests fail, record it
@@ -839,12 +852,17 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                     logging.error(f"❌ Task {i} Failed: {next_action}")
                     if safety_config.get("auto_rollback_on_failure"):
                         self._git_rollback(task_start_commit)
+                    failure_metrics = self.metrics.finalize_task(
+                        "failed",
+                        (datetime.now() - task_start_time).total_seconds(),
+                    )
                     self.task_summaries.append(
                         {
                             "task": task_block,
                             "persona": persona_name,
                             "status": "failed",
                             "duration_seconds": (datetime.now() - task_start_time).total_seconds(),
+                            "metrics": failure_metrics,
                         }
                     )
                     if task_id:
@@ -857,6 +875,7 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                 # 1. Local Observation Tools (Direct Execution)
                 if self._is_local_check_command(next_action):
                     logging.info(f"⚙️  Orchestrator Intercept: Direct Observation -> {next_action}")
+                    self.metrics.record_command(next_action, local_check=True, batch=False)
                     intercepted_output = self._run_local_check(next_action, work_dir)
                     task_history += f"\n--- 🔍 DIRECT OUTPUT ---\n{intercepted_output}\n"
                     
@@ -875,6 +894,7 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                 # 2. Smart Mutation Tools (Intercept edit/write)
                 elif next_action.startswith("edit "):
                     logging.info(f"⚙️  Orchestrator Intercept: Smart Edit")
+                    self.metrics.record_command(next_action, local_check=False, batch=False)
                     try:
                         parts = shlex.split(next_action)
                         intercepted_output = self.smart_tools.edit_file(parts[1], parts[2], parts[3]) if len(parts) >= 4 else "ERROR: 'edit' requires path, old, new"
@@ -883,6 +903,7 @@ You are a code reviewer. Provide a concise review plan and key changes you would
 
                 elif next_action.startswith("write_file "):
                     logging.info(f"⚙️  Orchestrator Intercept: Smart Write")
+                    self.metrics.record_command(next_action, local_check=False, batch=False)
                     try:
                         parts = shlex.split(next_action)
                         intercepted_output = self.smart_tools.write_file(parts[1], parts[2]) if len(parts) >= 3 else "ERROR: 'write_file' requires path, content"
@@ -892,6 +913,7 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                 # 3. MCP Tools
                 elif next_action.startswith("mcp_run "):
                     logging.info(f"⚙️  Orchestrator Intercept: MCP Action -> {next_action}")
+                    self.metrics.record_command(next_action, local_check=False, batch=False)
                     try:
                         match = re.match(r"mcp_run\s+(\S+)\s+(.*)", next_action, re.DOTALL)
                         intercepted_output = self.mcp_manager.call_tool(match.group(1), match.group(2)) if match else "ERROR: Invalid mcp_run format"
@@ -912,6 +934,12 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                         return f"TASK_{i}_FAILED: Destructive action rejected."
 
                 hassan_output = self.hassan.run(next_action)
+                self.metrics.record_hassan_response(hassan_output)
+                self.metrics.record_command(
+                    next_action,
+                    local_check=False,
+                    batch=next_action.lstrip().upper().startswith("BATCH:"),
+                )
                 if not hassan_output.strip():
                     hassan_output = "SYSTEM ALERT: Hassan returned an empty response. If you were trying to create a file, it might have failed silently. Please verify using 'ls' or use a different method (like the write_file tool)."
                 
@@ -1032,6 +1060,8 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                 if test_command:
                     logging.info(f"🧪 Running tests: {test_command}")
                     test_output = self.hassan.run(test_command)
+                    self.metrics.record_hassan_response(test_output)
+                    self.metrics.record_command(test_command, local_check=False, batch=False)
                     self.conversation_history += f"\n--- 🧪 TEST OUTPUT ---\n{test_output}\n"
 
             logging.info("🧠 Reflecting on mission to store memories...")
@@ -1078,6 +1108,7 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                 "tasks": self.task_summaries,
                 "parallel": is_parallel,
                 "reviewer_mode": reviewer_mode,
+                "metrics": self.metrics.summarize_run(),
             }
             summary_path = os.path.join(
                 self.log_dir, f"night_shift_summary_{self.run_start_time.strftime('%Y%m%d_%H%M%S')}.json"
