@@ -21,7 +21,7 @@ from .validation import validate_mission_schema, validate_settings_schema
 from .memory import ReflexionMemory
 from .context import ContextLoader
 from .validation import ConfidenceChecker, SelfCheckProtocol
-from .optimizer import TokenOptimizer
+from .optimizer import TokenOptimizer, ContextCompressor
 from .tools import SmartTools
 from .mcp_client import MCPManager
 # -------------------
@@ -85,6 +85,7 @@ class NightShiftAgent:
         self.confidence_checker = ConfidenceChecker(self.root)
         self.self_checker = SelfCheckProtocol()
         self.token_optimizer = TokenOptimizer(self.root)
+        self.context_compressor = ContextCompressor(max_chars=self.settings.get("context_reduction", {}).get("tail_chars", 2000))
         self.smart_tools = SmartTools(self.root)
         
         # --- MCP INTEGRATION ---
@@ -301,20 +302,10 @@ class NightShiftAgent:
         ]
         return any(re.search(pat, command, re.IGNORECASE) for pat in destructive_patterns)
 
-    def _compact_history(self, history):
+    def _compact_history(self, history, task_block=""):
         if not self.context_reduction.get("enabled"):
             return history
-        head_chars = self.context_reduction.get("head_chars", 800)
-        tail_chars = self.context_reduction.get("tail_chars", 2000)
-        if not isinstance(head_chars, int) or head_chars < 0:
-            head_chars = 800
-        if not isinstance(tail_chars, int) or tail_chars < 0:
-            tail_chars = 2000
-        if len(history) <= (head_chars + tail_chars):
-            return history
-        head = history[:head_chars].rstrip()
-        tail = history[-tail_chars:].lstrip()
-        return f"{head}\n\n...[context trimmed]...\n\n{tail}"
+        return self.context_compressor.compress(history, task_block)
 
     def _plan_tasks(self, raw_goal, constraints):
         planner_config = self.settings.get("planner", {})
@@ -580,8 +571,11 @@ Return ONLY valid JSON:
         logging.info(f"🔎 Running Pre-Flight Check for Task {i}...")
         confidence_result = self.confidence_checker.calculate_confidence(task_block)
         logging.info(f"   Score: {confidence_result['score']} ({confidence_result['status']})")
-        for check in confidence_result['checks']:
-            logging.info(f"   - {check}")
+        
+        confidence_hint = ""
+        if confidence_result.get('skip_verification'):
+            logging.info("⚡ High confidence detected: Will hint Brain to skip redundant verification.")
+            confidence_hint = "\n[SYSTEM ADVISORY]\nThis task is classified as high-confidence/deterministic. You may bypass manual 'cat' or 'ls' verification if the command output confirms success. Set status to 'completed' immediately if results are visible."
             
         if confidence_result['status'] == "RED":
             logging.warning("⚠️ Low confidence detected. Suggesting Deep Research...")
@@ -718,11 +712,12 @@ You are a code reviewer. Provide a concise review plan and key changes you would
                     last_output = "SYSTEM: Quota reset period has passed. Please continue the task."
 
                 # Inject Reflexion Context into Brain
+                combined_constraints = constraints + ([confidence_hint] if confidence_hint else [])
                 next_action = self.brain.think(
                     task_block,
                     str([t.get("text", t) if isinstance(t, dict) else t for t in all_tasks]),
-                    constraints,
-                    self._compact_history(task_history),
+                    combined_constraints,
+                    self._compact_history(task_history, task_block),
                     last_output,
                     "", # Removed persona_guidelines: Brain acts only as Auditor/Architect
                     relevant_memories,

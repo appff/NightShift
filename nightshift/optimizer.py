@@ -1,6 +1,77 @@
 import os
 import fnmatch
+import re
 from typing import List, Dict, Optional
+
+class ContextCompressor:
+    """
+    Hierarchically compresses conversation history to preserve critical info.
+    Prevents information loss during long-running tasks.
+    """
+    def __init__(self, max_chars=2000):
+        self.max_chars = max_chars
+
+    def compress(self, history: str, current_task: str) -> str:
+        if len(history) <= self.max_chars:
+            return history
+
+        # Split history into logical turns
+        # We look for common markers in the task history
+        markers = [r'\n=== TASK \d+ START ===', r'\n--- 🧠 DIRECTOR DECISION ---', r'\n--- 🦾 HASSAN OUTPUT ---', r'\n--- 🔍 DIRECT OUTPUT ---']
+        pattern = '|'.join(f'({m})' for m in markers)
+        
+        parts = re.split(pattern, history)
+        if len(parts) <= 1:
+            return history[-self.max_chars:]
+
+        # Reconstruct sections (marker + content)
+        sections = []
+        i = 1
+        while i < len(parts):
+            marker = parts[i]
+            # Find which marker was matched (re.split with groups returns many Nones)
+            while marker is None and i < len(parts) - 1:
+                i += 1
+                marker = parts[i]
+            
+            content = parts[i+1] if i + 1 < len(parts) else ""
+            if marker:
+                sections.append(marker + content)
+            i += 2
+
+        # 1. Critical Content: Current Task Block
+        critical_header = f"\n[STRATEGIC CONTEXT]\nACTIVE TASK: {current_task[:500]}\n"
+        
+        # 2. Recent History: Last 4 turn segments
+        recent_count = 6
+        recent_sections = sections[-recent_count:]
+        recent_text = "".join(recent_sections)
+        
+        # 3. Middle History Summary: Extract commands
+        summary_text = ""
+        middle_sections = sections[:-recent_count]
+        if middle_sections:
+            past_actions = []
+            for sec in middle_sections:
+                if "DIRECTOR DECISION" in sec:
+                    lines = sec.strip().splitlines()
+                    for j, line in enumerate(lines):
+                        if "DIRECTOR DECISION" in line and j + 1 < len(lines):
+                            cmd = lines[j+1].strip()
+                            if cmd and cmd != "MISSION_COMPLETED":
+                                past_actions.append(cmd)
+            
+            if past_actions:
+                # Keep only unique consecutive or significant actions
+                summary_text = "\n[EXECUTION PATH SUMMARY]\n" + " -> ".join(past_actions[-12:]) + "\n"
+
+        compressed = f"{critical_header}{summary_text}\n...[middle history compressed for token efficiency]...\n{recent_text}"
+        
+        # Final safety truncation if still too long
+        if len(compressed) > self.max_chars + 500:
+            return compressed[:500] + "\n...(truncated)...\n" + compressed[-(self.max_chars-500):]
+        
+        return compressed
 
 class TokenOptimizer:
     """

@@ -12,8 +12,14 @@ brain:
   
   # Thinking Budget & Strategy
   # Limits the number of sequential thinking steps to prevent over-analysis.
-  thinking_budget: 5 # Recommended: 3 (concise), 5 (balanced), 10 (thorough)
-  thinking_strategy: "balanced" # concise | balanced | thorough
+  thinking_budget: 5 # Default budget
+  thinking_strategy: "adaptive" # concise | balanced | thorough | adaptive
+  
+  # Adaptive Thinking Budget Map (Phase 2.3)
+  thinking_budget_map:
+    simple: 2      # For routine tasks (score > 0.7)
+    medium: 5      # For standard tasks (score 0.4 - 0.7)
+    complex: 12    # For deep research/fixing (score < 0.4)
 
   deepseek:
     # DeepSeek Coder via Ollama (Requires 'ollama' installed)

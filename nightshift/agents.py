@@ -247,6 +247,24 @@ class Brain:
                     continue
                 return f"MISSION_FAILED: {e}"
 
+    def _assess_complexity(self, task_block):
+        """Heuristically assesses task complexity to determine thinking budget."""
+        task_lower = task_block.lower()
+        # High complexity keywords
+        complex_indicators = ["fix", "debug", "refactor", "optimize", "architect", "integrate", "error", "traceback"]
+        # Low complexity keywords
+        simple_indicators = ["view", "list", "read", "show", "check", "ls", "pwd"]
+        
+        score = 0.5 # Default medium
+        if any(kw in task_lower for kw in complex_indicators):
+            score -= 0.3
+        if any(kw in task_lower for kw in simple_indicators):
+            score += 0.3
+            
+        if score > 0.7: return "simple"
+        if score < 0.4: return "complex"
+        return "medium"
+
     def think(
         self,
         current_task_block,
@@ -317,19 +335,28 @@ Choose ONE format. Output ONLY the raw result.
         reflexion_section = f"\n{reflexion_context}\n" if reflexion_context else ""
 
         # --- DYNAMIC THINKING STRATEGY ---
-        thinking_budget = self.brain_config.get("thinking_budget", 5)
         thinking_strategy = self.brain_config.get("thinking_strategy", "balanced")
+        complexity = self._assess_complexity(current_task_block)
+        
+        # Calculate dynamic budget
+        if thinking_strategy == "adaptive":
+            budget_map = self.brain_config.get("thinking_budget_map", {"simple": 2, "medium": 5, "complex": 10})
+            thinking_budget = budget_map.get(complexity, 5)
+        else:
+            thinking_budget = self.brain_config.get("thinking_budget", 5)
         
         strategy_prompts = {
             "concise": "Minimize thinking steps. Use sequential_thinking ONLY for high-risk architectural decisions.",
             "balanced": "Scale thinking based on complexity. For routine tasks, be direct. For novel or complex logic, use sequential_thinking moderately.",
-            "thorough": "Prioritize correctness over speed. Use sequential_thinking proactively for all non-trivial logic."
+            "thorough": "Prioritize correctness over speed. Use sequential_thinking proactively for all non-trivial logic.",
+            "adaptive": f"Adopt an {complexity.upper()} thinking approach. Adjust depth based on the specific needs of this task."
         }
         selected_strategy = strategy_prompts.get(thinking_strategy, strategy_prompts["balanced"])
 
         cognitive_strategy = f"""
 [COGNITIVE STRATEGY (AUTONOMOUS TOOL USAGE)]
 - STRATEGY: {selected_strategy}
+- COMPLEXITY: {complexity.upper()}
 - BUDGET: Do not exceed {thinking_budget} thinking steps for this turn.
 - If a task is complex or requires multi-step planning, you may use 'sequential_thinking' tools to explore logic before issuing commands.
 - If you lack specific project knowledge, check 'serena' memory tools or 'context7' documentation before guessing.

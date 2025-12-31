@@ -63,59 +63,65 @@ class ConfidenceChecker:
 
     def calculate_confidence(self, task_description: str) -> Dict:
         """
-        Assess confidence level (0.0 - 1.0) based on project state.
+        Assess confidence level (0.0 - 1.0) based on project state and task nature.
         
         Returns:
-            Dict containing score, checks passed, and recommendations.
+            Dict containing score, checks passed, and skip_verification flag.
         """
         checks = []
         score = 0.0
         
-        # Check 1: Documentation Readiness (30%)
-        # Does the project have basic documentation?
+        # Check 1: Documentation Readiness (20%)
         has_docs = self._check_documentation()
         if has_docs:
-            score += 0.3
-            checks.append("✅ Documentation found (README/docs)")
+            score += 0.2
+            checks.append("✅ Documentation found")
         else:
-            checks.append("❌ Missing documentation (running blind?)")
+            checks.append("❌ Missing documentation")
 
-        # Check 2: Duplication Risk (30%)
-        # Does this look like something that might already exist?
-        # (This is a heuristic check)
-        potential_duplication = self._check_potential_duplication(task_description)
-        if not potential_duplication:
-            score += 0.3
-            checks.append("✅ No obvious duplication detected")
-        else:
-            checks.append(f"⚠️ Potential duplication detected in: {potential_duplication}")
-            score += 0.1  # Partial points only
-
-        # Check 3: Task Clarity (40%)
-        # Is the task description detailed enough?
+        # Check 2: Task Clarity (30%)
         is_clear = len(task_description.split()) > 5
         if is_clear:
-            score += 0.4
-            checks.append("✅ Task description seems detailed")
+            score += 0.3
+            checks.append("✅ Task description is detailed")
         else:
             checks.append("❌ Task description too vague")
 
-        # Determine action based on score
-        if score >= 0.7:
+        # Check 3: Deterministic Nature (50% - NEW)
+        # Higher score for explicit, simple actions
+        task_lower = task_description.lower()
+        deterministic_score = 0.0
+        if any(kw in task_lower for kw in ["create", "write", "print", "echo", "list", "show"]):
+            deterministic_score += 0.3
+            checks.append("✓ Likely deterministic task")
+        
+        if any(kw in task_lower for kw in ["fix", "debug", "investigate", "research", "analyze", "resolve"]):
+            deterministic_score -= 0.2
+            checks.append("⚠ Exploratory task (requires verification)")
+        
+        if re.search(r'\.py|\.js|\.md|\.yaml|\.json', task_lower):
+            deterministic_score += 0.2
+            checks.append("✓ Specific file target mentioned")
+            
+        score += max(0, deterministic_score)
+
+        # Determine status
+        if score >= 0.75:
             status = "GREEN"
-            action = "Proceed with execution."
+            action = "Proceed. Skip manual verification if output looks clear."
         elif score >= 0.4:
             status = "YELLOW"
-            action = "Proceed with caution. Consider 'Deep Research' first."
+            action = "Proceed with caution. Verify results."
         else:
             status = "RED"
-            action = "STOP. Request clarification or run exploratory research."
+            action = "STOP. High uncertainty."
 
         return {
             "score": round(score, 2),
             "status": status,
             "action": action,
-            "checks": checks
+            "checks": checks,
+            "skip_verification": score >= 0.8 # HIGH confidence threshold
         }
 
     def _check_documentation(self) -> bool:
