@@ -68,7 +68,7 @@ brain:
 
 body:
   # Select the execution unit (Worker/Hassan).
-  active_driver: "claude"
+  active_driver: "codex"
   use_real_home: true
   auto_verify: true # Automatically verify mutation commands (cat/read_file after write)
   autonomy: "high" # basic | moderate | high
@@ -189,6 +189,12 @@ metrics:
 # Two-phase mode (plan -> execute -> verify)
 two_phase:
   enabled: true
+
+# Audit (optional)
+audit:
+  verify_once: true
+  trust_hassan: true
+  skip_on_high_confidence: true
 
 # Persona Definitions: Professional guidelines shared by Brain and Hassan
 personas:

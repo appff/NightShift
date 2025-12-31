@@ -95,6 +95,10 @@ class NightShiftAgent:
         self.two_phase_enabled = self.two_phase_config.get("enabled", False)
         metrics_config = self.settings.get("metrics", {})
         self.metrics = PerformanceMetrics(self.root, enabled=metrics_config.get("enabled", True))
+        audit_config = self.settings.get("audit", {})
+        self.audit_verify_once = audit_config.get("verify_once", True)
+        self.audit_trust_hassan = audit_config.get("trust_hassan", True)
+        self.audit_skip_on_high_confidence = audit_config.get("skip_on_high_confidence", True)
         
         # --- MCP INTEGRATION ---
         self.mcp_enabled = self.settings.get("mcp_enabled", True)
@@ -467,6 +471,44 @@ Return ONLY valid JSON:
             return True
         return False
 
+    def _extract_file_targets(self, text):
+        if not text:
+            return []
+        candidates = []
+        ls_pattern = re.compile(r"^[\-dl][rwx-]{9}\S*\s+.+\s+(\S+)$", re.MULTILINE)
+        for match in ls_pattern.finditer(text):
+            candidates.append(match.group(1))
+        read_file_pattern = re.compile(r"\bread_file\s+([^\s`]+)")
+        for match in read_file_pattern.finditer(text):
+            candidates.append(match.group(1))
+        file_header_pattern = re.compile(r"--- FILE:\s+(.+?)\s+---")
+        for match in file_header_pattern.finditer(text):
+            candidates.append(match.group(1))
+        filename_pattern = re.compile(r"\b[\w./-]+\.(py|md|txt|yaml|yml|json|js|ts)\b")
+        for match in filename_pattern.finditer(text):
+            candidates.append(match.group(0))
+        deduped = []
+        seen = set()
+        for item in candidates:
+            cleaned = item.strip().strip('"').strip("'")
+            if not cleaned or cleaned.endswith("/"):
+                continue
+            if cleaned in seen:
+                continue
+            seen.add(cleaned)
+            deduped.append(cleaned)
+        return deduped
+
+    def _select_verification_command(self, task_block, last_output):
+        candidates = self._extract_file_targets(last_output)
+        if not candidates:
+            candidates = self._extract_file_targets(task_block)
+        if candidates:
+            with_ext = [c for c in candidates if "." in os.path.basename(c)]
+            preferred = with_ext[0] if with_ext else candidates[0]
+            return f"read_file {shlex.quote(preferred)}"
+        return "ls"
+
     def _handle_quota_limit(self, error_message):
         logging.warning(f"🚨 Quota limit hit detected! Analyzing reset time: {error_message[:100]}...")
         try:
@@ -764,6 +806,7 @@ You are a code reviewer. Provide a concise review plan and key changes you would
         last_check_command = None
         last_check_output = None
         repeat_check_count = 0
+        verification_count = 0
         
         # Semantic Memory: Load only relevant lessons for this task
         relevant_memories = self.memory_manager.load_memories(query=task_block)
@@ -793,6 +836,7 @@ Do NOT execute anything yourself. Output ONLY the plan as bullet points.
 [OUTPUT]
 - Use 3-7 bullets.
 - Use `view <url>` for any web searches (no external browser tools).
+- For tests/commands, include the exact command Hassan should run (e.g., `python -m unittest ...`).
 - Include explicit file outputs and verification steps for Hassan.
 """
                 plan_text = self.brain._run_cli_command(plan_prompt)
@@ -815,6 +859,24 @@ Do NOT execute anything yourself. Output ONLY the plan as bullet points.
                 task_history += f"\n--- 🧠 DIRECTOR PLAN ---\n{plan_text}\n"
                 task_history += f"\n--- 🦾 HASSAN OUTPUT ---\n{self.brain.clean_ansi(hassan_output)}\n"
                 last_output = hassan_output
+                if self.audit_trust_hassan or (self.audit_skip_on_high_confidence and confidence_result.get("skip_verification")):
+                    logging.info("✅ Trust-Hassan mode: Skipping additional Brain verification.")
+                    task_completed = True
+                    if task_id:
+                        self._update_task_status(task_id, "done")
+                    self.task_summaries.append(
+                        {
+                            "task": task_block,
+                            "persona": persona_name,
+                            "status": "completed",
+                            "duration_seconds": (datetime.now() - task_start_time).total_seconds(),
+                            "metrics": self.metrics.finalize_task(
+                                "completed",
+                                (datetime.now() - task_start_time).total_seconds(),
+                            ),
+                        }
+                    )
+                    return task_history
 
             while True:
                 turn_count += 1
@@ -866,11 +928,8 @@ Do NOT execute anything yourself. Output ONLY the plan as bullet points.
                 if self._should_prefix_batch(next_action):
                     next_action = f"BATCH: {next_action}"
                 if self._should_block_brain_execution(next_action):
-                    logging.info("⚠️  Orchestrator Guard: Blocking Brain execution; requesting Hassan to perform the task.")
-                    next_action = (
-                        "Please complete the task yourself and make sure all required files are created or updated. "
-                        "After finishing, summarize what you did and provide verification steps or output."
-                    )
+                    logging.info("⚠️  Orchestrator Guard: Blocking Brain execution; enforcing audit-only verification.")
+                    next_action = self._select_verification_command(task_block, last_output)
                 
                 # Log the final decision clearly to the console
                 if next_action == "MISSION_COMPLETED":
@@ -983,6 +1042,7 @@ Do NOT execute anything yourself. Output ONLY the plan as bullet points.
                     self.metrics.record_command(next_action, local_check=True, batch=False)
                     intercepted_output = self._run_local_check(next_action, work_dir)
                     task_history += f"\n--- 🔍 DIRECT OUTPUT ---\n{intercepted_output}\n"
+                    verification_count += 1
                     
                     # Anti-looping for local checks
                     if next_action == last_check_command and intercepted_output == last_check_output:
@@ -994,7 +1054,41 @@ Do NOT execute anything yourself. Output ONLY the plan as bullet points.
                     
                     if repeat_check_count >= 2:
                         logging.info(f"✅ Task {i} likely complete (repeated observations).")
-                        break
+                        task_completed = True
+                        if task_id:
+                            self._update_task_status(task_id, "done")
+                        self.task_summaries.append(
+                            {
+                                "task": task_block,
+                                "persona": persona_name,
+                                "status": "completed",
+                                "duration_seconds": (datetime.now() - task_start_time).total_seconds(),
+                                "metrics": self.metrics.finalize_task(
+                                    "completed",
+                                    (datetime.now() - task_start_time).total_seconds(),
+                                ),
+                            }
+                        )
+                        return task_history
+
+                    if self.audit_verify_once and verification_count >= 2:
+                        logging.info(f"✅ Task {i} likely complete (single-pass audit).")
+                        task_completed = True
+                        if task_id:
+                            self._update_task_status(task_id, "done")
+                        self.task_summaries.append(
+                            {
+                                "task": task_block,
+                                "persona": persona_name,
+                                "status": "completed",
+                                "duration_seconds": (datetime.now() - task_start_time).total_seconds(),
+                                "metrics": self.metrics.finalize_task(
+                                    "completed",
+                                    (datetime.now() - task_start_time).total_seconds(),
+                                ),
+                            }
+                        )
+                        return task_history
 
                 # 2. Smart Mutation/Execution Tools
                 # Intentionally not intercepted. Hassan should execute all mutations and free-form work.
@@ -1019,6 +1113,24 @@ Do NOT execute anything yourself. Output ONLY the plan as bullet points.
                     local_check=False,
                     batch=next_action.lstrip().upper().startswith("BATCH:"),
                 )
+                if self.audit_trust_hassan or (self.audit_skip_on_high_confidence and confidence_result.get("skip_verification")):
+                    logging.info("✅ Trust-Hassan mode: Skipping additional Brain verification.")
+                    task_completed = True
+                    if task_id:
+                        self._update_task_status(task_id, "done")
+                    self.task_summaries.append(
+                        {
+                            "task": task_block,
+                            "persona": persona_name,
+                            "status": "completed",
+                            "duration_seconds": (datetime.now() - task_start_time).total_seconds(),
+                            "metrics": self.metrics.finalize_task(
+                                "completed",
+                                (datetime.now() - task_start_time).total_seconds(),
+                            ),
+                        }
+                    )
+                    return task_history
                 if not hassan_output.strip():
                     hassan_output = "SYSTEM ALERT: Hassan returned an empty response. If you were trying to create a file, it might have failed silently. Please verify using 'ls' or use a different method (like the write_file tool)."
                 

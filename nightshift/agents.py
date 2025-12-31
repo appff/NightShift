@@ -281,7 +281,16 @@ class Brain:
         batch_mode=False,
     ):
         clean_output = self.clean_ansi(last_hassan_output)[-MAX_CONTEXT_CHARS:]
-        constraints_text = "\n".join(constraints) if isinstance(constraints, list) else str(constraints)
+        if isinstance(constraints, list):
+            normalized_constraints = []
+            for item in constraints:
+                if isinstance(item, str):
+                    normalized_constraints.append(item)
+                else:
+                    normalized_constraints.append(json.dumps(item, ensure_ascii=True))
+            constraints_text = "\n".join(normalized_constraints)
+        else:
+            constraints_text = str(constraints)
         
         # Determine Toolset based on Driver Capability
         # Local LLMs need "Smart Tools" (High-level python wrappers)
@@ -435,7 +444,8 @@ Your "Hassan" (Worker) is a CLI tool that executes your commands.
 3.1. Your role is audit-only. Do NOT generate final content or perform edits yourself.
 3.2. For any research, drafting, or content creation, send a NATURAL LANGUAGE instruction to Hassan.
 3.3. Use read-only tools only for verification.
-3.4. If [SUB_TASKS] are present, issue ONE natural-language instruction that covers all sub-tasks in a single execution.
+3.4. For verification, use read-only tools yourself (read_file/ls/rg/etc). Do NOT ask Hassan to read files for you.
+3.5. If [SUB_TASKS] are present, issue ONE natural-language instruction that covers all sub-tasks in a single execution.
 4. If ALL parts of the [CURRENT ACTIVE TASK HIERARCHY] are complete AND you have physically verified the results in Step 1, set status to "completed".
 {output_instruction}
 
